@@ -1,7 +1,7 @@
 # ITP_KU_02
 
 # PrintProTrack Inventory Management System
-**ITP_KU_02** — SLITT Kandy UNI  
+**ITP_KU_02** — SLIIT Kandy UNI  
 **IT2150 / IT Project**
 
 ### Group Members
