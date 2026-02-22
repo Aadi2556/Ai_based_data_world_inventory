@@ -18,4 +18,3 @@
 Project Title: **PrintProTrack Inventory Management System**  
 Client: Data World, Kegalle  
 Contact Person: Janith Senanayke (Owner)
-Email: dataworld.kegalle@gmail.com
