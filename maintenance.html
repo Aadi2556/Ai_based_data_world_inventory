@@ -1,0 +1,1656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Machine Maintenance — PrintProTrack</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+    <style>
+        :root {
+            --forest:   #1a3a2a;
+            --pine:     #1e5c2f;
+            --sage:     #2d8a47;
+            --mint:     #3daa5a;
+            --mist:     #e8f5ec;
+            --ink:      #0f1a14;
+            --slate:    #4a5568;
+            --bone:     #f7f9f8;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+        body { font-family: 'DM Sans', sans-serif; background: var(--bone); color: var(--ink); margin: 0; }
+        code, .mono { font-family: 'DM Mono', monospace; }
+
+        /* ─ Sidebar ─ */
+        .sidebar { background: var(--forest); width: 260px; height: 100vh; flex-shrink: 0; display: flex; flex-direction: column; position: sticky; top: 0; }
+        .sidebar-logo { background: #fff; padding: 18px 22px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #0d2018; }
+        .sidebar-logo .brand-text { font-weight: 700; font-size: 17px; color: var(--pine); letter-spacing: .3px; }
+        .sidebar-badge { font-size: 10px; font-weight: 700; background: #d1fae5; color: #065f46; padding: 2px 7px; border-radius: 99px; letter-spacing: .5px; margin-left: auto; }
+        .sidebar-nav { flex: 1; overflow-y: auto; padding: 16px 12px; display: flex; flex-direction: column; gap: 2px; }
+        .nav-label { font-size: 10px; font-weight: 700; letter-spacing: 2px; color: #3d6b4e; text-transform: uppercase; padding: 10px 10px 4px; }
+        .nav-link { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; color: #9dbea8; font-size: 13.5px; font-weight: 500; text-decoration: none; transition: all .2s; border-left: 3px solid transparent; cursor: pointer; }
+        .nav-link:hover { background: rgba(255,255,255,.07); color: #fff; }
+        .nav-link.active { background: rgba(255,255,255,.12); color: #fff; border-left-color: var(--mint); }
+        .nav-link.disabled { opacity: .35; cursor: not-allowed; pointer-events: none; }
+        .nav-link i { width: 16px; text-align: center; font-size: 13px; }
+        .sidebar-footer { padding: 14px 12px; border-top: 1px solid #0d2018; }
+
+        /* ─ Top nav ─ */
+        .topnav { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 0 28px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 30; }
+        .topnav-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; }
+        .topnav-right { display: flex; align-items: center; gap: 18px; font-size: 13px; color: #64748b; }
+        .topnav-right a, .topnav-right button { color: #64748b; background: none; border: none; cursor: pointer; font-size: 13px; font-family: inherit; display: flex; align-items: center; gap: 5px; transition: color .15s; text-decoration: none; }
+        .topnav-right a:hover { color: #3b82f6; }
+        .topnav-right button:hover { color: #ef4444; }
+
+        /* ─ Layout ─ */
+        .page-wrap { display: flex; height: 100vh; overflow: hidden; }
+        .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .scroll-area { flex: 1; overflow-y: auto; padding: 28px; }
+        .content { max-width: 1280px; margin: 0 auto; }
+
+        /* ─ Banner ─ */
+        .banner { background: linear-gradient(135deg, var(--forest) 0%, var(--pine) 55%, var(--sage) 100%); border-radius: 16px; padding: 24px 28px; color: #fff; display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+        .banner h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px; }
+        .banner p { font-size: 13px; color: rgba(255,255,255,.7); margin: 0; }
+        .btn-primary { background: #fff; color: var(--pine); font-weight: 700; font-size: 13px; border: none; padding: 10px 18px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; gap: 7px; transition: all .15s; font-family: inherit; text-decoration: none; }
+        .btn-primary:hover { background: #e8f5ec; }
+        .btn-danger { background: #fee2e2; color: #b91c1c; font-weight: 600; font-size: 12px; border: none; padding: 7px 13px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: all .15s; font-family: inherit; }
+        .btn-danger:hover { background: #fca5a5; }
+
+        /* ─ Stat cards ─ */
+        .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px; }
+        .stat-grid.five { grid-template-columns: repeat(5, 1fr); }
+        .stat-card { background: #fff; border-radius: 14px; padding: 18px 20px; border-top: 3px solid transparent; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+        .stat-card .label { font-size: 10px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #94a3b8; margin-bottom: 6px; }
+        .stat-card .value { font-size: 30px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+
+        /* ─ Availability badges ─ */
+        .b-available { background: #d1fae5; color: #065f46; }
+        .b-busy       { background: #fef3c7; color: #92400e; }
+        .b-on_leave   { background: #dbeafe; color: #1d4ed8; }
+        .b-inactive   { background: #fee2e2; color: #991b1b; }
+
+        /* ─ Avatar circle ─ */
+        .tech-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; flex-shrink: 0; }
+
+        /* ─ Progress bar ─ */
+        .pbar-bg { height: 5px; background: #f1f5f9; border-radius: 99px; overflow: hidden; }
+        .pbar-fill { height: 100%; background: linear-gradient(90deg, var(--sage), var(--mint)); border-radius: 99px; transition: width .4s; }
+
+        /* ─ Page tabs ─ */
+        .page-tabs { display: flex; gap: 4px; background: #fff; border-radius: 12px; padding: 5px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+        .page-tab { flex: 1; padding: 10px; border-radius: 9px; border: none; background: transparent; font-family: inherit; font-size: 13.5px; font-weight: 500; color: #64748b; cursor: pointer; transition: all .2s; display: flex; align-items: center; justify-content: center; gap: 7px; }
+        .page-tab.active { background: var(--pine); color: #fff; font-weight: 600; }
+        .page-tab:not(.active):hover { background: var(--mist); color: var(--pine); }
+
+        /* ─ Card panel ─ */
+        .panel { background: #fff; border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.06); overflow: hidden; }
+        .panel-header { padding: 16px 22px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+        .panel-title { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+
+        /* ─ Filter chips ─ */
+        .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+        .chip { padding: 5px 13px; border-radius: 99px; border: 1.5px solid #e2e8f0; background: #fff; font-size: 12px; font-weight: 600; color: #64748b; cursor: pointer; transition: all .15s; white-space: nowrap; font-family: inherit; }
+        .chip.active { background: var(--pine); color: #fff; border-color: var(--pine); }
+        .chip:not(.active):hover { border-color: var(--sage); color: var(--sage); }
+
+        /* ─ Table ─ */
+        .data-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+        .data-table thead th { padding: 12px 16px; text-align: left; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #94a3b8; background: #f8fafc; white-space: nowrap; }
+        .data-table tbody tr { border-bottom: 1px solid #f1f5f9; transition: background .15s; }
+        .data-table tbody tr:last-child { border-bottom: none; }
+        .data-table tbody tr:hover { background: #f8fafc; }
+        .data-table td { padding: 14px 16px; vertical-align: middle; }
+
+        /* ─ Badges ─ */
+        .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; letter-spacing: .3px; white-space: nowrap; }
+        .b-scheduled   { background: #dbeafe; color: #1d4ed8; }
+        .b-in_progress { background: #fef3c7; color: #92400e; }
+        .b-completed   { background: #d1fae5; color: #065f46; }
+        .b-cancelled   { background: #fee2e2; color: #991b1b; }
+        .b-open        { background: #fef9c3; color: #854d0e; }
+        .b-resolved    { background: #d1fae5; color: #065f46; }
+        .b-closed      { background: #e2e8f0; color: #475569; }
+        .b-preventive  { background: #ede9fe; color: #5b21b6; }
+        .b-corrective  { background: #fce7f3; color: #9d174d; }
+        .b-inspection  { background: #e0f2fe; color: #075985; }
+        .b-emergency   { background: #fee2e2; color: #b91c1c; }
+        .b-low         { background: #f0fdf4; color: #166534; }
+        .b-medium      { background: #fefce8; color: #713f12; }
+        .b-high        { background: #fff7ed; color: #9a3412; }
+        .b-critical    { background: #fef2f2; color: #991b1b; }
+
+        /* ─ Action buttons ─ */
+        .action-btn { width: 30px; height: 30px; border-radius: 8px; border: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all .15s; font-size: 12px; }
+        .action-btn.view   { background: #eff6ff; color: #3b82f6; }
+        .action-btn.edit   { background: #f0fdf4; color: #16a34a; }
+        .action-btn.del    { background: #fef2f2; color: #dc2626; }
+        .action-btn.cancel { background: #fef3c7; color: #d97706; }
+        .action-btn:hover { filter: brightness(.93); transform: scale(1.06); }
+        .action-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+        /* ─ Alert ─ */
+        .page-alert { border-radius: 10px; padding: 12px 16px; font-size: 13px; font-weight: 500; margin-bottom: 16px; display: none; }
+        .page-alert.show { display: block; }
+        .page-alert.success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+        .page-alert.error   { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+
+        /* ─ Empty state ─ */
+        .empty-state { padding: 56px 20px; text-align: center; color: #94a3b8; }
+        .empty-state i { font-size: 40px; display: block; margin-bottom: 12px; }
+        .empty-state p { font-size: 14px; }
+
+        /* ─ Modal ─ */
+        .overlay { display: none; position: fixed; inset: 0; background: rgba(15,26,20,.5); z-index: 100; align-items: flex-start; justify-content: center; overflow-y: auto; padding: 40px 20px; backdrop-filter: blur(2px); }
+        .overlay.open { display: flex; }
+        .modal { background: #fff; border-radius: 18px; width: 640px; max-width: 96vw; margin: auto; animation: pop .2s ease; }
+        @keyframes pop { from { opacity: 0; transform: translateY(12px) scale(.97); } to { opacity: 1; transform: none; } }
+        .modal-head { padding: 22px 26px 18px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between; }
+        .modal-head h3 { font-size: 17px; font-weight: 700; margin: 0; }
+        .modal-close { background: #f1f5f9; border: none; width: 30px; height: 30px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #64748b; font-size: 13px; transition: background .15s; }
+        .modal-close:hover { background: #e2e8f0; }
+        .modal-body { padding: 22px 26px; }
+        .modal-foot { padding: 16px 26px 22px; display: flex; justify-content: flex-end; gap: 10px; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .form-grid .full { grid-column: 1 / -1; }
+        .form-section { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #94a3b8; grid-column: 1 / -1; padding-bottom: 4px; border-bottom: 1px solid #f1f5f9; margin-top: 4px; }
+        .f-label { font-size: 11px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: #64748b; display: block; margin-bottom: 5px; }
+        .f-input { width: 100%; padding: 9px 12px; border: 1.5px solid #e2e8f0; border-radius: 9px; font-size: 13.5px; font-family: inherit; outline: none; transition: border-color .2s, box-shadow .2s; background: #fff; color: var(--ink); }
+        .f-input:focus { border-color: var(--sage); box-shadow: 0 0 0 3px rgba(45,138,71,.12); }
+        .f-input:disabled { background: #f8fafc; color: #94a3b8; cursor: not-allowed; }
+        textarea.f-input { resize: vertical; min-height: 72px; }
+        .form-error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 10px 14px; border-radius: 9px; font-size: 13px; margin-top: 12px; display: none; }
+        .form-error.show { display: block; }
+
+        /* Detail modal */
+        .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .detail-grid .full { grid-column: 1 / -1; }
+        .detail-field .d-label { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #94a3b8; margin-bottom: 3px; }
+        .detail-field .d-value { font-size: 13.5px; color: var(--ink); font-weight: 500; word-break: break-word; }
+        .detail-divider { grid-column: 1 / -1; height: 1px; background: #f1f5f9; margin: 4px 0; }
+        .doc-chip { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; background: #f1f5f9; border-radius: 6px; font-size: 12px; color: #475569; }
+
+        /* Confirm modal */
+        .confirm-modal { max-width: 380px; text-align: center; }
+        .confirm-icon { width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; font-size: 24px; }
+
+        /* Buttons */
+        .btn { padding: 9px 20px; border-radius: 9px; border: none; font-family: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; transition: all .15s; }
+        .btn-ghost { background: #f1f5f9; color: #475569; }
+        .btn-ghost:hover { background: #e2e8f0; }
+        .btn-green { background: var(--pine); color: #fff; }
+        .btn-green:hover { background: #164823; }
+        .btn-red { background: #dc2626; color: #fff; }
+        .btn-red:hover { background: #b91c1c; }
+        .btn:disabled { opacity: .55; cursor: not-allowed; }
+
+        /* Spinner */
+        .spin { display: inline-block; width: 13px; height: 13px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: rotate .5s linear infinite; vertical-align: middle; margin-right: 5px; }
+        @keyframes rotate { to { transform: rotate(360deg); } }
+
+        /* Logout btn */
+        .logout-btn { width: 100%; background: rgba(220,38,38,.15); color: #fca5a5; border: none; padding: 10px; border-radius: 9px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background .15s; }
+        .logout-btn:hover { background: rgba(220,38,38,.25); }
+
+        @media (max-width: 900px) {
+            .sidebar { display: none; }
+            .stat-grid { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 600px) {
+            .stat-grid { grid-template-columns: 1fr; }
+            .form-grid { grid-template-columns: 1fr; }
+            .form-grid .full { grid-column: 1; }
+            .detail-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+<div class="page-wrap">
+
+    <!-- ═══════ SIDEBAR ═══════ -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <i class="fas fa-print" style="color:var(--pine);font-size:18px"></i>
+            <span class="brand-text">PrintProTrack</span>
+            <span class="sidebar-badge">ADMIN</span>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-label">Main</div>
+            <a href='/dashboard' class="nav-link"><i class="fas fa-house"></i> Dashboard</a>
+            <a href='/dashboard#profile' class="nav-link"><i class="fas fa-circle-user"></i> My Profile</a>
+            <div class="nav-label">Operations</div>
+            <a href='/maintenance' class="nav-link active"><i class="fas fa-screwdriver-wrench"></i> Machine Maintenance</a>
+            <a href="/maintenance" class="nav-link" onclick="switchTab('technicians');return false"><i class="fas fa-users-gear"></i> Staff Management</a>
+            <a class="nav-link disabled"><i class="fas fa-cogs"></i> Spare Parts</a>
+            <a class="nav-link disabled"><i class="fas fa-truck-field"></i> Suppliers</a>
+            <a class="nav-link disabled"><i class="fas fa-bolt"></i> Energy Consumption</a>
+            <a class="nav-link disabled"><i class="fas fa-scroll"></i> Material Management</a>
+        </nav>
+        <div class="sidebar-footer">
+            <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Sign Out</button>
+        </div>
+    </aside>
+
+    <!-- ═══════ MAIN ═══════ -->
+    <div class="main">
+
+        <!-- Top nav -->
+        <nav class="topnav">
+            <div class="topnav-brand">
+                <i class="fas fa-print" style="color:#6366f1;font-size:18px"></i>
+                PrintProTrack
+                <span style="font-size:11px;background:#e0e7ff;color:#4338ca;padding:2px 8px;border-radius:99px;font-weight:700;letter-spacing:.5px">ADMIN</span>
+            </div>
+            <div class="topnav-right">
+                <span>Welcome, <strong id="topbarName">Admin</strong></span>
+                <a href='/dashboard'><i class="fas fa-home"></i> Dashboard</a>
+                <button onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+            </div>
+        </nav>
+
+        <div class="scroll-area">
+            <div class="content">
+
+                <!-- Alert -->
+                <div id="pageAlert" class="page-alert"></div>
+
+                <!-- Banner -->
+                <div class="banner">
+                    <div>
+                        <h1><i class="fas fa-screwdriver-wrench" style="margin-right:8px;opacity:.85"></i>Machine Maintenance</h1>
+                        <p>Schedule preventive care and track every repair — all in one place.</p>
+                    </div>
+                    <!-- Banner button: rendered as <a> or <button> dynamically via updateBannerBtn() -->
+                    <button id="bannerAddBtn" class="btn-primary" onclick="openCreateModal()">
+                        <i class="fas fa-plus"></i> <span id="bannerBtnText">New Schedule</span>
+                    </button>
+                </div>
+
+                <!-- Stats -->
+                <div class="stat-grid" id="statGrid">
+                    <div class="stat-card" style="border-top-color:#3b82f6">
+                        <div class="label" id="s1Label">Scheduled</div>
+                        <div class="value" style="color:#3b82f6" id="s1Val">0</div>
+                    </div>
+                    <div class="stat-card" style="border-top-color:#f59e0b">
+                        <div class="label" id="s2Label">In Progress</div>
+                        <div class="value" style="color:#f59e0b" id="s2Val">0</div>
+                    </div>
+                    <div class="stat-card" style="border-top-color:#10b981">
+                        <div class="label" id="s3Label">Completed</div>
+                        <div class="value" style="color:#10b981" id="s3Val">0</div>
+                    </div>
+                    <div class="stat-card" style="border-top-color:#ef4444">
+                        <div class="label" id="s4Label">Cancelled</div>
+                        <div class="value" style="color:#ef4444" id="s4Val">0</div>
+                    </div>
+                </div>
+
+                <!-- Page tabs -->
+                <div class="page-tabs">
+                    <button class="page-tab active" id="tabSchedules" onclick="switchTab('schedules')">
+                        <i class="fas fa-calendar-check"></i> Maintenance Schedules
+                    </button>
+                    <button class="page-tab" id="tabRepairs" onclick="switchTab('repairs')">
+                        <i class="fas fa-wrench"></i> Repair History
+                    </button>
+                    <button class="page-tab" id="tabTechnicians" onclick="switchTab('technicians')">
+                        <i class="fas fa-users-gear"></i> Technicians
+                    </button>
+                </div>
+
+                <!-- ── SCHEDULES PANEL ── -->
+                <div id="panelSchedules" class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title"><i class="fas fa-calendar-check" style="color:var(--sage)"></i> Maintenance Schedules</div>
+                        <div class="chips" id="scheduleChips">
+                            <button class="chip active" onclick="filterSchedules('ALL', this)">All</button>
+                            <button class="chip" onclick="filterSchedules('SCHEDULED', this)">Scheduled</button>
+                            <button class="chip" onclick="filterSchedules('IN_PROGRESS', this)">In Progress</button>
+                            <button class="chip" onclick="filterSchedules('COMPLETED', this)">Completed</button>
+                            <button class="chip" onclick="filterSchedules('CANCELLED', this)">Cancelled</button>
+                        </div>
+                    </div>
+                    <div style="overflow-x:auto">
+                        <table class="data-table">
+                            <thead>
+                            <tr>
+                                <th>Title / Machine</th>
+                                <th>Type</th>
+                                <th>Scheduled Date</th>
+                                <th>Technician</th>
+                                <th>Status</th>
+                                <th style="text-align:center">Actions</th>
+                            </tr>
+                            </thead>
+                            <tbody id="schedulesBody">
+                            <tr><td colspan="6"><div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading…</p></div></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ── REPAIRS PANEL ── -->
+                <div id="panelRepairs" class="panel" style="display:none">
+                    <div class="panel-header">
+                        <div class="panel-title"><i class="fas fa-wrench" style="color:#dc2626"></i> Repair History &amp; Logs</div>
+                        <div class="chips" id="repairChips">
+                            <button class="chip active" onclick="filterRepairs('ALL', this)">All</button>
+                            <button class="chip" onclick="filterRepairs('OPEN', this)">Open</button>
+                            <button class="chip" onclick="filterRepairs('IN_PROGRESS', this)">In Progress</button>
+                            <button class="chip" onclick="filterRepairs('RESOLVED', this)">Resolved</button>
+                            <button class="chip" onclick="filterRepairs('CLOSED', this)">Closed</button>
+                        </div>
+                    </div>
+                    <div style="overflow-x:auto">
+                        <table class="data-table">
+                            <thead>
+                            <tr>
+                                <th>Title / Machine</th>
+                                <th>Severity</th>
+                                <th>Reported</th>
+                                <th>Technician</th>
+                                <th>Cost</th>
+                                <th>Status</th>
+                                <th style="text-align:center">Actions</th>
+                            </tr>
+                            </thead>
+                            <tbody id="repairsBody">
+                            <tr><td colspan="7"><div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading…</p></div></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ── TECHNICIANS PANEL ── -->
+                <div id="panelTechnicians" class="panel" style="display:none">
+                    <div class="panel-header">
+                        <div class="panel-title"><i class="fas fa-users-gear" style="color:var(--sage)"></i> Technician Staff</div>
+                        <div class="chips" id="techChips">
+                            <button class="chip active" onclick="filterTechs('ALL', this)">All</button>
+                            <button class="chip" onclick="filterTechs('AVAILABLE', this)">Available</button>
+                            <button class="chip" onclick="filterTechs('BUSY', this)">Busy</button>
+                            <button class="chip" onclick="filterTechs('ON_LEAVE', this)">On Leave</button>
+                            <button class="chip" onclick="filterTechs('INACTIVE', this)">Inactive</button>
+                        </div>
+                    </div>
+                    <div style="overflow-x:auto">
+                        <table class="data-table">
+                            <thead>
+                            <tr>
+                                <th>Technician</th>
+                                <th>Specialization</th>
+                                <th>Experience</th>
+                                <th>Workload</th>
+                                <th>Availability</th>
+                                <th style="text-align:center">Actions</th>
+                            </tr>
+                            </thead>
+                            <tbody id="techsBody">
+                            <tr><td colspan="6"><div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading…</p></div></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SCHEDULE CREATE / EDIT MODAL
+══════════════════════════════════════════ -->
+<div class="overlay" id="scheduleModal">
+    <div class="modal">
+        <div class="modal-head">
+            <h3 id="schedModalTitle">New Maintenance Schedule</h3>
+            <button class="modal-close" onclick="closeModal('scheduleModal')"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <form id="schedForm" novalidate>
+                <input type="hidden" id="sched-id"/>
+                <div class="form-grid">
+                    <div class="form-section">Basic Details</div>
+                    <div class="full">
+                        <label class="f-label">Title *</label>
+                        <input type="text" id="s-title" class="f-input" placeholder="e.g. Monthly Offset Press Inspection" required/>
+                    </div>
+                    <div>
+                        <label class="f-label">Machine *</label>
+                        <select id="s-machine" class="f-input" required>
+                            <option value="">Select machine…</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="f-label">Maintenance Type *</label>
+                        <select id="s-type" class="f-input" required>
+                            <option value="">Select type…</option>
+                            <option value="PREVENTIVE">Preventive</option>
+                            <option value="CORRECTIVE">Corrective</option>
+                            <option value="INSPECTION">Inspection</option>
+                            <option value="EMERGENCY">Emergency</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="f-label">Scheduled Date &amp; Time *</label>
+                        <input type="datetime-local" id="s-date" class="f-input" required/>
+                    </div>
+                    <div>
+                        <label class="f-label">Est. Duration (hours)</label>
+                        <input type="number" id="s-duration" class="f-input" placeholder="e.g. 4" min="1" max="72"/>
+                    </div>
+                    <div class="full">
+                        <label class="f-label">Assigned Technician</label>
+                        <!-- changed from free-text to dropdown -->
+                        <select id="s-tech" class="f-input">
+                            <option value="">Select technician…</option>
+                        </select>
+                    </div>
+                    <div class="full">
+                        <label class="f-label">Description</label>
+                        <textarea id="s-desc" class="f-input" placeholder="What needs to be done…"></textarea>
+                    </div>
+                    <div class="full">
+                        <label class="f-label">Notes</label>
+                        <textarea id="s-notes" class="f-input" placeholder="Additional notes…"></textarea>
+                    </div>
+                    <div id="s-status-wrap" class="full" style="display:none">
+                        <label class="f-label">Status</label>
+                        <select id="s-status" class="f-input">
+                            <option value="SCHEDULED">Scheduled</option>
+                            <option value="IN_PROGRESS">In Progress</option>
+                            <option value="COMPLETED">Completed</option>
+                            <option value="CANCELLED">Cancelled</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-error" id="schedFormErr"></div>
+            </form>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-ghost" onclick="closeModal('scheduleModal')">Cancel</button>
+            <button class="btn btn-green" id="schedSubmitBtn" onclick="submitSchedule()">
+                <i class="fas fa-save"></i> Save Schedule
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     REPAIR LOG CREATE / EDIT MODAL
+══════════════════════════════════════════ -->
+<div class="overlay" id="repairModal">
+    <div class="modal">
+        <div class="modal-head">
+            <h3 id="repairModalTitle">Log New Repair</h3>
+            <button class="modal-close" onclick="closeModal('repairModal')"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <form id="repairForm" novalidate>
+                <input type="hidden" id="repair-id"/>
+                <div class="form-grid">
+                    <div class="form-section">Incident Details</div>
+                    <div class="full">
+                        <label class="f-label">Title *</label>
+                        <input type="text" id="r-title" class="f-input" placeholder="e.g. Paper feed roller replacement" required/>
+                    </div>
+                    <div>
+                        <label class="f-label">Machine *</label>
+                        <select id="r-machine" class="f-input" required>
+                            <option value="">Select machine…</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="f-label">Linked Schedule (optional)</label>
+                        <select id="r-schedule" class="f-input">
+                            <option value="">None</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="f-label">Severity *</label>
+                        <select id="r-severity" class="f-input" required>
+                            <option value="LOW">Low</option>
+                            <option value="MEDIUM" selected>Medium</option>
+                            <option value="HIGH">High</option>
+                            <option value="CRITICAL">Critical</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="f-label">Status</label>
+                        <select id="r-status" class="f-input">
+                            <option value="OPEN">Open</option>
+                            <option value="IN_PROGRESS">In Progress</option>
+                            <option value="RESOLVED">Resolved</option>
+                            <option value="CLOSED">Closed</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="f-label">Reported Date</label>
+                        <input type="datetime-local" id="r-reported" class="f-input"/>
+                    </div>
+                    <div>
+                        <label class="f-label">Resolved Date</label>
+                        <input type="datetime-local" id="r-resolved" class="f-input"/>
+                    </div>
+                    <div class="form-section">Repair Information</div>
+                    <div class="full">
+                        <label class="f-label">Problem Description</label>
+                        <textarea id="r-problem" class="f-input" placeholder="Describe the problem observed…"></textarea>
+                    </div>
+                    <div class="full">
+                        <label class="f-label">Repair Action Taken</label>
+                        <textarea id="r-action" class="f-input" placeholder="What was done to fix it…"></textarea>
+                    </div>
+                    <div class="full">
+                        <label class="f-label">Assigned Technician</label>
+                        <select id="r-tech" class="f-input">
+                            <option value="">Select technician…</option>
+                        </select>
+                    </div>
+                    <div class="form-section">Parts &amp; Cost</div>
+                    <div class="full">
+                        <label class="f-label">Parts Replaced</label>
+                        <textarea id="r-parts" class="f-input" style="min-height:56px" placeholder="List parts replaced…"></textarea>
+                    </div>
+                    <div>
+                        <label class="f-label">Repair Cost (LKR)</label>
+                        <input type="number" id="r-cost" class="f-input" placeholder="0.00" min="0" step="0.01"/>
+                    </div>
+                    <div>
+                        <label class="f-label">Downtime (hours)</label>
+                        <input type="number" id="r-downtime" class="f-input" placeholder="0" min="0"/>
+                    </div>
+                    <div class="form-section">Notes &amp; Documents</div>
+                    <div class="full">
+                        <label class="f-label">Notes</label>
+                        <textarea id="r-notes" class="f-input" style="min-height:56px" placeholder="Additional notes…"></textarea>
+                    </div>
+                    <div class="full">
+                        <label class="f-label">Document Names / References</label>
+                        <input type="text" id="r-docs" class="f-input" placeholder="e.g. invoice_001.pdf, photo_repair.jpg  (comma-separated)"/>
+                        <p style="font-size:11px;color:#94a3b8;margin:4px 0 0">Enter filenames separated by commas. Attach physical documents to the machine record.</p>
+                    </div>
+                </div>
+                <div class="form-error" id="repairFormErr"></div>
+            </form>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-ghost" onclick="closeModal('repairModal')">Cancel</button>
+            <button class="btn btn-red" id="repairSubmitBtn" onclick="submitRepair()">
+                <i class="fas fa-save"></i> Save Repair Log
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ═════════���════════════════════════════════
+     SCHEDULE DETAIL MODAL
+══════════════════════════════════════════ -->
+<div class="overlay" id="schedDetailModal">
+    <div class="modal">
+        <div class="modal-head">
+            <h3>Schedule Details</h3>
+            <button class="modal-close" onclick="closeModal('schedDetailModal')"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body" id="schedDetailBody"></div>
+        <div class="modal-foot">
+            <button class="btn btn-ghost" onclick="closeModal('schedDetailModal')">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     REPAIR DETAIL MODAL
+══════════════════════════════════════════ -->
+<div class="overlay" id="repairDetailModal">
+    <div class="modal">
+        <div class="modal-head">
+            <h3>Repair Log Details</h3>
+            <button class="modal-close" onclick="closeModal('repairDetailModal')"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body" id="repairDetailBody"></div>
+        <div class="modal-foot">
+            <button class="btn btn-ghost" onclick="closeModal('repairDetailModal')">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     CONFIRM (CANCEL / DELETE) MODAL
+══════════════════════════════════════════ -->
+<div class="overlay" id="confirmModal">
+    <div class="modal confirm-modal">
+        <div class="modal-body" style="padding-top:28px">
+            <div class="confirm-icon" id="confirmIcon"><i id="confirmIconI" class="fas fa-ban"></i></div>
+            <h3 id="confirmTitle" style="font-size:17px;font-weight:700;text-align:center;margin:0 0 8px"></h3>
+            <p id="confirmMsg" style="font-size:13.5px;color:#64748b;text-align:center;margin:0 0 20px"></p>
+            <div style="display:flex;gap:10px;justify-content:center">
+                <button class="btn btn-ghost" onclick="closeModal('confirmModal')">Keep It</button>
+                <button class="btn" id="confirmBtn" onclick="runConfirmAction()"><i id="confirmBtnIcon" class="fas fa-ban"></i> <span id="confirmBtnText">Confirm</span></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     ADD MACHINE MODAL
+══════════════════════════════════════════ -->
+<div class="overlay" id="machineModal">
+    <div class="modal" style="max-width:480px">
+        <div class="modal-head">
+            <h3>Add New Machine</h3>
+            <button class="modal-close" onclick="closeModal('machineModal')"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-grid">
+                <div class="full">
+                    <label class="f-label">Machine Name *</label>
+                    <input type="text" id="m-name" class="f-input" placeholder="e.g. Offset Press A" required/>
+                </div>
+                <div>
+                    <label class="f-label">Model</label>
+                    <input type="text" id="m-model" class="f-input" placeholder="e.g. Heidelberg CD 102"/>
+                </div>
+                <div>
+                    <label class="f-label">Serial Number</label>
+                    <input type="text" id="m-serial" class="f-input" placeholder="SN-001"/>
+                </div>
+                <div class="full">
+                    <label class="f-label">Location</label>
+                    <input type="text" id="m-loc" class="f-input" placeholder="e.g. Floor 2, Bay A"/>
+                </div>
+                <div class="full">
+                    <label class="f-label">Description</label>
+                    <textarea id="m-desc" class="f-input" style="min-height:56px" placeholder="Brief description…"></textarea>
+                </div>
+            </div>
+            <div class="form-error" id="machineErr"></div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-ghost" onclick="closeModal('machineModal')">Cancel</button>
+            <button class="btn btn-green" id="machineSubmitBtn" onclick="submitMachine()">
+                <i class="fas fa-plus"></i> Add Machine
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TECHNICIAN DETAIL MODAL
+══════════════════════════════════════════ -->
+<div class="overlay" id="techDetailModal">
+    <div class="modal">
+        <div class="modal-head">
+            <h3>Technician Details</h3>
+            <button class="modal-close" onclick="closeModal('techDetailModal')"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body" id="techDetailBody"></div>
+        <div class="modal-foot">
+            <button class="btn btn-ghost" onclick="closeModal('techDetailModal')">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== SINGLE UNIFIED SCRIPT ==================== -->
+<script>
+    // ==================== GLOBALS & HELPERS ====================
+    const API = 'http://localhost:8080/api';
+    // Support both legacy 'token' and admin-specific 'adminToken' keys so admin dashboard
+    // and maintenance pages work consistently when different token keys are used.
+    const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
+    if (!token) location.href = '/login';
+    function H() { return { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }; }
+
+    // ==================== TECHNICIANS STATE ====================
+    let techs = [];
+    let techFilter = 'ALL';
+    const TECH_COLORS = ['#f97316','#3b82f6','#8b5cf6','#10b981','#ec4899','#f59e0b','#06b6d4','#ef4444'];
+    const AVAIL_LABEL = { AVAILABLE:'Available', BUSY:'Busy', ON_LEAVE:'On Leave', INACTIVE:'Inactive' };
+    const AVAIL_CLASS = { AVAILABLE:'b-available', BUSY:'b-busy', ON_LEAVE:'b-on_leave', INACTIVE:'b-inactive' };
+
+    async function loadTechs() {
+        try {
+            const r = await fetch(`${API}/admin/technicians`, { headers: H() });
+            if (r.status === 401) { logout(); return; }
+            techs = await r.json();
+            updateTechStats();
+            renderTechs(techs);
+            // ensure any technician dropdowns are repopulated when tech list changes
+            populateTechnicianSelects();
+        } catch { renderEmpty('techsBody', 6, 'Could not load technicians. Is the server running?'); }
+    }
+
+    // Populate technician selects used in forms (schedule + repair)
+    function populateTechnicianSelects() {
+        ['s-tech','r-tech'].forEach(id => {
+            const sel = document.getElementById(id);
+            if (!sel) return;
+            const prev = sel.value;
+            const firstOption = id === 's-tech' ? 'Select technician…' : 'Select technician…';
+            sel.innerHTML = `<option value="">${firstOption}</option>`;
+            techs.forEach(t => {
+                const name = `${t.firstName || ''} ${t.lastName || ''}`.trim() || t.username || 'Unnamed';
+                sel.add(new Option(name, name));
+            });
+            // Keep previous selection if possible
+            if (prev) sel.value = prev;
+        });
+
+        // keep existing “add technician” shortcut on repair technician select (if desired)
+        const rSel = document.getElementById('r-tech');
+        if (rSel) {
+            const hasAdd = Array.from(rSel.options).some(o => o.value === '__add__');
+            if (!hasAdd) rSel.add(new Option('+ Add Technician', '__add__'));
+            rSel.onchange = function() {
+                if (this.value === '__add__') {
+                    this.value = '';
+                    document.getElementById('techForm').reset();
+                    document.getElementById('t-id').value = '';
+                    document.getElementById('t-un').disabled = false;
+                    document.getElementById('t-pw-row').style.display = 'block';
+                    document.getElementById('t-avail-row').style.display = 'none';
+                    document.getElementById('techModalTitle').textContent = 'Add Technician';
+                    openModal('techModal');
+                }
+            };
+        }
+    }
+
+    function updateTechStats() {
+        if (currentTab !== 'technicians') return;
+        const c = { TOTAL: 0, AVAILABLE: 0, BUSY: 0, ON_LEAVE: 0, INACTIVE: 0 };
+        techs.forEach(t => { c.TOTAL++; const s = t.availabilityStatus||'AVAILABLE'; if (c[s] !== undefined) c[s]++; });
+        const grid = document.getElementById('statGrid');
+        grid.className = 'stat-grid five';
+        grid.innerHTML = `
+    <div class="stat-card" style="border-top-color:#3b82f6">
+      <div class="label">Total</div><div class="value" style="color:#3b82f6">${c.TOTAL}</div>
+    </div>
+    <div class="stat-card" style="border-top-color:#10b981">
+      <div class="label">Available</div><div class="value" style="color:#10b981">${c.AVAILABLE}</div>
+    </div>
+    <div class="stat-card" style="border-top-color:#f59e0b">
+      <div class="label">Busy</div><div class="value" style="color:#f59e0b">${c.BUSY}</div>
+    </div>
+    <div class="stat-card" style="border-top-color:#3b82f6">
+      <div class="label">On Leave</div><div class="value" style="color:#3b82f6">${c.ON_LEAVE}</div>
+    </div>
+    <div class="stat-card" style="border-top-color:#ef4444">
+      <div class="label">Inactive</div><div class="value" style="color:#ef4444">${c.INACTIVE}</div>
+    </div>`;
+    }
+
+    function restoreStatGrid() {
+        const grid = document.getElementById('statGrid');
+        grid.className = 'stat-grid';
+        grid.innerHTML = `
+    <div class="stat-card" style="border-top-color:#3b82f6">
+      <div class="label" id="s1Label">Scheduled</div><div class="value" style="color:#3b82f6" id="s1Val">0</div>
+    </div>
+    <div class="stat-card" style="border-top-color:#f59e0b">
+      <div class="label" id="s2Label">In Progress</div><div class="value" style="color:#f59e0b" id="s2Val">0</div>
+    </div>
+    <div class="stat-card" style="border-top-color:#10b981">
+      <div class="label" id="s3Label">Completed</div><div class="value" style="color:#10b981" id="s3Val">0</div>
+    </div>
+    <div class="stat-card" style="border-top-color:#ef4444">
+      <div class="label" id="s4Label">Cancelled</div><div class="value" style="color:#ef4444" id="s4Val">0</div>
+    </div>`;
+    }
+
+    function filterTechs(f, btn) {
+        techFilter = f;
+        document.querySelectorAll('#techChips .chip').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        renderTechs(f === 'ALL' ? techs : techs.filter(t => t.availabilityStatus === f));
+    }
+
+    function renderTechs(data) {
+        const tb = document.getElementById('techsBody');
+        if (!data.length) { renderEmpty('techsBody', 6, 'No technicians found.'); return; }
+        tb.innerHTML = data.map((t, i) => {
+            const name  = `${t.firstName} ${t.lastName}`;
+            const ini   = ((t.firstName?.[0]||'')+(t.lastName?.[0]||'')).toUpperCase();
+            const avail = t.availabilityStatus || 'AVAILABLE';
+            const total = t.totalAssignedSchedules || 0;
+            const done  = t.completedSchedules    || 0;
+            const openR = t.openRepairs           || 0;
+            const pct   = total > 0 ? Math.round((done / total) * 100) : 0;
+            const bg    = TECH_COLORS[i % TECH_COLORS.length];
+            return `
+    <tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:11px">
+          <div class="tech-avatar" style="background:${bg}">${ini}</div>
+          <div>
+            <div style="font-weight:600;color:var(--ink)">${x(name)}</div>
+            <div style="font-size:11px;color:#94a3b8;margin-top:2px">@${x(t.username)}${t.employeeId ? ' · '+x(t.employeeId) : ''}</div>
+          </div>
+        </div>
+      </td>
+      <td style="font-size:13px;color:#475569;max-width:150px">
+        <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+          ${t.specialization ? x(t.specialization) : '<span style="color:#cbd5e1">—</span>'}
+        </div>
+      </td>
+      <td style="font-size:13px;color:#475569">
+        ${t.experienceYears ? t.experienceYears+' yrs' : '<span style="color:#cbd5e1">—</span>'}
+      </td>
+      <td style="min-width:130px">
+        <div style="font-size:11px;color:#64748b;margin-bottom:4px">
+          ${done}/${total} schedules &nbsp;·&nbsp;
+          <span style="color:#ef4444">${openR} open repair${openR!==1?'s':''}</span>
+        </div>
+        <div class="pbar-bg"><div class="pbar-fill" style="width:${pct}%"></div></div>
+      </td>
+      <td><span class="badge ${AVAIL_CLASS[avail]||''}">${AVAIL_LABEL[avail]||avail}</span></td>
+      <td style="text-align:center">
+        <div style="display:flex;gap:5px;justify-content:center">
+          <button class="action-btn view"   onclick="viewTech('${t.id}')"          title="View details"><i class="fas fa-eye"></i></button>
+          <button class="action-btn edit"   onclick="openEditTech('${t.id}')"      title="Edit"><i class="fas fa-pen"></i></button>
+          <button class="action-btn cancel" onclick="askRemoveFromTask('${t.id}')" title="Remove from tasks"><i class="fas fa-user-minus"></i></button>
+          <button class="action-btn del"    onclick="askDeleteTech('${t.id}')"     title="Delete"><i class="fas fa-trash"></i></button>
+        </div>
+      </td>
+    </tr>`;
+        }).join('');
+    }
+
+    function openEditTech(id) {
+        const t = techs.find(z => z.id == id); if (!t) return;
+        document.getElementById('techModalTitle').textContent = 'Edit Technician';
+        document.getElementById('t-id').value    = id;
+        document.getElementById('t-fn').value    = t.firstName    || '';
+        document.getElementById('t-ln').value    = t.lastName     || '';
+        document.getElementById('t-email').value = t.email        || '';
+        document.getElementById('t-phone').value = t.phone        || '';
+        document.getElementById('t-un').value    = t.username     || '';
+        document.getElementById('t-un').disabled = true;
+        document.getElementById('t-empid').value = t.employeeId   || '';
+        document.getElementById('t-exp').value   = t.experienceYears || '';
+        document.getElementById('t-spec').value  = t.specialization  || '';
+        document.getElementById('t-cert').value  = t.certifications  || '';
+        document.getElementById('t-notes').value = t.notes        || '';
+        document.getElementById('t-avail').value = t.availabilityStatus || 'AVAILABLE';
+        document.getElementById('t-pw-row').style.display    = 'none';
+        document.getElementById('t-avail-row').style.display = 'block';
+        document.getElementById('techFormErr').className = 'form-error';
+        openModal('techModal');
+    }
+
+    async function submitTech() {
+        const errEl = document.getElementById('techFormErr');
+        errEl.className = 'form-error';
+        const id = document.getElementById('t-id').value;
+        const fn = document.getElementById('t-fn').value.trim();
+        const ln = document.getElementById('t-ln').value.trim();
+        const em = document.getElementById('t-email').value.trim();
+        const ph = document.getElementById('t-phone').value.trim();
+        const un = document.getElementById('t-un').value.trim();
+        const pw = document.getElementById('t-pw') ? document.getElementById('t-pw').value : '';
+
+        if (!fn || !ln || !em || !ph || !un) {
+            errEl.textContent = 'Please fill in all required fields (First Name, Last Name, Email, Phone, Username).';
+            errEl.className = 'form-error show'; return;
+        }
+        if (!id && pw.length < 6) {
+            errEl.textContent = 'Password must be at least 6 characters.';
+            errEl.className = 'form-error show'; return;
+        }
+
+        const payload = {
+            firstName: fn, lastName: ln, email: em, phone: ph, username: un,
+            employeeId:     document.getElementById('t-empid').value.trim() || null,
+            specialization: document.getElementById('t-spec').value.trim()  || null,
+            experienceYears: document.getElementById('t-exp').value ? +document.getElementById('t-exp').value : null,
+            certifications: document.getElementById('t-cert').value.trim()  || null,
+            notes:          document.getElementById('t-notes').value.trim() || null,
+        };
+        if (!id) payload.password = pw;
+        if (id)  payload.availabilityStatus = document.getElementById('t-avail').value;
+
+        const btn = document.getElementById('techSubmitBtn');
+        btnLoad(btn, 'Saving…');
+        try {
+            const url = id ? `${API}/admin/technicians/${id}` : `${API}/admin/technicians`;
+            const r = await fetch(url, { method: id ? 'PUT' : 'POST', headers: H(), body: JSON.stringify(payload) });
+            const d = await r.json();
+            if (r.ok) {
+                closeModal('techModal');
+                alert2(id ? 'Technician updated!' : 'Technician added!', 'success');
+                await loadTechs();
+                filterTechs(techFilter, document.querySelector('#techChips .chip.active'));
+            } else { errEl.textContent = d.error || 'Failed.'; errEl.className = 'form-error show'; }
+        } catch { errEl.textContent = 'Connection error.'; errEl.className = 'form-error show'; }
+        finally { btnReset(btn, '<i class="fas fa-save"></i> Save Technician'); }
+    }
+
+    function viewTech(id) {
+        const t = techs.find(z => z.id == id); if (!t) return;
+        const avail = t.availabilityStatus || 'AVAILABLE';
+        const total = t.totalAssignedSchedules || 0;
+        const done  = t.completedSchedules    || 0;
+        const pct   = total > 0 ? Math.round((done / total) * 100) : 0;
+        const openR = t.openRepairs    || 0;
+        const resR  = t.resolvedRepairs || 0;
+
+        document.getElementById('techDetailBody').innerHTML = `
+    <div class="detail-grid">
+      <div class="detail-field full">
+        <div class="d-value" style="font-size:17px;font-weight:700">${x(t.firstName)} ${x(t.lastName)}</div>
+        <div style="margin-top:7px;display:flex;gap:7px;flex-wrap:wrap">
+          <span class="badge ${AVAIL_CLASS[avail]||''}">${AVAIL_LABEL[avail]||avail}</span>
+          ${t.isActive ? '<span class="badge b-completed">Active</span>' : '<span class="badge b-cancelled">Inactive</span>'}
+        </div>
+      </div>
+      <div class="detail-divider"></div>
+      ${df('@Username', x(t.username))}
+      ${df('Employee ID', t.employeeId || '—')}
+      ${df('Email', x(t.email))}
+      ${df('Phone', x(t.phone))}
+      ${df('Specialization', t.specialization || '—')}
+      ${df('Experience', t.experienceYears ? t.experienceYears+' years' : '—')}
+      ${df('Certifications', t.certifications || '—')}
+      ${df('Registered', fDateShort(t.createdAt))}
+      <div class="detail-divider"></div>
+      <div class="detail-field full">
+        <div class="d-label">Workload Summary</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:8px">
+          ${wStat('Schedules', total, '#6366f1')}
+          ${wStat('Completed', done,  '#10b981')}
+          ${wStat('Open Repairs', openR, '#ef4444')}
+          ${wStat('Resolved', resR,  '#3b82f6')}
+        </div>
+        <div style="margin-top:10px">
+          <div style="font-size:11px;color:#94a3b8;margin-bottom:4px">Schedule completion: ${pct}%</div>
+          <div class="pbar-bg"><div class="pbar-fill" style="width:${pct}%"></div></div>
+        </div>
+      </div>
+      ${t.notes ? `<div class="detail-field full">${dl('Notes')}<div class="d-value">${x(t.notes)}</div></div>` : ''}
+    </div>`;
+        openModal('techDetailModal');
+    }
+
+    function wStat(label, val, color) {
+        return `<div style="background:#f8fafc;border-radius:10px;padding:12px;text-align:center">
+    <div style="font-size:22px;font-weight:700;color:${color}">${val}</div>
+    <div style="font-size:9px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:3px">${label}</div>
+  </div>`;
+    }
+
+    function askRemoveFromTask(id) {
+        const t = techs.find(z => z.id == id);
+        setConfirm(
+            'Remove from All Tasks?',
+            `This will clear all active schedule & repair assignments for ${t ? t.firstName+' '+t.lastName : 'this technician'} and set their status to Available.`,
+            '#f97316', 'fas fa-user-minus', 'btn-green', 'fas fa-user-minus', 'Yes, Remove',
+            async () => {
+                const r = await fetch(`${API}/admin/technicians/${id}/remove-from-tasks`, { method:'PATCH', headers:H() });
+                if (r.ok) { alert2('Technician removed from all active tasks.', 'success'); await loadTechs(); filterTechs(techFilter, document.querySelector('#techChips .chip.active')); }
+                else { const d = await r.json(); alert2(d.error || 'Failed.', 'error'); }
+            }
+        );
+    }
+
+    function askDeleteTech(id) {
+        const t = techs.find(z => z.id == id);
+        setConfirm(
+            'Delete Technician?',
+            `Permanently delete ${t ? t.firstName+' '+t.lastName : 'this technician'}. This cannot be undone.`,
+            '#dc2626', 'fas fa-trash', 'btn-red', 'fas fa-trash', 'Yes, Delete',
+            async () => {
+                const r = await fetch(`${API}/admin/technicians/${id}`, { method:'DELETE', headers:H() });
+                if (r.ok) { alert2('Technician deleted.', 'success'); await loadTechs(); filterTechs(techFilter, document.querySelector('#techChips .chip.active')); }
+                else { const d = await r.json(); alert2(d.error || 'Failed.', 'error'); }
+            }
+        );
+    }
+
+    // ==================== MAIN STATE ====================
+    let machines   = [];
+    let schedules  = [];
+    let repairs    = [];
+    let currentTab = 'schedules';
+    let confirmAction = null;
+
+    // ==================== INIT ====================
+    (async function init() {
+        const a = JSON.parse(localStorage.getItem('admin') || '{}');
+        document.getElementById('topbarName').textContent = a.firstName ? `${a.firstName} ${a.lastName}` : 'Admin';
+        await loadMachines();
+        await Promise.all([loadSchedules(), loadRepairs(), loadTechs()]);
+    })();
+
+    // ==================== TAB SWITCHING ====================
+    // Banner button configuration per tab:
+    //   schedules   → "+ New Schedule"   → links to technicians.html (per requirement)
+    //   repairs     → "+ Log Repair"     → opens repairModal
+    //   technicians → "+ Add Technician" → links to technician-register.html (per requirement)
+
+    function updateBannerBtn(tab) {
+        const btn = document.getElementById('bannerAddBtn');
+        if (tab === 'schedules') {
+            // Convert to <button> opening schedule modal
+            btn.outerHTML = `<button id="bannerAddBtn" class="btn-primary" onclick="openCreateModal()">
+                <i class="fas fa-plus"></i> <span id="bannerBtnText">New Schedule</span>
+            </button>`;
+        } else if (tab === 'repairs') {
+            // Convert to <button> opening repair modal
+            btn.outerHTML = `<button id="bannerAddBtn" class="btn-primary" onclick="openRepairModal()">
+                <i class="fas fa-plus"></i> <span id="bannerBtnText">Log Repair</span>
+            </button>`;
+        } else if (tab === 'technicians') {
+            // Convert to <a> linking to technician-register.html
+            btn.outerHTML = `<a href='/tech-register' id="bannerAddBtn" class="btn-primary">
+                <i class="fas fa-plus"></i> <span id="bannerBtnText">Add Technician</span>
+            </a>`;
+        }
+    }
+
+    function switchTab(tab) {
+        currentTab = tab;
+        document.getElementById('panelSchedules').style.display   = tab === 'schedules'   ? 'block' : 'none';
+        document.getElementById('panelRepairs').style.display     = tab === 'repairs'     ? 'block' : 'none';
+        document.getElementById('panelTechnicians').style.display = tab === 'technicians' ? 'block' : 'none';
+        document.getElementById('tabSchedules').classList.toggle('active',   tab === 'schedules');
+        document.getElementById('tabRepairs').classList.toggle('active',     tab === 'repairs');
+        document.getElementById('tabTechnicians').classList.toggle('active', tab === 'technicians');
+
+        updateBannerBtn(tab);
+
+        if (tab === 'schedules') {
+            restoreStatGrid();
+            updateScheduleStats();
+        } else if (tab === 'repairs') {
+            restoreStatGrid();
+            updateRepairStats();
+        } else {
+            updateTechStats();
+        }
+    }
+
+    // ==================== MACHINES ====================
+    async function loadMachines() {
+        try {
+            const r = await fetch(`${API}/maintenance/machines`, { headers: H() });
+            machines = await r.json();
+            populateMachineSelects();
+        } catch(e) { console.error('Machines load failed', e); }
+    }
+
+    function populateMachineSelects() {
+        ['s-machine','r-machine'].forEach(id => {
+            const sel = document.getElementById(id);
+            const prev = sel.value;
+            sel.innerHTML = '<option value="">Select machine…</option>';
+            machines.forEach(m => {
+                const o = new Option(`${m.name}${m.model ? ' — '+m.model : ''}`, m.id);
+                sel.add(o);
+            });
+            const add = new Option('+ Add New Machine', '__add__');
+            sel.add(add);
+            if (prev) sel.value = prev;
+            sel.onchange = function() { if (this.value === '__add__') { this.value = ''; openMachineModal(); } };
+        });
+    }
+
+    async function submitMachine() {
+        const btn = document.getElementById('machineSubmitBtn');
+        const errEl = document.getElementById('machineErr');
+        errEl.className = 'form-error';
+        const name = document.getElementById('m-name').value.trim();
+        if (!name) { errEl.textContent = 'Machine name is required.'; errEl.className = 'form-error show'; return; }
+        const payload = {
+            name,
+            model: v('m-model') || null,
+            serialNumber: v('m-serial') || null,
+            location: v('m-loc') || null,
+            description: v('m-desc') || null,
+        };
+        btnLoad(btn, 'Adding…');
+        try {
+            const r = await fetch(`${API}/maintenance/machines`, { method: 'POST', headers: H(), body: JSON.stringify(payload) });
+            const d = await r.json();
+            if (r.ok) {
+                closeModal('machineModal');
+                document.getElementById('m-name').value = '';
+                document.getElementById('m-model').value = '';
+                document.getElementById('m-serial').value = '';
+                document.getElementById('m-loc').value = '';
+                document.getElementById('m-desc').value = '';
+                await loadMachines();
+                alert2('Machine added!', 'success');
+            } else { errEl.textContent = d.error || 'Failed.'; errEl.className = 'form-error show'; }
+        } catch { errEl.textContent = 'Connection error.'; errEl.className = 'form-error show'; }
+        finally { btnReset(btn, '<i class="fas fa-plus"></i> Add Machine'); }
+    }
+
+    // ==================== SCHEDULES ====================
+    async function loadSchedules() {
+        try {
+            const r = await fetch(`${API}/maintenance/schedules`, { headers: H() });
+            if (r.status === 401) { logout(); return; }
+            schedules = await r.json();
+            updateScheduleStats();
+            renderSchedules(schedules);
+            populateScheduleSelect();
+        } catch { renderEmpty('schedulesBody', 6, 'Could not load schedules.'); }
+    }
+
+    function populateScheduleSelect() {
+        const sel = document.getElementById('r-schedule');
+        const prev = sel.value;
+        sel.innerHTML = '<option value="">None</option>';
+        schedules.filter(s => s.status !== 'CANCELLED').forEach(s => {
+            sel.add(new Option(`${s.title} (${s.machineName})`, s.id));
+        });
+        if (prev) sel.value = prev;
+    }
+
+    function updateScheduleStats() {
+        const c = { SCHEDULED:0, IN_PROGRESS:0, COMPLETED:0, CANCELLED:0 };
+        schedules.forEach(s => { if (c[s.status] !== undefined) c[s.status]++; });
+        if (currentTab === 'schedules') {
+            setText('s1Label','Scheduled');   setText('s1Val', c.SCHEDULED);
+            setText('s2Label','In Progress'); setText('s2Val', c.IN_PROGRESS);
+            setText('s3Label','Completed');   setText('s3Val', c.COMPLETED);
+            setText('s4Label','Cancelled');   setText('s4Val', c.CANCELLED);
+            document.getElementById('statGrid').children[0].style.borderTopColor = '#3b82f6';
+            document.getElementById('statGrid').children[1].style.borderTopColor = '#f59e0b';
+            document.getElementById('statGrid').children[2].style.borderTopColor = '#10b981';
+            document.getElementById('statGrid').children[3].style.borderTopColor = '#ef4444';
+            document.getElementById('statGrid').children[0].querySelector('.value').style.color = '#3b82f6';
+            document.getElementById('statGrid').children[1].querySelector('.value').style.color = '#f59e0b';
+            document.getElementById('statGrid').children[2].querySelector('.value').style.color = '#10b981';
+            document.getElementById('statGrid').children[3].querySelector('.value').style.color = '#ef4444';
+        }
+    }
+
+    let schedFilter = 'ALL';
+    function filterSchedules(f, btn) {
+        schedFilter = f;
+        document.querySelectorAll('#scheduleChips .chip').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        renderSchedules(f === 'ALL' ? schedules : schedules.filter(s => s.status === f));
+    }
+
+    function renderSchedules(data) {
+        const tb = document.getElementById('schedulesBody');
+        if (!data.length) { renderEmpty('schedulesBody', 6, 'No maintenance schedules found.'); return; }
+        tb.innerHTML = data.map(s => `
+<tr>
+    <td>
+        <div style="font-weight:600;color:var(--ink)">${x(s.title)}</div>
+        <div style="font-size:12px;color:#94a3b8;margin-top:2px"><i class="fas fa-cogs" style="margin-right:4px"></i>${x(s.machineName)}${s.machineModel ? ' · '+x(s.machineModel) : ''}</div>
+    </td>
+    <td><span class="badge b-${s.maintenanceType.toLowerCase()}">${typeLabel(s.maintenanceType)}</span></td>
+    <td style="color:#475569;font-size:13px">
+        <div>${fDate(s.scheduledDate)}</div>
+        ${s.estimatedDurationHours ? `<div style="font-size:11px;color:#94a3b8">${s.estimatedDurationHours}h est.</div>` : ''}
+    </td>
+    <td style="color:#475569;font-size:13px">${s.assignedTechnician ? x(s.assignedTechnician) : '<span style="color:#cbd5e1">—</span>'}</td>
+    <td><span class="badge b-${s.status.toLowerCase()}">${statusLabel(s.status)}</span></td>
+    <td style="text-align:center">
+        <div style="display:flex;gap:6px;justify-content:center">
+            <button class="action-btn view" onclick="viewSchedule('${s.id}')" title="View"><i class="fas fa-eye"></i></button>
+            ${s.status !== 'CANCELLED' && s.status !== 'COMPLETED' ? `
+            <button class="action-btn edit" onclick="editSchedule('${s.id}')" title="Edit"><i class="fas fa-pen"></i></button>
+            <button class="action-btn cancel" onclick="askCancelSched('${s.id}')" title="Cancel"><i class="fas fa-ban"></i></button>
+            ` : ''}
+        </div>
+    </td>
+</tr>`).join('');
+    }
+
+    function openCreateModal() {
+        document.getElementById('schedModalTitle').textContent = 'New Maintenance Schedule';
+        document.getElementById('sched-id').value = '';
+        document.getElementById('schedForm').reset();
+        document.getElementById('s-status-wrap').style.display = 'none';
+        document.getElementById('schedFormErr').className = 'form-error';
+        populateTechnicianSelects();
+        openModal('scheduleModal');
+    }
+
+    function editSchedule(id) {
+        const s = schedules.find(x => x.id == id); if (!s) return;
+        document.getElementById('schedModalTitle').textContent = 'Edit Schedule';
+        document.getElementById('sched-id').value = id;
+        document.getElementById('s-title').value = s.title || '';
+        document.getElementById('s-machine').value = s.machineId || '';
+        document.getElementById('s-type').value = s.maintenanceType || '';
+        document.getElementById('s-date').value = s.scheduledDate ? s.scheduledDate.slice(0,16) : '';
+        document.getElementById('s-duration').value = s.estimatedDurationHours || '';
+        document.getElementById('s-tech').value = s.assignedTechnician || '';
+        document.getElementById('s-desc').value = s.description || '';
+        document.getElementById('s-notes').value = s.notes || '';
+        document.getElementById('s-status').value = s.status || 'SCHEDULED';
+        document.getElementById('s-status-wrap').style.display = 'block';
+        document.getElementById('schedFormErr').className = 'form-error';
+        populateTechnicianSelects();
+        openModal('scheduleModal');
+    }
+
+    async function submitSchedule() {
+        if (typeof event !== 'undefined' && event) {
+            event.preventDefault();
+        }
+        const errEl = document.getElementById('schedFormErr');
+        const btn = document.getElementById('schedSubmitBtn');
+
+        const sId = v('sched-id');
+        const title = v('s-title'), machineId = v('s-machine'), type = v('s-type'), date = v('s-date');
+        if (!title || !machineId || !type || !date) {
+            errEl.textContent = 'Please fill in all required fields.'; errEl.className = 'form-error show'; return;
+        }
+        const id = v('sched-id');
+        const payload = {
+            title, machineId: +machineId, maintenanceType: type,
+            scheduledDate: padDatetime(date),
+            assignedTechnician: v('s-tech') || null,
+            estimatedDurationHours: v('s-duration') ? +v('s-duration') : null,
+            description: v('s-desc') || null,
+            notes: v('s-notes') || null,
+        };
+        if (id) payload.status = v('s-status');
+        btnLoad(btn, 'Saving…');
+        try {
+            const url = id ? `${API}/maintenance/schedules/${id}` : `${API}/maintenance/schedules`;
+            const r = await fetch(url, { method: id ? 'PUT' : 'POST', headers: H(), body: JSON.stringify(payload) });
+            const d = await r.json();
+            if (r.ok) {
+                closeModal('scheduleModal');
+                alert2(id ? 'Schedule updated!' : 'Schedule created!', 'success');
+                await loadSchedules();
+                filterSchedules(schedFilter, document.querySelector('#scheduleChips .chip.active'));
+            } else { errEl.textContent = d.error || 'Failed.'; errEl.className = 'form-error show'; }
+        } catch { errEl.textContent = 'Connection error.'; errEl.className = 'form-error show'; }
+        finally { btnReset(btn, '<i class="fas fa-save"></i> Save Schedule'); }
+    }
+
+    function viewSchedule(id) {
+        const s = schedules.find(x => x.id == id); if (!s) return;
+        document.getElementById('schedDetailBody').innerHTML = `
+<div class="detail-grid">
+    <div class="detail-field full">
+        <div class="d-value" style="font-size:16px;font-weight:700">${x(s.title)}</div>
+        <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap">
+            <span class="badge b-${s.status.toLowerCase()}">${statusLabel(s.status)}</span>
+            <span class="badge b-${s.maintenanceType.toLowerCase()}">${typeLabel(s.maintenanceType)}</span>
+        </div>
+    </div>
+    <div class="detail-divider"></div>
+    ${df('Machine', `${x(s.machineName)}${s.machineModel?' — '+x(s.machineModel):''}`)}
+    ${df('Scheduled', fDate(s.scheduledDate))}
+    ${df('Est. Duration', s.estimatedDurationHours ? s.estimatedDurationHours+' hr(s)' : '—')}
+    ${df('Technician', s.assignedTechnician || '—')}
+    ${s.completedDate ? df('Completed', fDate(s.completedDate)) : ''}
+    ${df('Created By', s.createdByUsername || '—')}
+    ${df('Created', fDate(s.createdAt))}
+    ${s.description ? `<div class="detail-field full">${dl('Description')}<div class="d-value">${x(s.description)}</div></div>` : ''}
+    ${s.notes ? `<div class="detail-field full">${dl('Notes')}<div class="d-value">${x(s.notes)}</div></div>` : ''}
+</div>`;
+        openModal('schedDetailModal');
+    }
+
+    function askCancelSched(id) {
+        setConfirm('Cancel Schedule?', 'This marks it as cancelled. You can still view it later.', '#f59e0b', 'fas fa-ban', 'btn-red', 'fas fa-ban', 'Yes, Cancel', async () => {
+            const r = await fetch(`${API}/maintenance/schedules/${id}/cancel`, { method:'PATCH', headers:H() });
+            if (r.ok) { alert2('Schedule cancelled.','success'); await loadSchedules(); filterSchedules(schedFilter, document.querySelector('#scheduleChips .chip.active')); }
+            else { const d=await r.json(); alert2(d.error||'Failed.','error'); }
+        });
+    }
+
+    // ==================== REPAIRS ====================
+    async function loadRepairs() {
+        try {
+            const r = await fetch(`${API}/repairs`, { headers: H() });
+            repairs = await r.json();
+            if (currentTab === 'repairs') updateRepairStats();
+            renderRepairs(repairs);
+        } catch { renderEmpty('repairsBody', 7, 'Could not load repair logs.'); }
+    }
+
+    function updateRepairStats() {
+        const c = { OPEN:0, IN_PROGRESS:0, RESOLVED:0, CLOSED:0 };
+        repairs.forEach(r => { if (c[r.status] !== undefined) c[r.status]++; });
+        setText('s1Label','Open');       setText('s1Val', c.OPEN);
+        setText('s2Label','In Progress');setText('s2Val', c.IN_PROGRESS);
+        setText('s3Label','Resolved');   setText('s3Val', c.RESOLVED);
+        setText('s4Label','Closed');     setText('s4Val', c.CLOSED);
+        document.getElementById('statGrid').children[0].style.borderTopColor = '#f59e0b';
+        document.getElementById('statGrid').children[1].style.borderTopColor = '#f59e0b';
+        document.getElementById('statGrid').children[2].style.borderTopColor = '#10b981';
+        document.getElementById('statGrid').children[3].style.borderTopColor = '#64748b';
+        document.getElementById('statGrid').children[0].querySelector('.value').style.color = '#f59e0b';
+        document.getElementById('statGrid').children[1].querySelector('.value').style.color = '#f59e0b';
+        document.getElementById('statGrid').children[2].querySelector('.value').style.color = '#10b981';
+        document.getElementById('statGrid').children[3].querySelector('.value').style.color = '#64748b';
+    }
+
+    let repairFilter = 'ALL';
+    function filterRepairs(f, btn) {
+        repairFilter = f;
+        document.querySelectorAll('#repairChips .chip').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        renderRepairs(f === 'ALL' ? repairs : repairs.filter(r => r.status === f));
+    }
+
+    function renderRepairs(data) {
+        const tb = document.getElementById('repairsBody');
+        if (!data.length) { renderEmpty('repairsBody', 7, 'No repair logs found.'); return; }
+        tb.innerHTML = data.map(r => `
+<tr>
+    <td>
+        <div style="font-weight:600;color:var(--ink)">${x(r.title)}</div>
+        <div style="font-size:12px;color:#94a3b8;margin-top:2px"><i class="fas fa-cogs" style="margin-right:4px"></i>${x(r.machineName)}${r.machineModel?' · '+x(r.machineModel):''}</div>
+        ${r.scheduleTitle ? `<div style="font-size:11px;color:#a78bfa;margin-top:2px"><i class="fas fa-link" style="margin-right:3px"></i>${x(r.scheduleTitle)}</div>` : ''}
+    </td>
+    <td><span class="badge b-${r.severity.toLowerCase()}">${r.severity}</span></td>
+    <td style="color:#475569;font-size:13px">${fDateShort(r.reportedDate)}</td>
+    <td style="color:#475569;font-size:13px">${r.technician ? x(r.technician) : '<span style="color:#cbd5e1">—</span>'}</td>
+    <td style="color:#475569;font-size:13px">${r.repairCost ? 'LKR '+Number(r.repairCost).toLocaleString() : '<span style="color:#cbd5e1">—</span>'}</td>
+    <td><span class="badge b-${r.status.toLowerCase()}">${repairStatusLabel(r.status)}</span></td>
+    <td style="text-align:center">
+        <div style="display:flex;gap:6px;justify-content:center">
+            <button class="action-btn view" onclick="viewRepair('${r.id}')" title="View"><i class="fas fa-eye"></i></button>
+            <button class="action-btn edit" onclick="editRepair('${r.id}')" title="Edit"><i class="fas fa-pen"></i></button>
+            <button class="action-btn del"  onclick="askDeleteRepair('${r.id}')" title="Delete"><i class="fas fa-trash"></i></button>
+        </div>
+    </td>
+</tr>`).join('');
+    }
+
+    function openRepairModal() {
+        document.getElementById('repairModalTitle').textContent = 'Log New Repair';
+        document.getElementById('repair-id').value = '';
+        document.getElementById('repairForm').reset();
+        const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        document.getElementById('r-reported').value = now.toISOString().slice(0,16);
+        document.getElementById('repairFormErr').className = 'form-error';
+        openModal('repairModal');
+        setTimeout(setMinDatesToToday, 100);
+    }
+
+    function setMinDatesToToday() {
+        const today = new Date();
+        today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
+        const todayStr = today.toISOString().slice(0, 16);
+        const sDate = document.getElementById('s-date');
+        if (sDate) sDate.min = todayStr;
+        const rReported = document.getElementById('r-reported');
+        if (rReported) rReported.min = todayStr;
+        const rResolved = document.getElementById('r-resolved');
+        if (rResolved) rResolved.min = todayStr;
+    }
+
+    window.addEventListener('load', setMinDatesToToday);
+
+    function editRepair(id) {
+        const r = repairs.find(x => x.id == id); if (!r) return;
+        document.getElementById('repairModalTitle').textContent = 'Edit Repair Log';
+        document.getElementById('repair-id').value = id;
+        document.getElementById('r-title').value = r.title || '';
+        document.getElementById('r-machine').value = r.machineId || '';
+        document.getElementById('r-schedule').value = r.scheduleId || '';
+        document.getElementById('r-severity').value = r.severity || 'MEDIUM';
+        document.getElementById('r-status').value = r.status || 'OPEN';
+        document.getElementById('r-reported').value = r.reportedDate ? r.reportedDate.slice(0,16) : '';
+        document.getElementById('r-resolved').value = r.resolvedDate ? r.resolvedDate.slice(0,16) : '';
+        document.getElementById('r-problem').value = r.problemDescription || '';
+        document.getElementById('r-action').value = r.repairAction || '';
+        document.getElementById('r-tech').value = r.technician || '';
+        document.getElementById('r-parts').value = r.partsReplaced || '';
+        document.getElementById('r-cost').value = r.repairCost || '';
+        document.getElementById('r-downtime').value = r.downtimeHours || '';
+        document.getElementById('r-notes').value = r.notes || '';
+        document.getElementById('r-docs').value = r.documents ? r.documents.join(', ') : '';
+        document.getElementById('repairFormErr').className = 'form-error';
+        openModal('repairModal');
+    }
+
+    async function submitRepair() {
+        if (typeof event !== 'undefined' && event) {
+            event.preventDefault();
+        }
+        const errEl = document.getElementById('repairFormErr');
+        const btn = document.getElementById('repairSubmitBtn');
+
+        const rId = v('repair-id');
+        const title = v('r-title'), machineId = v('r-machine'), severity = v('r-severity');
+        if (!title || !machineId) {
+            errEl.textContent = 'Title and machine are required.'; errEl.className = 'form-error show'; return;
+        }
+        const id = v('repair-id');
+        const payload = {
+            title, machineId: +machineId,
+            scheduleId: v('r-schedule') ? +v('r-schedule') : null,
+            severity: v('r-severity') || 'MEDIUM',
+            status: v('r-status') || 'OPEN',
+            reportedDate: v('r-reported') ? padDatetime(v('r-reported')) : null,
+            resolvedDate: v('r-resolved') ? padDatetime(v('r-resolved')) : null,
+            problemDescription: v('r-problem') || null,
+            repairAction: v('r-action') || null,
+            technician: v('r-tech') || null,
+            partsReplaced: v('r-parts') || null,
+            repairCost: v('r-cost') || null,
+            downtimeHours: v('r-downtime') ? +v('r-downtime') : null,
+            notes: v('r-notes') || null,
+            documents: v('r-docs') || null,
+        };
+        btnLoad(btn, 'Saving…');
+        try {
+            const url = id ? `${API}/repairs/${id}` : `${API}/repairs`;
+            const r = await fetch(url, { method: id ? 'PUT' : 'POST', headers: H(), body: JSON.stringify(payload) });
+            const d = await r.json();
+            if (r.ok) {
+                closeModal('repairModal');
+                alert2(id ? 'Repair log updated!' : 'Repair log saved!', 'success');
+                await loadRepairs();
+                filterRepairs(repairFilter, document.querySelector('#repairChips .chip.active'));
+            } else { errEl.textContent = d.error || 'Failed.'; errEl.className = 'form-error show'; }
+        } catch { errEl.textContent = 'Connection error.'; errEl.className = 'form-error show'; }
+        finally { btnReset(btn, '<i class="fas fa-save"></i> Save Repair Log'); }
+    }
+
+    function viewRepair(id) {
+        const r = repairs.find(x => x.id == id); if (!r) return;
+        const docChips = (r.documents||[]).map(d => `<span class="doc-chip"><i class="fas fa-file" style="font-size:10px"></i>${x(d)}</span>`).join(' ');
+        document.getElementById('repairDetailBody').innerHTML = `
+<div class="detail-grid">
+    <div class="detail-field full">
+        <div class="d-value" style="font-size:16px;font-weight:700">${x(r.title)}</div>
+        <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap">
+            <span class="badge b-${r.status.toLowerCase()}">${repairStatusLabel(r.status)}</span>
+            <span class="badge b-${r.severity.toLowerCase()}">${r.severity}</span>
+        </div>
+    </div>
+    <div class="detail-divider"></div>
+    ${df('Machine', `${x(r.machineName)}${r.machineModel?' — '+x(r.machineModel):''}`)}
+    ${r.scheduleTitle ? df('Linked Schedule', x(r.scheduleTitle)) : ''}
+    ${df('Reported', fDate(r.reportedDate))}
+    ${df('Resolved', r.resolvedDate ? fDate(r.resolvedDate) : '—')}
+    ${df('Technician', r.technician || '—')}
+    ${df('Downtime', r.downtimeHours ? r.downtimeHours+' hr(s)' : '—')}
+    ${df('Repair Cost', r.repairCost ? 'LKR '+Number(r.repairCost).toLocaleString() : '—')}
+    ${df('Logged By', r.loggedByUsername || '—')}
+    ${r.problemDescription ? `<div class="detail-field full">${dl('Problem Description')}<div class="d-value">${x(r.problemDescription)}</div></div>` : ''}
+    ${r.repairAction ? `<div class="detail-field full">${dl('Repair Action Taken')}<div class="d-value">${x(r.repairAction)}</div></div>` : ''}
+    ${r.partsReplaced ? `<div class="detail-field full">${dl('Parts Replaced')}<div class="d-value">${x(r.partsReplaced)}</div></div>` : ''}
+    ${r.notes ? `<div class="detail-field full">${dl('Notes')}<div class="d-value">${x(r.notes)}</div></div>` : ''}
+    ${r.documents && r.documents.length ? `<div class="detail-field full">${dl('Documents')}<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">${docChips}</div></div>` : ''}
+</div>`;
+        openModal('repairDetailModal');
+    }
+
+    function askDeleteRepair(id) {
+        setConfirm('Delete Repair Log?', 'This will permanently remove the repair log and cannot be undone.', '#dc2626', 'fas fa-trash', 'btn-red', 'fas fa-trash', 'Yes, Delete', async () => {
+            const r = await fetch(`${API}/repairs/${id}`, { method:'DELETE', headers:H() });
+            if (r.ok) { alert2('Repair log deleted.','success'); await loadRepairs(); filterRepairs(repairFilter, document.querySelector('#repairChips .chip.active')); }
+            else { const d=await r.json(); alert2(d.error||'Failed.','error'); }
+        });
+    }
+
+    // ==================== CONFIRM MODAL ====================
+    function setConfirm(title, msg, iconBg, iconClass, btnClass, btnIconClass, btnText, action) {
+        document.getElementById('confirmTitle').textContent = title;
+        document.getElementById('confirmMsg').textContent = msg;
+        document.getElementById('confirmIcon').style.background = iconBg+'22';
+        document.getElementById('confirmIcon').style.color = iconBg;
+        document.getElementById('confirmIconI').className = iconClass;
+        const btn = document.getElementById('confirmBtn');
+        btn.className = 'btn ' + btnClass;
+        document.getElementById('confirmBtnIcon').className = btnIconClass;
+        document.getElementById('confirmBtnText').textContent = btnText;
+        confirmAction = action;
+        openModal('confirmModal');
+    }
+
+    async function runConfirmAction() {
+        const btn = document.getElementById('confirmBtn');
+        const originalText = document.getElementById('confirmBtnText').textContent;
+        btnLoad(btn, 'Working…');
+        try {
+            await (confirmAction ? confirmAction() : Promise.resolve());
+        } finally {
+            // Always close confirm popup after success/failure to prevent stuck dialogs
+            closeModal('confirmModal');
+            btnReset(btn, originalText);
+        }
+    }
+
+    // ==================== MODAL HELPERS ====================
+    function openModal(id)  { document.getElementById(id).classList.add('open'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+    function openMachineModal() { document.getElementById('machineErr').className = 'form-error'; openModal('machineModal'); }
+
+    document.querySelectorAll('.overlay').forEach(el => {
+        el.addEventListener('click', function(e) { if (e.target === this) this.classList.remove('open'); });
+    });
+
+    // ==================== UTILITIES ====================
+    function v(id) { return document.getElementById(id).value.trim(); }
+    function setText(id, val) { document.getElementById(id).textContent = val; }
+    function x(s) { if (!s) return ''; return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function padDatetime(s) { return s.length === 16 ? s + ':00' : s; }
+
+    function fDate(s) {
+        if (!s) return '—';
+        try { return new Date(s).toLocaleString('en-US',{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}); } catch { return s; }
+    }
+    function fDateShort(s) {
+        if (!s) return '—';
+        try { return new Date(s).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}); } catch { return s; }
+    }
+
+    function statusLabel(s) { return {SCHEDULED:'Scheduled',IN_PROGRESS:'In Progress',COMPLETED:'Completed',CANCELLED:'Cancelled'}[s]||s; }
+    function repairStatusLabel(s) { return {OPEN:'Open',IN_PROGRESS:'In Progress',RESOLVED:'Resolved',CLOSED:'Closed'}[s]||s; }
+    function typeLabel(t) { return {PREVENTIVE:'Preventive',CORRECTIVE:'Corrective',INSPECTION:'Inspection',EMERGENCY:'⚡ Emergency'}[t]||t; }
+
+    function renderEmpty(tbodyId, cols, msg) {
+        document.getElementById(tbodyId).innerHTML = `<tr><td colspan="${cols}"><div class="empty-state"><i class="fas fa-folder-open"></i><p>${msg}</p></div></td></tr>`;
+    }
+
+    function df(label, val) { return `<div class="detail-field">${dl(label)}<div class="d-value">${val}</div></div>`; }
+    function dl(label) { return `<div class="d-label">${label}</div>`; }
+
+    function btnLoad(btn, text) { btn.disabled = true; btn.innerHTML = `<span class="spin"></span>${text}`; }
+    function btnReset(btn, html) { btn.disabled = false; btn.innerHTML = html; }
+
+    function alert2(msg, type) {
+        const el = document.getElementById('pageAlert');
+        el.textContent = msg;
+        el.className = `page-alert show ${type}`;
+        setTimeout(() => { el.className = 'page-alert'; }, 4000);
+    }
+
+    function logout() { localStorage.clear(); location.href = '/'; }
+</script>
+
+<!-- Edit Technician Modal (kept for inline editing from table rows) -->
+<div class="overlay" id="techModal">
+    <div class="modal">
+        <div class="modal-head">
+            <h3 id="techModalTitle">Edit Technician</h3>
+            <button class="modal-close" onclick="closeModal('techModal')"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <form id="techForm" novalidate>
+                <input type="hidden" id="t-id"/>
+                <div class="form-grid">
+                    <div class="form-section">Personal Information</div>
+                    <div>
+                        <label class="f-label">First Name *</label>
+                        <input type="text" id="t-fn" class="f-input" placeholder="John" required/>
+                    </div>
+                    <div>
+                        <label class="f-label">Last Name *</label>
+                        <input type="text" id="t-ln" class="f-input" placeholder="Doe" required/>
+                    </div>
+                    <div>
+                        <label class="f-label">Email *</label>
+                        <input type="email" id="t-email" class="f-input" placeholder="tech@printprotrack.com" required/>
+                    </div>
+                    <div>
+                        <label class="f-label">Phone *</label>
+                        <input type="tel" id="t-phone" class="f-input" placeholder="07XXXXXXXX"/>
+                    </div>
+                    <div class="form-section">Account</div>
+                    <div>
+                        <label class="f-label">Username *</label>
+                        <input type="text" id="t-un" class="f-input" required/>
+                    </div>
+                    <div id="t-pw-row" style="display:none">
+                        <label class="f-label">Password *</label>
+                        <input type="password" id="t-pw" class="f-input" placeholder="Min. 6 characters"/>
+                    </div>
+                    <div id="t-avail-row">
+                        <label class="f-label">Availability Status</label>
+                        <select id="t-avail" class="f-input">
+                            <option value="AVAILABLE">Available</option>
+                            <option value="BUSY">Busy</option>
+                            <option value="ON_LEAVE">On Leave</option>
+                            <option value="INACTIVE">Inactive</option>
+                        </select>
+                    </div>
+                    <div class="form-section">Professional Details</div>
+                    <div>
+                        <label class="f-label">Employee ID</label>
+                        <input type="text" id="t-empid" class="f-input" placeholder="EMP-T001"/>
+                    </div>
+                    <div>
+                        <label class="f-label">Experience (years)</label>
+                        <input type="number" id="t-exp" class="f-input" min="0" max="50"/>
+                    </div>
+                    <div class="full">
+                        <label class="f-label">Specialization</label>
+                        <input type="text" id="t-spec" class="f-input" placeholder="e.g. Offset Press, Digital Printing, Binding"/>
+                    </div>
+                    <div class="full">
+                        <label class="f-label">Certifications</label>
+                        <input type="text" id="t-cert" class="f-input" placeholder="e.g. ISO 9001, Heidelberg Certified"/>
+                    </div>
+                    <div class="full">
+                        <label class="f-label">Notes</label>
+                        <textarea id="t-notes" class="f-input" placeholder="Internal notes about this technician…"></textarea>
+                    </div>
+                </div>
+                <div class="form-error" id="techFormErr"></div>
+            </form>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-ghost" onclick="closeModal('techModal')">Cancel</button>
+            <button class="btn btn-green" id="techSubmitBtn" onclick="submitTech()">
+                <i class="fas fa-save"></i> Save Technician
+            </button>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
+
