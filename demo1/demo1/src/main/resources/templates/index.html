@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PrintProTrack — Data World Inventory System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet" />
+    <style>
+        :root {
+            --green-dark:   #0d3d2b;
+            --green-mid:    #155c3e;
+            --green-bright: #1e8a57;
+            --green-light:  #2db870;
+            --green-glow:   #3ddc8c;
+            --gray-900:     #0f1410;
+            --gray-800:     #1a2020;
+            --gray-700:     #2a3530;
+            --gray-500:     #556860;
+            --gray-300:     #a8b8b0;
+            --gray-100:     #e8f0ec;
+            --white:        #f4fbf7;
+            --accent:       #c8f5dc;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--gray-900);
+            color: var(--white);
+            overflow-x: hidden;
+        }
+
+        /* ── NOISE OVERLAY ── */
+        body::before {
+            content: '';
+            position: fixed; inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+            pointer-events: none; z-index: 999; opacity: .45;
+        }
+
+        /* ── NAV ── */
+        nav {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 1.1rem 3rem;
+            background: rgba(10,18,14,.85);
+            backdrop-filter: blur(18px);
+            border-bottom: 1px solid rgba(45,184,112,.15);
+        }
+        .nav-brand { display: flex; align-items: center; gap: .8rem; }
+        .nav-logo {
+            width: 42px; height: 42px; border-radius: 50%;
+            border: 2px solid var(--green-light);
+            overflow: hidden;
+            box-shadow: 0 0 16px rgba(61,220,140,.3);
+        }
+        .nav-logo svg { width: 100%; height: 100%; }
+        .nav-name { font-family: 'Syne', sans-serif; font-size: 1.15rem; font-weight: 800; letter-spacing: .03em; }
+        .nav-name span { color: var(--green-glow); }
+        .nav-links { display: flex; gap: 2rem; align-items: center; }
+        .nav-links a {
+            font-size: .88rem; font-weight: 500; letter-spacing: .04em; text-transform: uppercase;
+            color: var(--gray-300); text-decoration: none; transition: color .2s;
+        }
+        .nav-links a:hover { color: var(--green-glow); }
+        .nav-cta {
+            padding: .5rem 1.4rem; border-radius: 6px;
+            background: var(--green-bright); color: var(--white) !important;
+            font-weight: 600 !important; transition: background .2s, box-shadow .2s !important;
+        }
+        .nav-cta:hover { background: var(--green-light) !important; box-shadow: 0 0 20px rgba(30,138,87,.5) !important; }
+
+        /* ── HERO ── */
+        .hero {
+            min-height: 100vh;
+            display: grid; grid-template-columns: 1fr 1fr;
+            align-items: center; gap: 4rem;
+            padding: 7rem 5rem 4rem;
+            position: relative; overflow: hidden;
+        }
+        .hero-bg {
+            position: absolute; inset: 0;
+            background:
+                    radial-gradient(ellipse 70% 60% at 80% 40%, rgba(30,138,87,.18) 0%, transparent 70%),
+                    radial-gradient(ellipse 50% 80% at 10% 80%, rgba(13,61,43,.4) 0%, transparent 60%),
+                    linear-gradient(160deg, #0a120e 0%, #111a14 60%, #0d1f18 100%);
+        }
+        /* grid lines */
+        .hero-bg::after {
+            content: '';
+            position: absolute; inset: 0;
+            background-image:
+                    linear-gradient(rgba(45,184,112,.04) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(45,184,112,.04) 1px, transparent 1px);
+            background-size: 60px 60px;
+        }
+        .hero-content { position: relative; z-index: 2; }
+        .hero-badge {
+            display: inline-flex; align-items: center; gap: .5rem;
+            padding: .35rem 1rem; border-radius: 100px;
+            border: 1px solid rgba(61,220,140,.35);
+            background: rgba(61,220,140,.08);
+            font-size: .78rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+            color: var(--green-glow); margin-bottom: 1.5rem;
+            animation: fadeUp .6s ease both;
+        }
+        .badge-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green-glow); animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.8)} }
+
+        h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: clamp(2.4rem, 4.5vw, 3.8rem);
+            font-weight: 800; line-height: 1.08; letter-spacing: -.02em;
+            margin-bottom: 1.4rem;
+            animation: fadeUp .7s .1s ease both;
+        }
+        h1 .hl { color: var(--green-glow); }
+        h1 .stroke {
+            -webkit-text-stroke: 1.5px var(--green-light);
+            color: transparent;
+        }
+        .hero-desc {
+            font-size: 1.05rem; font-weight: 300; line-height: 1.7;
+            color: var(--gray-300); max-width: 500px; margin-bottom: 2.4rem;
+            animation: fadeUp .7s .2s ease both;
+        }
+        .hero-actions { display: flex; gap: 1rem; flex-wrap: wrap; animation: fadeUp .7s .3s ease both; }
+        .btn-primary {
+            padding: .85rem 2.2rem; border-radius: 8px; font-family: 'Syne', sans-serif;
+            font-size: .95rem; font-weight: 700; letter-spacing: .04em;
+            background: linear-gradient(135deg, var(--green-bright), var(--green-light));
+            color: #fff; border: none; cursor: pointer; text-decoration: none;
+            box-shadow: 0 4px 24px rgba(30,138,87,.4);
+            transition: transform .2s, box-shadow .2s;
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(30,138,87,.55); }
+        .btn-outline {
+            padding: .85rem 2.2rem; border-radius: 8px; font-family: 'Syne', sans-serif;
+            font-size: .95rem; font-weight: 700; letter-spacing: .04em;
+            background: transparent; color: var(--green-glow);
+            border: 1.5px solid rgba(61,220,140,.45); cursor: pointer; text-decoration: none;
+            transition: background .2s, border-color .2s;
+        }
+        .btn-outline:hover { background: rgba(61,220,140,.08); border-color: var(--green-glow); }
+
+        /* hero visual */
+        .hero-visual { position: relative; z-index: 2; animation: fadeUp .8s .15s ease both; }
+        .dashboard-mock {
+            background: rgba(26,32,32,.9);
+            border: 1px solid rgba(45,184,112,.2);
+            border-radius: 18px; padding: 1.5rem;
+            box-shadow: 0 24px 80px rgba(0,0,0,.5), 0 0 0 1px rgba(61,220,140,.05);
+            backdrop-filter: blur(12px);
+        }
+        .mock-header {
+            display: flex; align-items: center; gap: .6rem; margin-bottom: 1.2rem;
+            padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,.06);
+        }
+        .mock-dot { width: 10px; height: 10px; border-radius: 50%; }
+        .mock-title { font-family: 'Syne', sans-serif; font-size: .85rem; font-weight: 700; color: var(--gray-300); margin-left: auto; }
+        .mock-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .8rem; margin-bottom: 1rem; }
+        .mock-card {
+            background: rgba(255,255,255,.04); border-radius: 10px; padding: 1rem;
+            border: 1px solid rgba(255,255,255,.06);
+        }
+        .mock-card-label { font-size: .68rem; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--gray-500); margin-bottom: .4rem; }
+        .mock-card-val { font-family: 'Syne', sans-serif; font-size: 1.5rem; font-weight: 800; }
+        .mock-card-val.g { color: var(--green-glow); }
+        .mock-card-val.w { color: var(--white); }
+        .mock-card-val.a { color: #f6c94e; }
+        .mock-bar-row { display: flex; align-items: center; gap: .7rem; margin-bottom: .55rem; }
+        .mock-bar-label { font-size: .72rem; color: var(--gray-300); width: 90px; flex-shrink: 0; }
+        .mock-bar-track { flex: 1; height: 6px; background: rgba(255,255,255,.07); border-radius: 4px; overflow: hidden; }
+        .mock-bar-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--green-mid), var(--green-glow)); animation: barGrow 1.2s ease both; }
+        @keyframes barGrow { from{width:0} }
+        .mock-ai-badge {
+            display: flex; align-items: center; gap: .6rem; margin-top: 1rem;
+            padding: .6rem .9rem; border-radius: 8px;
+            background: rgba(61,220,140,.08); border: 1px solid rgba(61,220,140,.2);
+            font-size: .75rem; color: var(--green-glow); font-weight: 500;
+        }
+        .ai-icon { font-size: 1rem; }
+
+        @keyframes fadeUp { from{opacity:0;transform:translateY(22px)} to{opacity:1;transform:translateY(0)} }
+
+        /* ── STATS STRIP ── */
+        .stats {
+            display: grid; grid-template-columns: repeat(4,1fr);
+            border-top: 1px solid rgba(255,255,255,.06);
+            border-bottom: 1px solid rgba(255,255,255,.06);
+        }
+        .stat {
+            padding: 2rem; text-align: center;
+            border-right: 1px solid rgba(255,255,255,.06);
+        }
+        .stat:last-child { border-right: none; }
+        .stat-num { font-family: 'Syne', sans-serif; font-size: 2.4rem; font-weight: 800; color: var(--green-glow); }
+        .stat-label { font-size: .82rem; color: var(--gray-500); letter-spacing: .04em; margin-top: .2rem; }
+
+        /* ── PORTAL SECTION ── */
+        .portals { padding: 6rem 5rem; }
+        .section-eyebrow {
+            display: flex; align-items: center; gap: .8rem; margin-bottom: .8rem;
+            font-size: .78rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+            color: var(--green-glow);
+        }
+        .section-eyebrow::after { content: ''; flex: 1; height: 1px; background: rgba(61,220,140,.25); }
+        .section-title {
+            font-family: 'Syne', sans-serif; font-size: clamp(1.8rem, 3vw, 2.6rem);
+            font-weight: 800; margin-bottom: .8rem; letter-spacing: -.02em;
+        }
+        .section-sub { color: var(--gray-300); font-size: 1rem; font-weight: 300; max-width: 520px; margin-bottom: 3rem; line-height: 1.7; }
+
+        .portal-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 1.2rem; }
+
+        .portal-card {
+            position: relative; overflow: hidden;
+            background: var(--gray-800); border-radius: 16px;
+            border: 1px solid rgba(255,255,255,.07);
+            padding: 2rem 1.6rem 1.8rem;
+            text-decoration: none; color: var(--white);
+            display: flex; flex-direction: column;
+            transition: transform .25s, box-shadow .25s, border-color .25s;
+        }
+        .portal-card::before {
+            content: ''; position: absolute; inset: 0;
+            background: radial-gradient(ellipse 80% 60% at 50% 0%, var(--card-glow,rgba(30,138,87,.18)) 0%, transparent 70%);
+            opacity: 0; transition: opacity .3s;
+        }
+        .portal-card:hover { transform: translateY(-6px); box-shadow: 0 20px 60px rgba(0,0,0,.4); border-color: rgba(61,220,140,.3); }
+        .portal-card:hover::before { opacity: 1; }
+
+        .portal-card.admin   { --card-glow: rgba(220,60,60,.2); }
+        .portal-card.manager { --card-glow: rgba(30,138,87,.2); }
+        .portal-card.tech    { --card-glow: rgba(246,201,78,.18); }
+        .portal-card.staff   { --card-glow: rgba(61,220,140,.15); }
+
+        .portal-icon {
+            width: 52px; height: 52px; border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem; margin-bottom: 1.3rem;
+        }
+        .portal-card.admin   .portal-icon { background: rgba(220,60,60,.15); border: 1px solid rgba(220,60,60,.3); }
+        .portal-card.manager .portal-icon { background: rgba(30,138,87,.15); border: 1px solid rgba(30,138,87,.3); }
+        .portal-card.tech    .portal-icon { background: rgba(246,201,78,.12); border: 1px solid rgba(246,201,78,.3); }
+        .portal-card.staff   .portal-icon { background: rgba(61,220,140,.12); border: 1px solid rgba(61,220,140,.3); }
+
+        .portal-role { font-family: 'Syne', sans-serif; font-size: 1.15rem; font-weight: 800; margin-bottom: .4rem; }
+        .portal-desc { font-size: .82rem; color: var(--gray-300); line-height: 1.6; flex: 1; margin-bottom: 1.4rem; }
+        .portal-perms { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1.5rem; }
+        .perm-tag {
+            padding: .25rem .65rem; border-radius: 100px;
+            font-size: .68rem; font-weight: 600; letter-spacing: .04em;
+            background: rgba(255,255,255,.06); color: var(--gray-300);
+        }
+        .portal-btn {
+            display: flex; align-items: center; justify-content: center; gap: .5rem;
+            padding: .7rem; border-radius: 8px; font-family: 'Syne', sans-serif;
+            font-size: .85rem; font-weight: 700; letter-spacing: .04em;
+            text-align: center; transition: background .2s;
+        }
+        .portal-card.admin   .portal-btn { background: rgba(220,60,60,.2); color: #ff8a8a; border: 1px solid rgba(220,60,60,.3); }
+        .portal-card.manager .portal-btn { background: rgba(30,138,87,.2); color: var(--green-glow); border: 1px solid rgba(30,138,87,.3); }
+        .portal-card.tech    .portal-btn { background: rgba(246,201,78,.15); color: #f6c94e; border: 1px solid rgba(246,201,78,.3); }
+        .portal-card.staff   .portal-btn { background: rgba(61,220,140,.12); color: var(--green-glow); border: 1px solid rgba(61,220,140,.3); }
+        .portal-btn svg { width: 16px; height: 16px; }
+
+        /* ── AI FEATURE ── */
+        .ai-section {
+            margin: 0 5rem 6rem;
+            border-radius: 24px; overflow: hidden;
+            background: linear-gradient(135deg, rgba(13,61,43,.9) 0%, rgba(21,92,62,.6) 50%, rgba(10,20,14,.95) 100%);
+            border: 1px solid rgba(61,220,140,.2);
+            display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+            box-shadow: 0 0 80px rgba(30,138,87,.15);
+        }
+        .ai-content { padding: 4rem; }
+        .ai-eyebrow {
+            display: inline-flex; align-items: center; gap: .5rem;
+            padding: .3rem .9rem; border-radius: 100px;
+            background: rgba(61,220,140,.12); border: 1px solid rgba(61,220,140,.3);
+            font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+            color: var(--green-glow); margin-bottom: 1.4rem;
+        }
+        .ai-title {
+            font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 800;
+            line-height: 1.15; margin-bottom: 1.2rem; letter-spacing: -.02em;
+        }
+        .ai-desc { color: var(--gray-300); font-size: .95rem; line-height: 1.7; margin-bottom: 2rem; }
+        .ai-features { list-style: none; display: flex; flex-direction: column; gap: .8rem; }
+        .ai-features li { display: flex; align-items: flex-start; gap: .7rem; font-size: .9rem; color: var(--gray-100); }
+        .ai-features li::before { content: '▸'; color: var(--green-glow); flex-shrink: 0; margin-top: .1rem; }
+
+        .ai-demo {
+            background: rgba(0,0,0,.35); padding: 2.5rem;
+            display: flex; flex-direction: column; gap: 1rem; justify-content: center;
+            border-left: 1px solid rgba(61,220,140,.1);
+        }
+        .chat-bubble {
+            padding: .9rem 1.1rem; border-radius: 12px; font-size: .82rem; line-height: 1.6;
+            max-width: 90%; animation: fadeUp .5s ease both;
+        }
+        .chat-bubble.ai {
+            background: rgba(30,138,87,.2); border: 1px solid rgba(30,138,87,.3);
+            color: var(--gray-100); border-radius: 12px 12px 12px 2px;
+            align-self: flex-start;
+        }
+        .chat-bubble.user {
+            background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.1);
+            color: var(--gray-100); border-radius: 12px 12px 2px 12px;
+            align-self: flex-end;
+        }
+        .chat-bubble .bubble-label { font-size: .67rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; margin-bottom: .3rem; }
+        .chat-bubble.ai .bubble-label { color: var(--green-glow); }
+        .chat-bubble.user .bubble-label { color: var(--gray-500); }
+        .typing { display: flex; gap: 4px; align-items: center; padding: .7rem 1rem; }
+        .typing span { width: 7px; height: 7px; background: var(--green-glow); border-radius: 50%; animation: blink 1.4s infinite; }
+        .typing span:nth-child(2) { animation-delay: .2s; }
+        .typing span:nth-child(3) { animation-delay: .4s; }
+        @keyframes blink { 0%,80%,100%{opacity:.2} 40%{opacity:1} }
+
+        /* ── FEATURES GRID ── */
+        .features { padding: 4rem 5rem 6rem; }
+        .features-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 1.2rem; }
+        .feature-card {
+            padding: 1.8rem; border-radius: 14px;
+            background: rgba(26,32,32,.8); border: 1px solid rgba(255,255,255,.06);
+            transition: border-color .2s;
+        }
+        .feature-card:hover { border-color: rgba(61,220,140,.25); }
+        .feature-icon { font-size: 1.8rem; margin-bottom: 1rem; }
+        .feature-title { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; margin-bottom: .5rem; }
+        .feature-desc { font-size: .85rem; color: var(--gray-300); line-height: 1.65; }
+
+        /* ── FOOTER ── */
+        footer {
+            border-top: 1px solid rgba(255,255,255,.06);
+            padding: 2.5rem 5rem;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .footer-brand { font-family: 'Syne', sans-serif; font-size: .9rem; font-weight: 700; color: var(--gray-500); }
+        .footer-brand span { color: var(--green-glow); }
+        .footer-copy { font-size: .8rem; color: var(--gray-500); }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 1100px) {
+            .hero { grid-template-columns: 1fr; padding: 6rem 2.5rem 3rem; }
+            .hero-visual { display: none; }
+            .portal-grid { grid-template-columns: repeat(2,1fr); }
+            .ai-section { grid-template-columns: 1fr; margin: 0 2.5rem 4rem; }
+            .ai-demo { border-left: none; border-top: 1px solid rgba(61,220,140,.1); }
+            .stats { grid-template-columns: repeat(2,1fr); }
+            .portals, .features { padding: 4rem 2.5rem; }
+            .features-grid { grid-template-columns: repeat(2,1fr); }
+        }
+        @media (max-width: 680px) {
+            nav { padding: 1rem 1.5rem; }
+            .nav-links { display: none; }
+            .portal-grid { grid-template-columns: 1fr; }
+            .features-grid { grid-template-columns: 1fr; }
+            .stats { grid-template-columns: repeat(2,1fr); }
+            footer { flex-direction: column; gap: 1rem; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+    <div class="nav-brand">
+        <div class="nav-logo">
+            <svg viewBox="0 0 42 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="21" cy="21" r="21" fill="#0d3d2b"/>
+                <path d="M13 21 C13 16.03 17.03 12 22 12 C26.97 12 31 16.03 31 21" stroke="#2db870" stroke-width="2.5" stroke-linecap="round"/>
+                <path d="M10 24 C10 17.37 15.37 12 22 12 C28.63 12 34 17.37 34 24" stroke="#3ddc8c" stroke-width="1.5" stroke-linecap="round" opacity=".5"/>
+                <text x="15" y="30" font-family="sans-serif" font-size="11" font-weight="900" fill="#f4fbf7">DW</text>
+            </svg>
+        </div>
+        <div class="nav-name">Print<span>Pro</span>Track</div>
+    </div>
+    <div class="nav-links">
+        <a href="#portals">Login Portals</a>
+        <a href="#ai-feature">AI Features</a>
+        <a href="#features">Modules</a>
+        <a href='/login' class="nav-cta">Admin Access</a>
+    </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-content">
+        <div class="hero-badge"><span class="badge-dot"></span> Data World Printing Shop · Kegalle</div>
+        <h1>Smart Inventory<br>for <span class="hl">Modern</span><br><span class="stroke">Print Shops</span></h1>
+        <p class="hero-desc">PrintProTrack replaces manual processes with an AI-powered platform managing papers, machines, spare parts, suppliers, staff, and energy — all in one dashboard.</p>
+        <div class="hero-actions">
+            <a href="#portals" class="btn-primary">Access Your Portal →</a>
+            <a href="#ai-feature" class="btn-outline">Explore AI Features</a>
+        </div>
+    </div>
+
+    <div class="hero-visual">
+        <div class="dashboard-mock">
+            <div class="mock-header">
+                <div class="mock-dot" style="background:#ff5f57"></div>
+                <div class="mock-dot" style="background:#febc2e"></div>
+                <div class="mock-dot" style="background:#28c840"></div>
+                <div class="mock-title">PrintProTrack Dashboard</div>
+            </div>
+            <div class="mock-grid">
+                <div class="mock-card"><div class="mock-card-label">Stock Items</div><div class="mock-card-val g">1,284</div></div>
+                <div class="mock-card"><div class="mock-card-label">Machines</div><div class="mock-card-val w">12</div></div>
+                <div class="mock-card"><div class="mock-card-label">Alerts</div><div class="mock-card-val a">3</div></div>
+            </div>
+            <div class="mock-bar-row"><div class="mock-bar-label">A4 Paper Reams</div><div class="mock-bar-track"><div class="mock-bar-fill" style="width:78%"></div></div></div>
+            <div class="mock-bar-row"><div class="mock-bar-label">Ink Cartridges</div><div class="mock-bar-track"><div class="mock-bar-fill" style="width:45%"></div></div></div>
+            <div class="mock-bar-row"><div class="mock-bar-label">Spare Parts</div><div class="mock-bar-track"><div class="mock-bar-fill" style="width:62%"></div></div></div>
+            <div class="mock-bar-row"><div class="mock-bar-label">Toner Units</div><div class="mock-bar-track"><div class="mock-bar-fill" style="width:29%"></div></div></div>
+            <div class="mock-ai-badge"><span class="ai-icon">🤖</span> AI Maintenance Alert: Printer #3 — roller replacement due in 2 days</div>
+        </div>
+    </div>
+</section>
+
+<!-- STATS -->
+<div class="stats">
+    <div class="stat"><div class="stat-num">1,200+</div><div class="stat-label">Stock Items Tracked</div></div>
+    <div class="stat"><div class="stat-num">12</div><div class="stat-label">Machines Monitored</div></div>
+    <div class="stat"><div class="stat-num">4</div><div class="stat-label">Role-Based Portals</div></div>
+    <div class="stat"><div class="stat-num">AI</div><div class="stat-label">Maintenance Assistant</div></div>
+</div>
+
+<!-- PORTALS -->
+<section class="portals" id="portals">
+    <div class="section-eyebrow">Access Portals</div>
+    <h2 class="section-title">Choose Your Login</h2>
+    <p class="section-sub">Each role has a dedicated, permission-scoped interface. Select your portal below to proceed.</p>
+
+    <div class="portal-grid">
+        <!-- ADMIN -->
+        <a href='/login' class="portal-card admin">
+            <div class="portal-icon">🛡️</div>
+            <div class="portal-role">Administrator</div>
+            <p class="portal-desc">Full system control. Manage users, configure system settings, view all reports, and oversee every module.</p>
+            <div class="portal-perms">
+                <span class="perm-tag">Full Access</span>
+                <span class="perm-tag">User Mgmt</span>
+                <span class="perm-tag">Reports</span>
+                <span class="perm-tag">Settings</span>
+            </div>
+            <div class="portal-btn">
+                Login as Admin
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+        </a>
+
+        <!-- MANAGER -->
+        <a href='/manager-login' class="portal-card manager">
+            <div class="portal-icon">📊</div>
+            <div class="portal-role">Manager</div>
+            <p class="portal-desc">Oversee inventory levels, approve purchases, manage supplier relations, and review operational analytics.</p>
+            <div class="portal-perms">
+                <span class="perm-tag">Inventory</span>
+                <span class="perm-tag">Suppliers</span>
+                <span class="perm-tag">Approvals</span>
+                <span class="perm-tag">Analytics</span>
+            </div>
+            <div class="portal-btn">
+                Login as Manager
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+        </a>
+
+        <!-- TECHNICIAN -->
+        <a href='/tech-login' class="portal-card tech">
+            <div class="portal-icon">🔧</div>
+            <div class="portal-role">Technician</div>
+            <p class="portal-desc">Access machine logs, receive AI maintenance recommendations, log repairs, and request spare parts.</p>
+            <div class="portal-perms">
+                <span class="perm-tag">Machines</span>
+                <span class="perm-tag">Repairs</span>
+                <span class="perm-tag">AI Advisor</span>
+                <span class="perm-tag">Parts Req.</span>
+            </div>
+            <div class="portal-btn">
+                Login as Technician
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+        </a>
+
+        <!-- STAFF -->
+        <a href='/staff-login' class="portal-card staff">
+            <div class="portal-icon">👤</div>
+            <div class="portal-role">Staff</div>
+            <p class="portal-desc">View assigned tasks, report stock usage, submit requisitions, and check daily operational updates.</p>
+            <div class="portal-perms">
+                <span class="perm-tag">Tasks</span>
+                <span class="perm-tag">Usage Log</span>
+                <span class="perm-tag">Requisitions</span>
+            </div>
+            <div class="portal-btn">
+                Login as Staff
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+        </a>
+    </div>
+</section>
+
+<!-- AI SECTION -->
+<div class="ai-section" id="ai-feature">
+    <div class="ai-content">
+        <div class="ai-eyebrow">🤖 AI-Powered</div>
+        <h2 class="ai-title">Machine Maintenance<br>Recommendation System</h2>
+        <p class="ai-desc">Our built-in AI advisor analyzes machine usage patterns, error histories, and part wear data to proactively guide technicians through repairs — before breakdowns happen.</p>
+        <ul class="ai-features">
+            <li>Predictive alerts when parts approach end-of-life</li>
+            <li>Step-by-step guided repair walkthroughs</li>
+            <li>Historical fault analysis per machine</li>
+            <li>Smart spare-parts requisition based on predicted needs</li>
+            <li>Energy consumption anomaly detection</li>
+            <li>Maintenance scheduling with priority ranking</li>
+        </ul>
+    </div>
+    <div class="ai-demo">
+        <div class="chat-bubble user">
+            <div class="bubble-label">Technician</div>
+            Printer #3 is making a grinding noise. What should I check?
+        </div>
+        <div class="chat-bubble ai">
+            <div class="bubble-label">AI Maintenance Advisor</div>
+            Based on Printer #3's usage log (84,200 pages), the fuser roller is the most likely cause. Check for: worn rubber surface, heat lamp output, and paper path debris. The fuser unit for this model (HP LaserJet M608) is in stock — 2 units available.
+        </div>
+        <div class="chat-bubble user">
+            <div class="bubble-label">Technician</div>
+            How do I replace the fuser unit?
+        </div>
+        <div class="chat-bubble ai" style="animation-delay:.1s">
+            <div class="bubble-label">AI Maintenance Advisor</div>
+            Step 1: Power off and cool 15 min. Step 2: Open rear access panel. Step 3: Release the two blue clips on the fuser assembly. Step 4: Slide out old unit. Est. time: 25 min. I'll log this repair and update the maintenance record automatically.
+        </div>
+        <div class="chat-bubble ai" style="background:rgba(61,220,140,.08); border-color:rgba(61,220,140,.2);">
+            <div class="bubble-label" style="color:var(--green-glow)">System</div>
+            ✅ Spare part reserved · Repair ticket #RT-2024-0412 created
+        </div>
+    </div>
+</div>
+
+<!-- FEATURES -->
+<section class="features" id="features">
+    <div class="section-eyebrow">System Modules</div>
+    <h2 class="section-title">Everything You Need</h2>
+    <p class="section-sub">A complete suite of tools built specifically for printing shop operations.</p>
+
+    <div class="features-grid">
+        <div class="feature-card">
+            <div class="feature-icon">📦</div>
+            <div class="feature-title">Inventory Management</div>
+            <p class="feature-desc">Track papers, inks, toners, and consumables with real-time stock levels, low-stock alerts, and reorder triggers.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">⚙️</div>
+            <div class="feature-title">Machine Monitoring</div>
+            <p class="feature-desc">Log machine usage, track page counts, monitor health status, and schedule preventive maintenance intervals.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">🔩</div>
+            <div class="feature-title">Spare Parts Store</div>
+            <p class="feature-desc">Maintain a dedicated spare-parts inventory with compatibility mapping to specific machine models.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">🏢</div>
+            <div class="feature-title">Supplier Management</div>
+            <p class="feature-desc">Manage supplier contacts, track orders, compare pricing, and maintain purchase history for auditing.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">👥</div>
+            <div class="feature-title">Staff & HR Module</div>
+            <p class="feature-desc">Manage employee records, role assignments, shift schedules, and activity logs across all departments.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">⚡</div>
+            <div class="feature-title">Energy Tracking</div>
+            <p class="feature-desc">Monitor electricity consumption per machine, detect anomalies, and generate energy efficiency reports.</p>
+        </div>
+    </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+    <div class="footer-brand">Print<span>Pro</span>Track · Data World Design & Printing Store</div>
+    <div class="footer-copy">© 2024 Data World · Kegalle, Sri Lanka · Inventory Management System</div>
+</footer>
+
+</body>
+</html>
+
+
+

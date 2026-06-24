@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>My Attendance — PrintProTrack Staff</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .bg-sidebar { background-color: #1a3a2a; }
+        .text-brand { color: #1e5c2f; }
+        .bg-brand { background-color: #1e5c2f; }
+        .bg-brand-gradient { background: linear-gradient(135deg,#1a3a2a 0%,#1e5c2f 50%,#2d8a47 100%); }
+        .sidebar-link { transition: all .25s; }
+        .sidebar-link:hover { background-color: rgba(255,255,255,.1); transform: translateX(4px); }
+        .sidebar-link.active { background-color: rgba(255,255,255,.15); border-left: 3px solid #4ade80; }
+        .clock-ring { width:160px; height:160px; border-radius:50%;
+            display:flex; align-items:center; justify-content:center;
+            flex-direction:column; font-size:2rem; font-weight:800;
+            border:6px solid; transition:all .4s; }
+        .ring-present { border-color:#22c55e; background:#f0fdf4; color:#15803d; }
+        .ring-late    { border-color:#f59e0b; background:#fffbeb; color:#92400e; }
+        .ring-out     { border-color:#6b7280; background:#f9fafb; color:#374151; }
+        .ring-none    { border-color:#e5e7eb; background:#f9fafb; color:#9ca3af; }
+        .badge { display:inline-flex; align-items:center; gap:4px;
+            padding:3px 10px; border-radius:99px; font-size:11px; font-weight:700; }
+        .b-present  { background:#dcfce7; color:#166534; }
+        .b-late     { background:#fef3c7; color:#92400e; }
+        .b-absent   { background:#fee2e2; color:#991b1b; }
+        .b-half     { background:#ede9fe; color:#5b21b6; }
+        .b-leave    { background:#dbeafe; color:#1e40af; }
+        #toast { position:fixed; bottom:24px; right:24px; z-index:9999;
+            transition:all .3s; transform:translateY(120px); opacity:0; }
+        #toast.show { transform:translateY(0); opacity:1; }
+        .modal-backdrop { display:none; position:fixed; inset:0;
+            background:rgba(0,0,0,.5); z-index:200;
+            align-items:center; justify-content:center; }
+        .modal-backdrop.open { display:flex; }
+        .modal-box { background:#fff; border-radius:14px; padding:28px;
+            width:420px; max-width:92vw; animation:popIn .2s ease; }
+        @keyframes popIn { from{opacity:0;transform:scale(.94)} to{opacity:1;transform:scale(1)} }
+        .form-input { width:100%; padding:9px 12px; border:1.5px solid #e2e8f0;
+            border-radius:7px; font-size:14px; outline:none; transition:border-color .2s; }
+        .form-input:focus { border-color:#2d8a47; box-shadow:0 0 0 3px rgba(45,138,71,.1); }
+        .spinner { display:inline-block; width:14px; height:14px;
+            border:2px solid rgba(255,255,255,.35); border-top-color:#fff;
+            border-radius:50%; animation:spin .55s linear infinite;
+            margin-right:6px; vertical-align:middle; }
+        @keyframes spin { to { transform:rotate(360deg); } }
+
+        /* Clock out button states */
+        #clockOutBtn:not(:disabled) { background-color: #f59e0b; color: white; }
+        #clockOutBtn:not(:disabled):hover { background-color: #d97706; }
+        #clockOutBtn:disabled { background-color: #e5e7eb; color: #9ca3af; cursor: not-allowed; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex overflow-hidden text-gray-800">
+
+<!-- ── SIDEBAR ── -->
+<aside class="bg-sidebar text-white w-72 flex-shrink-0 flex flex-col h-screen hidden md:flex shadow-2xl z-20">
+    <div class="px-6 py-5 flex items-center space-x-3 border-b border-green-900 bg-white">
+        <i class="fas fa-print text-2xl text-brand"></i>
+        <h1 class="text-xl font-bold tracking-wide text-brand">PrintProTrack</h1>
+        <span class="ml-auto px-2 py-0.5 bg-green-100 text-green-800 rounded-full text-xs font-semibold">STAFF</span>
+    </div>
+    <nav class="flex-1 overflow-y-auto py-5 px-4 space-y-1">
+        <p class="text-xs font-semibold text-green-700 uppercase tracking-widest px-3 mb-3">Main Menu</p>
+        <a href='/staff-dashboard' class="sidebar-link flex items-center p-3 rounded-lg text-gray-300 hover:text-white group">
+            <i class="fa-solid fa-house w-5 text-center text-gray-400 group-hover:text-green-400"></i>
+            <span class="ml-3 font-medium text-sm">Dashboard</span>
+        </a>
+        <a href="/staff-dashboard#profile" class="sidebar-link flex items-center p-3 rounded-lg text-gray-300 hover:text-white group">
+            <i class="fa-solid fa-circle-user w-5 text-center text-gray-400 group-hover:text-green-400"></i>
+            <span class="ml-3 font-medium text-sm">My Profile</span>
+        </a>
+        <p class="text-xs font-semibold text-green-700 uppercase tracking-widest px-3 mt-5 mb-2">View-Only Modules</p>
+        <a href='/staff-maintenance' class="sidebar-link flex items-center p-3 rounded-lg text-gray-300 hover:text-white group">
+            <i class="fa-solid fa-screwdriver-wrench w-5 text-center"></i>
+            <span class="ml-3 font-medium text-sm">Machine Maintenance</span>
+        </a>
+        <a href='/staff-energy' class="sidebar-link flex items-center p-3 rounded-lg text-gray-300 hover:text-white group">
+            <i class="fa-solid fa-bolt w-5 text-center"></i>
+            <span class="ml-3 font-medium text-sm">Energy Monitoring</span>
+        </a>
+        <a href='/staff-materials' class="sidebar-link flex items-center p-3 rounded-lg text-gray-300 hover:text-white group">
+            <i class="fa-solid fa-scroll w-5 text-center"></i>
+            <span class="ml-3 font-medium text-sm">Material Management</span>
+        </a>
+        <a href='/staff-spareparts' class="sidebar-link flex items-center p-3 rounded-lg text-gray-300 hover:text-white group">
+            <i class="fa-solid fa-cogs w-5 text-center"></i>
+            <span class="ml-3 font-medium text-sm">Spare Parts</span>
+        </a>
+        <a href='/attendance-staff' class="sidebar-link active flex items-center p-3 rounded-lg text-gray-300 hover:text-white group">
+            <i class="fa-solid fa-calendar-check w-5 text-center text-gray-400 group-hover:text-green-400"></i>
+            <span class="ml-3 font-medium text-sm">My Attendance</span>
+        </a>
+    </nav>
+    <div class="p-4 border-t border-green-900">
+        <button onclick="logout()" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-900 hover:bg-red-800 text-red-200 rounded-lg text-sm font-semibold transition">
+            <i class="fas fa-sign-out-alt"></i> Sign Out
+        </button>
+    </div>
+</aside>
+
+<!-- ── MAIN ── -->
+<div class="flex-1 flex flex-col h-screen overflow-hidden">
+    <nav class="bg-white shadow-md w-full z-10">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex justify-between items-center py-3.5">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-print text-xl text-brand"></i>
+                    <span class="text-lg font-bold text-gray-800">PrintProTrack</span>
+                    <span class="px-2.5 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-semibold">STAFF</span>
+                </div>
+                <div class="flex items-center gap-5">
+                    <span class="text-gray-600 text-sm hidden sm:block">Welcome, <span id="topbarName" class="font-semibold">Staff</span></span>
+                    <button onclick="logout()" class="text-gray-500 hover:text-red-600 text-sm"><i class="fas fa-sign-out-alt"></i> Logout</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
+        <div class="max-w-5xl mx-auto space-y-6">
+
+            <div class="bg-brand-gradient rounded-2xl p-7 shadow-lg text-white flex items-center justify-between">
+                <div>
+                    <h2 class="text-2xl font-bold mb-1 flex items-center gap-3">
+                        <i class="fa-solid fa-calendar-check text-green-200"></i> My Attendance
+                    </h2>
+                    <p class="text-green-100 text-sm">Clock in/out and view your attendance history.</p>
+                </div>
+                <div class="text-right hidden sm:block">
+                    <p class="text-green-200 text-xs uppercase tracking-widest">Today</p>
+                    <p id="todayDate" class="text-white font-bold text-lg"></p>
+                    <p id="liveClock" class="text-green-100 font-mono text-sm"></p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                <div class="bg-white rounded-2xl shadow-sm p-6 flex flex-col items-center justify-center gap-4">
+                    <div id="clockRing" class="clock-ring ring-none">
+                        <i class="fas fa-clock text-3xl mb-1"></i>
+                        <span id="ringLabel" class="text-sm font-semibold">--:--</span>
+                    </div>
+                    <p id="statusLabel" class="text-sm font-bold text-gray-500 uppercase tracking-widest">Not clocked in</p>
+                    <div class="flex flex-col gap-2 w-full">
+                        <button id="clockInBtn" onclick="openClockModal('in')"
+                                class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-xl text-sm transition flex items-center justify-center gap-2">
+                            <i class="fas fa-sign-in-alt"></i> Clock In
+                        </button>
+                        <button id="clockOutBtn" onclick="openClockModal('out')" disabled
+                                class="w-full font-semibold py-2.5 rounded-xl text-sm transition flex items-center justify-center gap-2">
+                            <i class="fas fa-sign-out-alt"></i> Clock Out
+                        </button>
+                        <button onclick="openLeaveModal()"
+                                class="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-semibold py-2.5 rounded-xl text-sm transition flex items-center justify-center gap-2">
+                            <i class="fas fa-umbrella-beach"></i> Mark Leave / Absent
+                        </button>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm p-6">
+                    <h3 class="text-base font-bold text-gray-700 mb-4 flex items-center gap-2">
+                        <i class="fas fa-info-circle text-brand"></i> Today's Record
+                    </h3>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
+                        <div class="bg-gray-50 rounded-xl p-3">
+                            <p class="text-xs text-gray-400 font-semibold uppercase mb-1">Status</p>
+                            <span id="td-status" class="badge b-leave">—</span>
+                        </div>
+                        <div class="bg-gray-50 rounded-xl p-3">
+                            <p class="text-xs text-gray-400 font-semibold uppercase mb-1">Clock In</p>
+                            <p id="td-in" class="font-bold text-gray-700">—</p>
+                        </div>
+                        <div class="bg-gray-50 rounded-xl p-3">
+                            <p class="text-xs text-gray-400 font-semibold uppercase mb-1">Clock Out</p>
+                            <p id="td-out" class="font-bold text-gray-700">—</p>
+                        </div>
+                        <div class="bg-gray-50 rounded-xl p-3">
+                            <p class="text-xs text-gray-400 font-semibold uppercase mb-1">Work Hours</p>
+                            <p id="td-hours" class="font-bold text-gray-700">—</p>
+                        </div>
+                        <div class="bg-gray-50 rounded-xl p-3 col-span-2">
+                            <p class="text-xs text-gray-400 font-semibold uppercase mb-1">Notes</p>
+                            <p id="td-notes" class="text-gray-600">—</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                <div class="bg-white rounded-xl p-4 shadow-sm border-t-4 border-emerald-500 text-center">
+                    <p class="text-xs text-gray-400 uppercase font-semibold">Present</p>
+                    <p id="stat-present" class="text-2xl font-bold text-emerald-600">—</p>
+                </div>
+                <div class="bg-white rounded-xl p-4 shadow-sm border-t-4 border-amber-400 text-center">
+                    <p class="text-xs text-gray-400 uppercase font-semibold">Late</p>
+                    <p id="stat-late" class="text-2xl font-bold text-amber-500">—</p>
+                </div>
+                <div class="bg-white rounded-xl p-4 shadow-sm border-t-4 border-red-400 text-center">
+                    <p class="text-xs text-gray-400 uppercase font-semibold">Absent</p>
+                    <p id="stat-absent" class="text-2xl font-bold text-red-500">—</p>
+                </div>
+                <div class="bg-white rounded-xl p-4 shadow-sm border-t-4 border-purple-400 text-center">
+                    <p class="text-xs text-gray-400 uppercase font-semibold">Half-Day</p>
+                    <p id="stat-half" class="text-2xl font-bold text-purple-500">—</p>
+                </div>
+                <div class="bg-white rounded-xl p-4 shadow-sm border-t-4 border-blue-400 text-center">
+                    <p class="text-xs text-gray-400 uppercase font-semibold">Leave</p>
+                    <p id="stat-leave" class="text-2xl font-bold text-blue-500">—</p>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
+                    <h3 class="text-lg font-bold text-gray-800"><i class="fas fa-history text-brand mr-2"></i>Attendance History</h3>
+                    <div class="flex gap-2">
+                        <input type="month" id="monthPicker" onchange="loadHistory()"
+                               class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-green-400"/>
+                        <button onclick="loadHistory()" class="px-3 py-1.5 bg-brand text-white rounded-lg text-sm font-semibold hover:bg-green-700 transition"><i class="fas fa-sync-alt"></i></button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50">
+                        <tr class="text-xs uppercase tracking-widest text-gray-400 border-b border-gray-100">
+                            <th class="py-3 px-4 text-left font-semibold">Date</th>
+                            <th class="py-3 px-4 text-left font-semibold">Status</th>
+                            <th class="py-3 px-4 text-left font-semibold">Clock In</th>
+                            <th class="py-3 px-4 text-left font-semibold">Clock Out</th>
+                            <th class="py-3 px-4 text-left font-semibold">Hours</th>
+                            <th class="py-3 px-4 text-left font-semibold">Notes</th>
+                        </tr>
+                        </thead>
+                        <tbody id="historyBody" class="divide-y divide-gray-50"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Clock Modal -->
+<div id="clockModal" class="modal-backdrop">
+    <div class="modal-box">
+        <div class="flex items-center justify-between mb-4">
+            <h3 id="clockModalTitle" class="text-lg font-bold text-gray-800">Clock In</h3>
+            <button onclick="closeModal('clockModal')" class="text-gray-400 hover:text-gray-600 text-xl"><i class="fas fa-times"></i></button>
+        </div>
+        <p class="text-sm text-gray-500 mb-4">Current time: <strong id="modalCurrentTime"></strong></p>
+        <div class="mb-5">
+            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Notes (optional)</label>
+            <textarea id="clockNotes" class="form-input" rows="3" placeholder="Any remarks..."></textarea>
+        </div>
+        <div class="flex gap-3 justify-end">
+            <button onclick="closeModal('clockModal')" class="px-4 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
+            <button id="clockSubmitBtn" onclick="submitClock()"
+                    class="px-5 py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700 transition flex items-center gap-2">
+                <i id="clockSubmitIcon" class="fas fa-sign-in-alt"></i>
+                <span id="clockSubmitLabel">Confirm Clock In</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Leave Modal -->
+<div id="leaveModal" class="modal-backdrop">
+    <div class="modal-box">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold text-gray-800">Mark Leave / Absent</h3>
+            <button onclick="closeModal('leaveModal')" class="text-gray-400 hover:text-gray-600 text-xl"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="grid grid-cols-2 gap-3 mb-4">
+            <div>
+                <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Status</label>
+                <select id="leaveStatus" class="form-input">
+                    <option value="ON_LEAVE">On Leave</option>
+                    <option value="ABSENT">Absent</option>
+                    <option value="HALF_DAY">Half-Day</option>
+                </select>
+            </div>
+            <div>
+                <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Date</label>
+                <input type="date" id="leaveDate" class="form-input"/>
+            </div>
+        </div>
+        <div class="mb-5">
+            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Notes (optional)</label>
+            <textarea id="leaveNotes" class="form-input" rows="2" placeholder="Reason..."></textarea>
+        </div>
+        <div class="flex gap-3 justify-end">
+            <button onclick="closeModal('leaveModal')" class="px-4 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
+            <button onclick="submitLeave()" class="px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition flex items-center gap-2">
+                <i class="fas fa-check"></i> Submit
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="toast" class="px-5 py-3 rounded-xl shadow-xl text-sm font-semibold flex items-center gap-2"></div>
+
+<script th:inline="none">
+    const API   = 'http://localhost:8080/api/attendance/staff';
+    const token = localStorage.getItem('staffToken') || localStorage.getItem('token');
+    if (!token) window.location.href='/';
+    function authHeaders() { return { 'Content-Type':'application/json', 'Authorization':`Bearer ${token}` }; }
+
+    try { const p=JSON.parse(localStorage.getItem('staff')||'{}'); document.getElementById('topbarName').textContent=`${p.firstName||''} ${p.lastName||''}`.trim(); } catch(e){}
+
+    function tickClock() {
+        const now = new Date();
+        document.getElementById('todayDate').textContent = now.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+        document.getElementById('liveClock').textContent = now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    }
+    tickClock(); setInterval(tickClock, 1000);
+
+    let clockAction = 'in';
+    const STATUS_CLS   = {PRESENT:'b-present',LATE:'b-late',ABSENT:'b-absent',HALF_DAY:'b-half',ON_LEAVE:'b-leave'};
+    const STATUS_LABEL = {PRESENT:'Present',LATE:'Late',ABSENT:'Absent',HALF_DAY:'Half-Day',ON_LEAVE:'On Leave'};
+    function statusBadge(s) { return `<span class="badge ${STATUS_CLS[s]||'b-leave'}">${STATUS_LABEL[s]||s}</span>`; }
+    function fmtTime(iso) { if(!iso)return'—'; return new Date(iso).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }
+    function fmtDate(iso) { if(!iso)return'—'; return new Date(iso).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}); }
+
+    // ── FIX: dedicated helper using .disabled property ──────────────────────
+    function setClockOutEnabled(enabled) {
+        document.getElementById('clockOutBtn').disabled = !enabled;
+    }
+
+    async function loadToday() {
+        try {
+            const res = await fetch(`${API}/today`, {headers:authHeaders()});
+            const data = await res.json();
+            renderTodayCard(data && data.id ? data : null);
+        } catch(e) { console.error(e); }
+    }
+
+    function renderTodayCard(d) {
+        const ringEl=document.getElementById('clockRing'), ringLbl=document.getElementById('ringLabel');
+        const stLabel=document.getElementById('statusLabel'), inBtn=document.getElementById('clockInBtn');
+        if (!d) {
+            ringEl.className='clock-ring ring-none'; ringLbl.textContent='--:--';
+            stLabel.textContent='Not clocked in'; inBtn.disabled=false; setClockOutEnabled(false);
+            const s=document.getElementById('td-status');
+            if(s) s.outerHTML='<span id="td-status" class="badge b-leave">—</span>';
+            ['td-in','td-out','td-hours','td-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='—';});
+            return;
+        }
+        const s=d.status;
+        ringEl.className=`clock-ring ${s==='PRESENT'?'ring-present':s==='LATE'?'ring-late':'ring-out'}`;
+        ringLbl.textContent=d.clockIn?fmtTime(d.clockIn):'--:--';
+        stLabel.textContent=STATUS_LABEL[s]||s;
+        inBtn.disabled=!!d.clockIn;
+        setClockOutEnabled(!!d.clockIn && !d.clockOut);
+        const statusEl=document.getElementById('td-status');
+        if(statusEl) statusEl.outerHTML=`<span id="td-status" class="badge ${STATUS_CLS[s]||'b-leave'}">${STATUS_LABEL[s]||s}</span>`;
+        document.getElementById('td-in').textContent=fmtTime(d.clockIn)||'—';
+        document.getElementById('td-out').textContent=fmtTime(d.clockOut)||'—';
+        document.getElementById('td-hours').textContent=d.workHours?`${d.workHours} hrs`:'—';
+        document.getElementById('td-notes').textContent=d.notes||'—';
+    }
+
+    async function loadHistory() {
+        const picker=document.getElementById('monthPicker').value; let from,to;
+        if(picker){const[y,m]=picker.split('-').map(Number);from=`${y}-${String(m).padStart(2,'0')}-01`;const last=new Date(y,m,0).getDate();to=`${y}-${String(m).padStart(2,'0')}-${last}`;}
+        else{const n=new Date();from=`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-01`;const last=new Date(n.getFullYear(),n.getMonth()+1,0).getDate();to=`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${last}`;}
+        try{const res=await fetch(`${API}/history/range?from=${from}&to=${to}`,{headers:authHeaders()});const list=await res.json();const arr=Array.isArray(list)?list:[];renderHistory(arr);computeStats(arr);}catch(e){console.error(e);}
+    }
+
+    function renderHistory(list) {
+        const tbody=document.getElementById('historyBody');
+        if(!list.length){tbody.innerHTML='<tr><td colspan="6" class="text-center py-10 text-gray-400">No records found for this period.</td></tr>';return;}
+        tbody.innerHTML=list.map(r=>`<tr class="hover:bg-gray-50"><td class="py-3 px-4 font-medium text-gray-700">${fmtDate(r.attendanceDate)}</td><td class="py-3 px-4">${statusBadge(r.status)}</td><td class="py-3 px-4 text-gray-600">${fmtTime(r.clockIn)}</td><td class="py-3 px-4 text-gray-600">${fmtTime(r.clockOut)}</td><td class="py-3 px-4 text-gray-600">${r.workHours?r.workHours+' hrs':'—'}</td><td class="py-3 px-4 text-gray-500 max-w-xs truncate">${r.notes||'—'}</td></tr>`).join('');
+    }
+
+    function computeStats(list){const c={PRESENT:0,LATE:0,ABSENT:0,HALF_DAY:0,ON_LEAVE:0};list.forEach(r=>{if(c[r.status]!==undefined)c[r.status]++;});document.getElementById('stat-present').textContent=c.PRESENT;document.getElementById('stat-late').textContent=c.LATE;document.getElementById('stat-absent').textContent=c.ABSENT;document.getElementById('stat-half').textContent=c.HALF_DAY;document.getElementById('stat-leave').textContent=c.ON_LEAVE;}
+
+    function openClockModal(action) {
+        clockAction=action;
+        document.getElementById('clockModalTitle').textContent=action==='in'?'Clock In':'Clock Out';
+        document.getElementById('clockSubmitLabel').textContent=action==='in'?'Confirm Clock In':'Confirm Clock Out';
+        document.getElementById('clockSubmitIcon').className=action==='in'?'fas fa-sign-in-alt':'fas fa-sign-out-alt';
+        const btn=document.getElementById('clockSubmitBtn');
+        btn.className=action==='in'
+            ?'px-5 py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700 transition flex items-center gap-2'
+            :'px-5 py-2.5 bg-amber-500 text-white rounded-lg text-sm font-semibold hover:bg-amber-600 transition flex items-center gap-2';
+        document.getElementById('modalCurrentTime').textContent=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+        document.getElementById('clockNotes').value='';
+        openModal('clockModal');
+    }
+
+    async function submitClock() {
+        const notes=document.getElementById('clockNotes').value.trim();
+        const btn=document.getElementById('clockSubmitBtn');
+        const savedClass=btn.className; btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Processing...';
+        try {
+            const endpoint=clockAction==='in'?`${API}/clock-in`:`${API}/clock-out`;
+            const res=await fetch(endpoint,{method:'POST',headers:authHeaders(),body:JSON.stringify({notes})});
+            const data=await res.json();
+            if(res.ok){showToast(clockAction==='in'?'✓ Clocked in!':'✓ Clocked out!','success');closeModal('clockModal');await loadToday();await loadHistory();}
+            else showToast(data.error||'Failed','error');
+        } catch(e){showToast('Connection error','error');}
+        finally {
+            btn.disabled=false; btn.className=savedClass;
+            const icon=clockAction==='in'?'sign-in-alt':'sign-out-alt';
+            btn.innerHTML=`<i class="fas fa-${icon}"></i> Confirm Clock ${clockAction==='in'?'In':'Out'}`;
+        }
+    }
+
+    function openLeaveModal(){document.getElementById('leaveDate').value=new Date().toISOString().slice(0,10);document.getElementById('leaveNotes').value='';openModal('leaveModal');}
+    async function submitLeave(){const status=document.getElementById('leaveStatus').value,date=document.getElementById('leaveDate').value,notes=document.getElementById('leaveNotes').value.trim();try{const res=await fetch(`${API}/mark-leave`,{method:'POST',headers:authHeaders(),body:JSON.stringify({status,date,notes})});const data=await res.json();if(res.ok){showToast('✓ Status marked','success');closeModal('leaveModal');await loadToday();await loadHistory();}else showToast(data.error||'Failed','error');}catch(e){showToast('Connection error','error');}}
+
+    function openModal(id){document.getElementById(id).classList.add('open');}
+    function closeModal(id){document.getElementById(id).classList.remove('open');}
+    ['clockModal','leaveModal'].forEach(id=>{document.getElementById(id).addEventListener('click',function(e){if(e.target===this)closeModal(id);});});
+
+    let toastTimer;
+    function showToast(msg,type='success'){const t=document.getElementById('toast');t.className=`px-5 py-3 rounded-xl shadow-xl text-sm font-semibold flex items-center gap-2 show ${type==='success'?'bg-green-600 text-white':'bg-red-600 text-white'}`;t.innerHTML=`<i class="fas ${type==='success'?'fa-check-circle':'fa-exclamation-circle'}"></i> ${msg}`;clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),4000);}
+
+    function logout(){['staffToken','token','staff'].forEach(k=>localStorage.removeItem(k));window.location.href='/';}
+
+    const n=new Date();
+    document.getElementById('monthPicker').value=`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`;
+    loadToday(); loadHistory();
+</script>
+</body>
+</html>
+
+
+

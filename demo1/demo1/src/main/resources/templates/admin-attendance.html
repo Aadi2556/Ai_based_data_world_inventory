@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Attendance Report — PrintProTrack Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        * { font-family: 'DM Sans', sans-serif; }
+        code, .mono { font-family: 'DM Mono', monospace; }
+
+        :root {
+            --sidebar-bg: #0f2b1f;
+            --sidebar-accent: #1d3557;
+            --brand: #2d8a47;
+            --brand-dark: #1e5c2f;
+            --brand-light: #dcfce7;
+            --surface: #ffffff;
+            --surface-2: #f8f9fb;
+            --border: #e8eaed;
+            --text-1: #1a1d23;
+            --text-2: #6b7280;
+            --text-3: #9ca3af;
+        }
+
+        body { background: var(--surface-2); color: var(--text-1); }
+
+        /* Sidebar */
+        .sidebar { background: var(--sidebar-bg); width: 260px; flex-shrink: 0; }
+        .sidebar-logo { padding: 20px 24px; border-bottom: 1px solid rgba(255,255,255,.07); }
+        .sidebar-section { padding: 8px 12px; margin-top: 16px; font-size: 10px; font-weight: 700;
+            letter-spacing: .12em; color: rgba(255,255,255,.3); text-transform: uppercase; }
+        .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 2px 8px;
+            border-radius: 8px; font-size: 13.5px; font-weight: 500; color: rgba(255,255,255,.55);
+            cursor: pointer; transition: all .2s; text-decoration: none; }
+        .nav-item:hover { background: rgba(255,255,255,.07); color: rgba(255,255,255,.9); }
+        .nav-item.active { background: rgba(45,138,71,.22); color: #4ade80;
+            border-left: 3px solid var(--brand); padding-left: 13px; }
+        .nav-item i { width: 18px; text-align: center; }
+
+        /* Top bar */
+        .topbar { background: white; border-bottom: 1px solid var(--border);
+            padding: 0 28px; height: 60px; display: flex; align-items: center;
+            justify-content: space-between; position: sticky; top: 0; z-index: 50; }
+
+        /* Cards */
+        .card { background: white; border-radius: 14px; border: 1px solid var(--border); }
+        .stat-card { background: white; border-radius: 12px; border: 1px solid var(--border);
+            padding: 20px; transition: box-shadow .2s; }
+        .stat-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,.06); }
+
+        /* Badges */
+        .badge { display: inline-flex; align-items: center; gap: 4px;
+            padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+        .b-present  { background: #dcfce7; color: #15803d; }
+        .b-late     { background: #fef3c7; color: #92400e; }
+        .b-absent   { background: #fee2e2; color: #991b1b; }
+        .b-half     { background: #ede9fe; color: #6d28d9; }
+        .b-leave    { background: #dbeafe; color: #1d4ed8; }
+        .role-tech  { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+        .role-staff { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+
+        /* Table */
+        .data-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+        .data-table th { padding: 10px 16px; text-align: left; font-size: 11px; font-weight: 700;
+            letter-spacing: .08em; text-transform: uppercase; color: var(--text-2);
+            background: #f8f9fb; border-bottom: 1px solid var(--border); white-space: nowrap; }
+        .data-table td { padding: 11px 16px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
+        .data-table tbody tr:hover { background: #fafbfc; }
+        .data-table tbody tr:last-child td { border-bottom: none; }
+
+        /* User row (clickable) */
+        .user-row { cursor: pointer; }
+        .user-row:hover { background: #f0fdf4 !important; }
+
+        /* Filter bar */
+        .filter-bar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        .form-input { padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 8px;
+            font-size: 13px; outline: none; transition: border-color .2s; background: white; }
+        .form-input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(45,138,71,.08); }
+        select.form-input { cursor: pointer; }
+
+        /* Buttons */
+        .btn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px;
+            border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
+            transition: all .18s; border: none; }
+        .btn-primary { background: var(--brand); color: white; }
+        .btn-primary:hover { background: var(--brand-dark); }
+        .btn-ghost { background: white; color: var(--text-1); border: 1.5px solid var(--border); }
+        .btn-ghost:hover { background: var(--surface-2); }
+        .btn-pdf { background: #1d3557; color: white; }
+        .btn-pdf:hover { background: #0f1923; }
+        .btn-sm { padding: 5px 12px; font-size: 12px; }
+
+        /* Detail panel */
+        #detailPanel { display: none; }
+        #detailPanel.open { display: block; }
+
+        /* Progress bar */
+        .progress-bar { height: 6px; background: #e5e7eb; border-radius: 99px; overflow: hidden; }
+        .progress-fill { height: 100%; border-radius: 99px; transition: width .5s ease; }
+
+        /* Toast */
+        #toast { position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+            transition: all .3s; transform: translateY(100px); opacity: 0; }
+        #toast.show { transform: translateY(0); opacity: 1; }
+
+        /* Modal */
+        .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45);
+            z-index: 300; align-items: center; justify-content: center; }
+        .modal-backdrop.open { display: flex; }
+        .modal-box { background: white; border-radius: 16px; padding: 28px;
+            width: 480px; max-width: 94vw; animation: popUp .2s ease; max-height: 90vh; overflow-y: auto; }
+        @keyframes popUp { from { opacity:0; transform:scale(.95) translateY(12px); } to { opacity:1; transform:scale(1) translateY(0); } }
+
+        .spinner { display: inline-block; width: 13px; height: 13px;
+            border: 2px solid rgba(255,255,255,.3); border-top-color: white;
+            border-radius: 50%; animation: spin .5s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Attendance rate color */
+        .rate-high  { color: #15803d; }
+        .rate-mid   { color: #92400e; }
+        .rate-low   { color: #991b1b; }
+
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white; }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 99px; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+<!-- ── SIDEBAR ── -->
+<aside class="sidebar flex flex-col h-screen overflow-hidden no-print">
+    <div class="sidebar-logo flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:var(--brand)">
+            <i class="fas fa-print text-white text-sm"></i>
+        </div>
+        <div>
+            <p class="text-white font-bold text-sm leading-none">PrintProTrack</p>
+            <p class="text-xs mt-0.5" style="color:rgba(255,255,255,.35)">Admin Console</p>
+        </div>
+    </div>
+    <nav class="flex-1 overflow-y-auto py-3">
+        <div class="sidebar-section">Main</div>
+        <a href='/dashboard' class="nav-item"><i class="fas fa-gauge-high"></i> Dashboard</a>
+        <a href='/technicians' class="nav-item"><i class="fas fa-hard-hat"></i> Technicians</a>
+        <a href='/staffmanagement' class="nav-item"><i class="fas fa-users"></i> Staff</a>
+        <div class="sidebar-section">Operations</div>
+        <a href='/maintenance' class="nav-item"><i class="fas fa-wrench"></i> Maintenance</a>
+        <a href='/energy' class="nav-item"><i class="fas fa-bolt"></i> Energy</a>
+        <a href='/materials' class="nav-item"><i class="fas fa-scroll"></i> Materials</a>
+        <a href='/spareparts' class="nav-item"><i class="fas fa-cogs"></i> Spare Parts</a>
+        <div class="sidebar-section">HR</div>
+        <a href='/admin-attendance' class="nav-item active"><i class="fas fa-calendar-check"></i> Attendance</a>
+    </nav>
+    <div class="p-3 border-t" style="border-color:rgba(255,255,255,.07)">
+        <button onclick="logout()" class="nav-item w-full justify-center text-red-400 hover:text-red-300 hover:bg-red-900/20">
+            <i class="fas fa-sign-out-alt"></i> Sign Out
+        </button>
+    </div>
+</aside>
+
+<!-- ── MAIN ── -->
+<div class="flex-1 flex flex-col h-screen overflow-hidden">
+
+    <!-- Topbar -->
+    <header class="topbar no-print">
+        <div class="flex items-center gap-3">
+            <h1 class="text-base font-bold text-gray-800">Attendance Management</h1>
+            <span class="badge b-present text-xs">Admin View</span>
+        </div>
+        <div class="flex items-center gap-4">
+            <span class="text-sm text-gray-500">Welcome, <strong id="adminName">Admin</strong></span>
+            <button onclick="logout()" class="text-gray-400 hover:text-red-500 text-sm transition"><i class="fas fa-sign-out-alt"></i></button>
+        </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto p-6">
+        <div class="max-w-7xl mx-auto space-y-5">
+
+            <!-- Page header -->
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">Attendance Reports</h2>
+                    <p class="text-sm text-gray-500 mt-0.5">View, filter, and export attendance records for all staff and technicians.</p>
+                </div>
+                <div class="flex gap-2 no-print">
+                    <button onclick="openMarkModal()" class="btn btn-primary">
+                        <i class="fas fa-pen"></i> Mark Attendance
+                    </button>
+                    <button onclick="exportPDF()" class="btn btn-pdf">
+                        <i class="fas fa-file-pdf"></i> Export PDF
+                    </button>
+                </div>
+            </div>
+            <!-- Admin Self-Service Attendance -->
+            <div class="card p-5 no-print">
+                <div class="flex items-center gap-3 mb-4">
+                    <h3 class="font-bold text-gray-800 text-base">
+                        <i class="fas fa-user-clock text-green-600 mr-2"></i>My Attendance Today
+                    </h3>
+                    <span id="adminTodayBadge" class="badge b-leave text-xs">—</span>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <!-- Clock ring + buttons -->
+                    <div class="flex flex-col items-center gap-3 p-4 bg-gray-50 rounded-xl">
+                        <div id="adminClockRing" class="w-28 h-28 rounded-full border-4 border-gray-200 bg-white flex flex-col items-center justify-center text-gray-400">
+                            <i class="fas fa-clock text-2xl mb-1"></i>
+                            <span id="adminRingLabel" class="text-xs font-semibold">--:--</span>
+                        </div>
+                        <p id="adminStatusLabel" class="text-xs font-bold text-gray-500 uppercase tracking-widest">Not clocked in</p>
+                        <div class="flex flex-col gap-2 w-full">
+                            <button id="adminClockInBtn" onclick="adminOpenClockModal('in')"
+                                    class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 rounded-lg text-sm transition flex items-center justify-center gap-2">
+                                <i class="fas fa-sign-in-alt"></i> Clock In
+                            </button>
+                            <button id="adminClockOutBtn" onclick="adminOpenClockModal('out')" disabled
+                                    class="w-full font-semibold py-2 rounded-lg text-sm transition flex items-center justify-center gap-2 bg-gray-100 text-gray-400 cursor-not-allowed">
+                                <i class="fas fa-sign-out-alt"></i> Clock Out
+                            </button>
+                            <button onclick="adminOpenLeaveModal()"
+                                    class="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-semibold py-2 rounded-lg text-sm transition flex items-center justify-center gap-2">
+                                <i class="fas fa-umbrella-beach"></i> Mark Leave / Absent
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Today detail -->
+                    <div class="lg:col-span-2 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+                        <div class="bg-gray-50 rounded-xl p-3">
+                            <p class="text-xs text-gray-400 font-semibold uppercase mb-1">Status</p>
+                            <span id="atd-status" class="badge b-leave">—</span>
+                        </div>
+                        <div class="bg-gray-50 rounded-xl p-3">
+                            <p class="text-xs text-gray-400 font-semibold uppercase mb-1">Clock In</p>
+                            <p id="atd-in" class="font-bold text-gray-700">—</p>
+                        </div>
+                        <div class="bg-gray-50 rounded-xl p-3">
+                            <p class="text-xs text-gray-400 font-semibold uppercase mb-1">Clock Out</p>
+                            <p id="atd-out" class="font-bold text-gray-700">—</p>
+                        </div>
+                        <div class="bg-gray-50 rounded-xl p-3">
+                            <p class="text-xs text-gray-400 font-semibold uppercase mb-1">Work Hours</p>
+                            <p id="atd-hours" class="font-bold text-gray-700">—</p>
+                        </div>
+                        <div class="bg-gray-50 rounded-xl p-3 col-span-2">
+                            <p class="text-xs text-gray-400 font-semibold uppercase mb-1">Notes</p>
+                            <p id="atd-notes" class="text-gray-600">—</p>
+                        </div>
+                    </div>
+                </div>
+            </div><!-- Admin Clock Modal -->
+            <div id="adminClockModal" class="modal-backdrop">
+                <div class="modal-box">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 id="adminClockTitle" class="text-lg font-bold text-gray-800">Clock In</h3>
+                        <button onclick="closeModal('adminClockModal')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-lg"></i></button>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-4">Current time: <strong id="adminModalTime"></strong></p>
+                    <div class="mb-5">
+                        <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Notes (optional)</label>
+                        <textarea id="adminClockNotes" rows="3" placeholder="Any remarks…" class="form-input"></textarea>
+                    </div>
+                    <div class="flex gap-3 justify-end">
+                        <button onclick="closeModal('adminClockModal')" class="btn btn-ghost">Cancel</button>
+                        <button id="adminClockSubmitBtn" onclick="adminSubmitClock()" class="btn btn-primary">
+                            <i id="adminClockIcon" class="fas fa-sign-in-alt"></i>
+                            <span id="adminClockLabel">Confirm Clock In</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Leave Modal -->
+            <div id="adminLeaveModal" class="modal-backdrop">
+                <div class="modal-box">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-bold text-gray-800">Mark Leave / Absent</h3>
+                        <button onclick="closeModal('adminLeaveModal')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-lg"></i></button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        <div>
+                            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Status</label>
+                            <select id="adminLeaveStatus" class="form-input">
+                                <option value="ON_LEAVE">On Leave</option>
+                                <option value="ABSENT">Absent</option>
+                                <option value="HALF_DAY">Half-Day</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Date</label>
+                            <input type="date" id="adminLeaveDate" class="form-input"/>
+                        </div>
+                    </div>
+                    <div class="mb-5">
+                        <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Notes (optional)</label>
+                        <textarea id="adminLeaveNotes" rows="2" placeholder="Reason…" class="form-input"></textarea>
+                    </div>
+                    <div class="flex gap-3 justify-end">
+                        <button onclick="closeModal('adminLeaveModal')" class="btn btn-ghost">Cancel</button>
+                        <button onclick="adminSubmitLeave()" class="btn btn-primary"><i class="fas fa-check"></i> Submit</button>
+                    </div>
+                </div>
+            </div>
+            <!-- Filter bar -->
+            <div class="card p-4 no-print">
+                <div class="filter-bar">
+                    <div class="flex flex-col gap-1">
+                        <label class="text-xs font-semibold text-gray-400 uppercase tracking-wide">View Mode</label>
+                        <select id="viewMode" onchange="onViewModeChange()" class="form-input">
+                            <option value="daily">Daily Report</option>
+                            <option value="range">Date Range</option>
+                            <option value="user">Individual User</option>
+                        </select>
+                    </div>
+                    <div id="filterDaily" class="flex flex-col gap-1">
+                        <label class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Date</label>
+                        <input type="date" id="filterDate" class="form-input"/>
+                    </div>
+                    <div id="filterRange" class="flex gap-2" style="display:none!important">
+                        <div class="flex flex-col gap-1">
+                            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wide">From</label>
+                            <input type="date" id="filterFrom" class="form-input"/>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wide">To</label>
+                            <input type="date" id="filterTo" class="form-input"/>
+                        </div>
+                    </div>
+                    <div id="filterUser" class="flex gap-2" style="display:none!important">
+                        <div class="flex flex-col gap-1">
+                            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Role</label>
+                            <select id="filterRole" class="form-input">
+                                <option value="TECHNICIAN">Technician</option>
+                                <option value="STAFF">Staff</option>
+                            </select>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wide">User ID</label>
+                            <input type="number" id="filterUserId" placeholder="e.g. 3" class="form-input" style="width:120px"/>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wide">From</label>
+                            <input type="date" id="filterUserFrom" class="form-input"/>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wide">To</label>
+                            <input type="date" id="filterUserTo" class="form-input"/>
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-1 justify-end">
+                        <label class="text-xs font-semibold text-gray-400 uppercase tracking-wide">&nbsp;</label>
+                        <button onclick="loadReport()" class="btn btn-primary">
+                            <i class="fas fa-search"></i> Load
+                        </button>
+                    </div>
+                    <div class="flex flex-col gap-1 justify-end ml-auto">
+                        <label class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Filter by status</label>
+                        <select id="filterStatus" onchange="applyStatusFilter()" class="form-input">
+                            <option value="">All Statuses</option>
+                            <option value="PRESENT">Present</option>
+                            <option value="LATE">Late</option>
+                            <option value="ABSENT">Absent</option>
+                            <option value="HALF_DAY">Half-Day</option>
+                            <option value="ON_LEAVE">On Leave</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary stats (shown when user view or range) -->
+            <div id="summarySection" style="display:none">
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                    <div class="stat-card col-span-2 sm:col-span-3 lg:col-span-2 flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-xl font-bold text-gray-500" id="sumAvatar">?</div>
+                        <div>
+                            <p id="sumName" class="font-bold text-gray-800 text-base">—</p>
+                            <p id="sumRole" class="text-xs text-gray-400 mt-0.5">—</p>
+                            <p id="sumRate" class="text-lg font-bold mt-1 rate-high">—%</p>
+                        </div>
+                    </div>
+                    <div class="stat-card border-t-4 border-green-500 text-center">
+                        <p class="text-xs text-gray-400 font-semibold uppercase">Present</p>
+                        <p id="sumPresent" class="text-3xl font-bold text-green-600 mt-1">—</p>
+                    </div>
+                    <div class="stat-card border-t-4 border-amber-400 text-center">
+                        <p class="text-xs text-gray-400 font-semibold uppercase">Late</p>
+                        <p id="sumLate" class="text-3xl font-bold text-amber-500 mt-1">—</p>
+                    </div>
+                    <div class="stat-card border-t-4 border-red-400 text-center">
+                        <p class="text-xs text-gray-400 font-semibold uppercase">Absent</p>
+                        <p id="sumAbsent" class="text-3xl font-bold text-red-500 mt-1">—</p>
+                    </div>
+                    <div class="stat-card border-t-4 border-purple-400 text-center">
+                        <p class="text-xs text-gray-400 font-semibold uppercase">Half / Leave</p>
+                        <p id="sumHalf" class="text-3xl font-bold text-purple-500 mt-1">—</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Result table -->
+            <div class="card overflow-hidden">
+                <div class="px-5 py-4 border-b flex items-center justify-between gap-3" style="border-color:var(--border)">
+                    <div class="flex items-center gap-3">
+                        <h3 class="font-bold text-gray-800"><i class="fas fa-table text-green-600 mr-1"></i> Records</h3>
+                        <span id="recordCount" class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-semibold">0 rows</span>
+                    </div>
+                    <input type="text" id="searchBox" oninput="applyStatusFilter()" placeholder="Search name / username…"
+                           class="form-input text-sm no-print" style="width:200px"/>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="data-table" id="mainTable">
+                        <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Name</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Clock In</th>
+                            <th>Clock Out</th>
+                            <th>Work Hours</th>
+                            <th>Notes</th>
+                            <th class="no-print">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                        <tr><td colspan="9" class="text-center py-16 text-gray-400">
+                            <i class="fas fa-calendar-xmark text-4xl mb-3 block text-gray-300"></i>
+                            Select a date or range above and click <strong>Load</strong>.
+                        </td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+</div>
+
+<!-- Mark Attendance Modal -->
+<div id="markModal" class="modal-backdrop">
+    <div class="modal-box">
+        <div class="flex items-center justify-between mb-5">
+            <h3 class="text-lg font-bold text-gray-800"><i class="fas fa-pen text-green-600 mr-2"></i>Mark Attendance</h3>
+            <button onclick="closeModal('markModal')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-lg"></i></button>
+        </div>
+        <div class="grid grid-cols-2 gap-3 mb-3">
+            <div>
+                <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Role</label>
+                <select id="mRole" class="form-input">
+                    <option value="TECHNICIAN">Technician</option>
+                    <option value="STAFF">Staff</option>
+                </select>
+            </div>
+            <div>
+                <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">User ID</label>
+                <input type="number" id="mUserId" placeholder="e.g. 3" class="form-input"/>
+            </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3 mb-3">
+            <div>
+                <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Status</label>
+                <select id="mStatus" class="form-input">
+                    <option value="PRESENT">Present</option>
+                    <option value="LATE">Late</option>
+                    <option value="ABSENT">Absent</option>
+                    <option value="HALF_DAY">Half-Day</option>
+                    <option value="ON_LEAVE">On Leave</option>
+                </select>
+            </div>
+            <div>
+                <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Date</label>
+                <input type="date" id="mDate" class="form-input"/>
+            </div>
+        </div>
+        <div class="mb-5">
+            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Notes (optional)</label>
+            <textarea id="mNotes" rows="2" placeholder="Reason or remarks…" class="form-input"></textarea>
+        </div>
+        <div class="flex gap-3 justify-end">
+            <button onclick="closeModal('markModal')" class="btn btn-ghost">Cancel</button>
+            <button onclick="submitMark()" id="markSubmitBtn" class="btn btn-primary">
+                <i class="fas fa-check"></i> <span id="markSubmitLabel">Submit</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Record Modal -->
+<div id="editModal" class="modal-backdrop">
+    <div class="modal-box">
+        <div class="flex items-center justify-between mb-5">
+            <h3 class="text-lg font-bold text-gray-800"><i class="fas fa-edit text-blue-500 mr-2"></i>Edit Record</h3>
+            <button onclick="closeModal('editModal')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-lg"></i></button>
+        </div>
+        <input type="hidden" id="editId"/>
+        <input type="hidden" id="editRole"/>
+        <input type="hidden" id="editUserId"/>
+        <div class="bg-gray-50 rounded-10 p-3 mb-4 text-sm text-gray-600">
+            Editing: <strong id="editNameLabel">—</strong> on <strong id="editDateLabel">—</strong>
+        </div>
+        <div class="grid grid-cols-2 gap-3 mb-3">
+            <div>
+                <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Status</label>
+                <select id="editStatus" class="form-input">
+                    <option value="PRESENT">Present</option>
+                    <option value="LATE">Late</option>
+                    <option value="ABSENT">Absent</option>
+                    <option value="HALF_DAY">Half-Day</option>
+                    <option value="ON_LEAVE">On Leave</option>
+                </select>
+            </div>
+            <div>
+                <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Date</label>
+                <input type="date" id="editDate" class="form-input" readonly/>
+            </div>
+        </div>
+        <div class="mb-5">
+            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Notes</label>
+            <textarea id="editNotes" rows="2" class="form-input"></textarea>
+        </div>
+        <div class="flex gap-3 justify-end">
+            <button onclick="closeModal('editModal')" class="btn btn-ghost">Cancel</button>
+            <button onclick="submitEdit()" class="btn btn-primary"><i class="fas fa-save"></i> Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="px-5 py-3 rounded-xl shadow-2xl text-sm font-semibold flex items-center gap-2"></div>
+
+<script th:inline="none">
+    const API_BASE = 'http://localhost:8080/api/attendance';
+    const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
+    if (!token) window.location.href='/';
+
+    function authHeaders() {
+        return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+    }
+
+    // ── Admin name ─────────────────────────────────────────────────────────────
+    try {
+        const a = JSON.parse(localStorage.getItem('admin') || '{}');
+        document.getElementById('adminName').textContent = `${a.firstName||''} ${a.lastName||''}`.trim() || 'Admin';
+    } catch(e) {}
+
+    // ── Init defaults ──────────────────────────────────────────────────────────
+    const nowLocal = new Date();
+    const today = new Date(nowLocal.getTime() - nowLocal.getTimezoneOffset() * 60000).toISOString().slice(0,10);
+    document.getElementById('filterDate').value = today;
+    document.getElementById('mDate').value = today;
+    if (document.getElementById('adminLeaveDate')) {
+        document.getElementById('adminLeaveDate').value = today;
+    }
+
+    const firstOfMonth = new Date();
+    firstOfMonth.setDate(1);
+    const fomLocal = new Date(firstOfMonth.getTime() - firstOfMonth.getTimezoneOffset() * 60000).toISOString().slice(0,10);
+    document.getElementById('filterFrom').value = fomLocal;
+    document.getElementById('filterTo').value = today;
+    document.getElementById('filterUserFrom').value = fomLocal;
+    document.getElementById('filterUserTo').value = today;
+
+    // ── View mode switching ────────────────────────────────────────────────────
+    function onViewModeChange() {
+        const mode = document.getElementById('viewMode').value;
+        document.getElementById('filterDaily').style.display  = mode === 'daily'  ? '' : 'none';
+        document.getElementById('filterRange').style.setProperty('display', mode === 'range' ? 'flex' : 'none', 'important');
+        document.getElementById('filterUser').style.setProperty('display',  mode === 'user'  ? 'flex' : 'none', 'important');
+        document.getElementById('summarySection').style.display = mode === 'user' ? '' : 'none';
+    }
+    // ── Admin self-service attendance ──────────────────────────────────────
+    const ADMIN_ATD_API = 'http://localhost:8080/api/attendance/admin';
+    let adminClockAction = 'in';
+
+    const STATUS_CLS_SELF = {
+        PRESENT:'b-present', LATE:'b-late', ABSENT:'b-absent',
+        HALF_DAY:'b-half', ON_LEAVE:'b-leave'
+    };
+    const STATUS_LABEL_SELF = {
+        PRESENT:'Present', LATE:'Late', ABSENT:'Absent',
+        HALF_DAY:'Half-Day', ON_LEAVE:'On Leave'
+    };
+
+    async function loadAdminToday() {
+        try {
+            const res = await fetch(`${ADMIN_ATD_API}/my-today`, { headers: authHeaders() });
+            const data = await res.json();
+            renderAdminTodayCard(data && data.id ? data : null);
+        } catch(e) { console.error(e); }
+    }
+
+    function renderAdminTodayCard(d) {
+        const ring     = document.getElementById('adminClockRing');
+        const ringLbl  = document.getElementById('adminRingLabel');
+        const stLbl    = document.getElementById('adminStatusLabel');
+        const inBtn    = document.getElementById('adminClockInBtn');
+        const outBtn   = document.getElementById('adminClockOutBtn');
+        const badge    = document.getElementById('adminTodayBadge');
+
+        if (!d) {
+            ring.className = 'w-28 h-28 rounded-full border-4 border-gray-200 bg-white flex flex-col items-center justify-center text-gray-400';
+            ringLbl.textContent = '--:--';
+            stLbl.textContent = 'Not clocked in';
+            badge.className = 'badge b-leave text-xs'; badge.textContent = '—';
+            inBtn.disabled = false;
+            setAdminClockOut(false);
+            ['atd-status','atd-in','atd-out','atd-hours','atd-notes'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = '—';
+            });
+            return;
+        }
+        const s = d.status;
+        const ringColors = { PRESENT:'border-green-500 bg-green-50 text-green-700',
+            LATE:'border-amber-400 bg-amber-50 text-amber-700' };
+        ring.className = `w-28 h-28 rounded-full border-4 flex flex-col items-center justify-center ${ringColors[s] || 'border-gray-400 bg-gray-50 text-gray-600'}`;
+        ringLbl.textContent = d.clockIn ? fmtTime(d.clockIn) : '--:--';
+        stLbl.textContent = STATUS_LABEL_SELF[s] || s;
+        badge.className = `badge ${STATUS_CLS_SELF[s] || 'b-leave'} text-xs`;
+        badge.textContent = STATUS_LABEL_SELF[s] || s;
+        inBtn.disabled = !!d.clockIn;
+        setAdminClockOut(!!d.clockIn && !d.clockOut);
+
+        const statusEl = document.getElementById('atd-status');
+        if (statusEl) statusEl.outerHTML = `<span id="atd-status" class="badge ${STATUS_CLS_SELF[s]||'b-leave'}">${STATUS_LABEL_SELF[s]||s}</span>`;
+        document.getElementById('atd-in').textContent    = fmtTime(d.clockIn)  || '—';
+        document.getElementById('atd-out').textContent   = fmtTime(d.clockOut) || '—';
+        document.getElementById('atd-hours').textContent = d.workHours ? `${d.workHours} hrs` : '—';
+        document.getElementById('atd-notes').textContent = d.notes || '—';
+    }
+
+    function setAdminClockOut(enabled) {
+        const btn = document.getElementById('adminClockOutBtn');
+        btn.disabled = !enabled;
+        btn.className = enabled
+            ? 'w-full bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 rounded-lg text-sm transition flex items-center justify-center gap-2'
+            : 'w-full font-semibold py-2 rounded-lg text-sm transition flex items-center justify-center gap-2 bg-gray-100 text-gray-400 cursor-not-allowed';
+    }
+
+    function adminOpenClockModal(action) {
+        adminClockAction = action;
+        document.getElementById('adminClockTitle').textContent = action === 'in' ? 'Clock In' : 'Clock Out';
+        document.getElementById('adminClockLabel').textContent = action === 'in' ? 'Confirm Clock In' : 'Confirm Clock Out';
+        document.getElementById('adminClockIcon').className = action === 'in' ? 'fas fa-sign-in-alt' : 'fas fa-sign-out-alt';
+        const btn = document.getElementById('adminClockSubmitBtn');
+        btn.className = action === 'in'
+            ? 'btn btn-primary'
+            : 'px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white border-none cursor-pointer';
+        document.getElementById('adminModalTime').textContent = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+        document.getElementById('adminClockNotes').value = '';
+        openModal('adminClockModal');
+    }
+
+    async function adminSubmitClock() {
+        const notes = document.getElementById('adminClockNotes').value.trim();
+        const btn = document.getElementById('adminClockSubmitBtn');
+        const saved = btn.className;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Processing…';
+        try {
+            const endpoint = adminClockAction === 'in'
+                ? `${ADMIN_ATD_API}/clock-in`
+                : `${ADMIN_ATD_API}/clock-out`;
+            const res = await fetch(endpoint, {
+                method: 'POST', headers: authHeaders(),
+                body: JSON.stringify({ notes })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showToast(adminClockAction === 'in' ? '✓ Clocked in!' : '✓ Clocked out!', 'success');
+                closeModal('adminClockModal');
+                await loadAdminToday();
+            } else { showToast(data.error || 'Failed', 'error'); }
+        } catch(e) { showToast('Connection error', 'error'); }
+        finally {
+            btn.disabled = false; btn.className = saved;
+            const icon = adminClockAction === 'in' ? 'sign-in-alt' : 'sign-out-alt';
+            btn.innerHTML = `<i class="fas fa-${icon}"></i> Confirm Clock ${adminClockAction === 'in' ? 'In' : 'Out'}`;
+        }
+    }
+
+    function adminOpenLeaveModal() {
+        document.getElementById('adminLeaveDate').value = today;
+        document.getElementById('adminLeaveNotes').value = '';
+        openModal('adminLeaveModal');
+    }
+
+    async function adminSubmitLeave() {
+        const status = document.getElementById('adminLeaveStatus').value;
+        const date   = document.getElementById('adminLeaveDate').value;
+        const notes  = document.getElementById('adminLeaveNotes').value.trim();
+        try {
+            const res = await fetch(`${ADMIN_ATD_API}/my-mark-leave`, {
+                method: 'POST', headers: authHeaders(),
+                body: JSON.stringify({ status, date, notes })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showToast('✓ Status marked', 'success');
+                closeModal('adminLeaveModal');
+                await loadAdminToday();
+            } else { showToast(data.error || 'Failed', 'error'); }
+        } catch(e) { showToast('Connection error', 'error'); }
+    }
+
+    ['adminClockModal','adminLeaveModal'].forEach(id => {
+        document.getElementById(id).addEventListener('click', function(e) {
+            if (e.target === this) closeModal(id);
+        });
+    });
+
+    // Load admin's own today on page init
+    loadAdminToday();
+    // ── All raw records (for filtering) ───────────────────────────────────────
+    let allRecords = [];
+
+    // ── Load report ────────────────────────────────────────────────────────────
+    async function loadReport() {
+        const mode = document.getElementById('viewMode').value;
+        setTableLoading();
+        try {
+            let url;
+            if (mode === 'daily') {
+                const d = document.getElementById('filterDate').value || today;
+                url = `${API_BASE}/admin/daily?date=${d}`;
+            } else if (mode === 'range') {
+                const f = document.getElementById('filterFrom').value;
+                const t = document.getElementById('filterTo').value;
+                url = `${API_BASE}/admin/range?from=${f}&to=${t}`;
+            } else {
+                const role = document.getElementById('filterRole').value;
+                const uid  = document.getElementById('filterUserId').value;
+                const f    = document.getElementById('filterUserFrom').value;
+                const t    = document.getElementById('filterUserTo').value;
+                if (!uid) { showToast('Please enter a User ID', 'error'); setTableEmpty(); return; }
+                url = `${API_BASE}/admin/user/${role}/${uid}?from=${f}&to=${t}`;
+                // Also fetch summary
+                fetchSummary(role, uid, f, t);
+            }
+
+            const res  = await fetch(url, { headers: authHeaders() });
+            const data = await res.json();
+            allRecords = Array.isArray(data) ? data : [];
+            applyStatusFilter();
+        } catch(e) {
+            showToast('Failed to load report', 'error');
+            setTableEmpty();
+        }
+    }
+
+    async function fetchSummary(role, uid, from, to) {
+        try {
+            const res = await fetch(`${API_BASE}/admin/summary/${role}/${uid}?from=${from}&to=${to}`,
+                { headers: authHeaders() });
+            if (!res.ok) return;
+            const s = await res.json();
+            document.getElementById('summarySection').style.display = '';
+            const initials = (s.fullName||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+            document.getElementById('sumAvatar').textContent = initials;
+            document.getElementById('sumName').textContent   = s.fullName || s.username;
+            document.getElementById('sumRole').textContent   = `${s.userRole} · ${s.totalDays} records`;
+            const rate = s.attendanceRate || 0;
+            const rateEl = document.getElementById('sumRate');
+            rateEl.textContent = `${rate}%`;
+            rateEl.className = `text-lg font-bold mt-1 ${rate>=80?'rate-high':rate>=50?'rate-mid':'rate-low'}`;
+            document.getElementById('sumPresent').textContent = s.presentDays;
+            document.getElementById('sumLate').textContent    = s.lateDays;
+            document.getElementById('sumAbsent').textContent  = s.absentDays;
+            document.getElementById('sumHalf').textContent    = (s.halfDays||0) + (s.leaveDays||0);
+        } catch(e) { console.error(e); }
+    }
+
+    // ── Filter & render ────────────────────────────────────────────────────────
+    function applyStatusFilter() {
+        const statusF = document.getElementById('filterStatus').value;
+        const search  = (document.getElementById('searchBox').value || '').toLowerCase();
+        let filtered = allRecords.filter(r => {
+            const matchStatus = !statusF || r.status === statusF;
+            const matchSearch = !search ||
+                (r.fullName||'').toLowerCase().includes(search) ||
+                (r.username||'').toLowerCase().includes(search);
+            return matchStatus && matchSearch;
+        });
+        renderTable(filtered);
+    }
+
+    function renderTable(records) {
+        const tbody = document.getElementById('tableBody');
+        document.getElementById('recordCount').textContent = `${records.length} row${records.length!==1?'s':''}`;
+
+        if (!records.length) { setTableEmpty(); return; }
+
+        tbody.innerHTML = records.map(r => `
+        <tr class="hover:bg-gray-50 transition-colors">
+            <td class="font-medium text-gray-700 mono text-xs">${fmtDate(r.attendanceDate)}</td>
+            <td>
+                <p class="font-semibold text-gray-800 text-sm">${r.fullName||'—'}</p>
+                <p class="text-xs text-gray-400">${r.username||''}</p>
+            </td>
+            <td><span class="badge text-xs ${r.userRole==='TECHNICIAN'?'role-tech':'role-staff'}">${r.userRole||'—'}</span></td>
+            <td>${statusBadge(r.status)}</td>
+            <td class="text-gray-600 mono text-xs">${fmtTime(r.clockIn)}</td>
+            <td class="text-gray-600 mono text-xs">${fmtTime(r.clockOut)}</td>
+            <td class="text-gray-700 text-sm">${r.workHours!=null?r.workHours+' hrs':'—'}</td>
+            <td class="text-gray-500 text-xs max-w-xs" style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
+                title="${r.notes||''}">${r.notes||'—'}</td>
+            <td class="no-print">
+                <div class="flex gap-1">
+                    <button onclick='openEditModal(${JSON.stringify(r)})' class="btn btn-ghost btn-sm">
+                        <i class="fas fa-pen"></i>
+                    </button>
+                    <button onclick="deleteRecord(${r.id})" class="btn btn-sm" style="background:#fee2e2;color:#991b1b">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>`).join('');
+    }
+
+    function setTableLoading() {
+        document.getElementById('tableBody').innerHTML =
+            `<tr><td colspan="9" class="text-center py-16 text-gray-400">
+            <i class="fas fa-spinner fa-spin text-3xl mb-3 block text-gray-300"></i> Loading…
+        </td></tr>`;
+        document.getElementById('recordCount').textContent = '—';
+    }
+
+    function setTableEmpty() {
+        document.getElementById('tableBody').innerHTML =
+            `<tr><td colspan="9" class="text-center py-16 text-gray-400">
+            <i class="fas fa-inbox text-4xl mb-3 block text-gray-300"></i> No records found.
+        </td></tr>`;
+        document.getElementById('recordCount').textContent = '0 rows';
+    }
+
+    // ── Mark attendance (admin) ────────────────────────────────────────────────
+    function openMarkModal() {
+        document.getElementById('mDate').value = today;
+        document.getElementById('mNotes').value = '';
+        openModal('markModal');
+    }
+
+    async function submitMark() {
+        const role   = document.getElementById('mRole').value;
+        const userId = document.getElementById('mUserId').value;
+        const status = document.getElementById('mStatus').value;
+        const date   = document.getElementById('mDate').value;
+        const notes  = document.getElementById('mNotes').value.trim();
+
+        if (!userId) { showToast('Please enter a User ID', 'error'); return; }
+
+        const btn = document.getElementById('markSubmitBtn');
+        btn.disabled = true;
+        document.getElementById('markSubmitLabel').textContent = 'Saving…';
+
+        try {
+            const res = await fetch(`${API_BASE}/admin/mark/${role}/${userId}`, {
+                method: 'POST', headers: authHeaders(),
+                body: JSON.stringify({ status, date, notes })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showToast('✓ Attendance marked successfully', 'success');
+                closeModal('markModal');
+                await loadReport(); // Refresh the table dynamically
+            } else {
+                showToast(data.error || 'Failed to mark', 'error');
+            }
+        } catch(e) { showToast('Connection error', 'error'); }
+        finally {
+            btn.disabled = false;
+            document.getElementById('markSubmitLabel').textContent = 'Submit';
+        }
+    }
+
+    // ── Edit record ────────────────────────────────────────────────────────────
+    function openEditModal(r) {
+        document.getElementById('editId').value       = r.id;
+        document.getElementById('editRole').value     = r.userRole;
+        document.getElementById('editUserId').value   = r.userId;
+        document.getElementById('editStatus').value   = r.status;
+        document.getElementById('editDate').value     = r.attendanceDate;
+        document.getElementById('editNotes').value    = r.notes || '';
+        document.getElementById('editNameLabel').textContent = r.fullName || r.username;
+        document.getElementById('editDateLabel').textContent = fmtDate(r.attendanceDate);
+        openModal('editModal');
+    }
+
+    async function submitEdit() {
+        const role   = document.getElementById('editRole').value;
+        const userId = document.getElementById('editUserId').value;
+        const status = document.getElementById('editStatus').value;
+        const date   = document.getElementById('editDate').value;
+        const notes  = document.getElementById('editNotes').value.trim();
+
+        try {
+            const res = await fetch(`${API_BASE}/admin/mark/${role}/${userId}`, {
+                method: 'POST', headers: authHeaders(),
+                body: JSON.stringify({ status, date, notes })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showToast('✓ Record updated', 'success');
+                closeModal('editModal');
+                await loadReport(); // Refresh the table dynamically
+            } else { showToast(data.error || 'Failed', 'error'); }
+        } catch(e) { showToast('Connection error', 'error'); }
+    }
+
+    // ── Delete record ──────────────────────────────────────────────────────────
+    async function deleteRecord(id) {
+        if (!confirm('Delete this attendance record? This cannot be undone.')) return;
+        try {
+            const res = await fetch(`${API_BASE}/admin/${id}`, {
+                method: 'DELETE', headers: authHeaders()
+            });
+            if (res.ok) {
+                showToast('Record deleted', 'success');
+                await loadReport(); // Refresh the table dynamically
+            }
+            else { const d = await res.json(); showToast(d.error || 'Delete failed', 'error'); }
+        } catch(e) { showToast('Connection error', 'error'); }
+    }
+
+    // ── PDF Export ─────────────────────────────────────────────────────────────
+    function exportPDF() {
+        if (!allRecords.length) { showToast('No data to export', 'error'); return; }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+        // Header bar
+        doc.setFillColor(45, 138, 71);
+        doc.rect(0, 0, 297, 20, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text('PrintProTrack — Attendance Report', 14, 13);
+
+        // Generated info
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        const genDate = new Date().toLocaleString();
+        doc.text(`Generated: ${genDate}`, 297 - 14, 13, { align: 'right' });
+
+        // Summary line
+        doc.setTextColor(60, 60, 60);
+        doc.setFontSize(10);
+        doc.text(`Total Records: ${allRecords.length}`, 14, 27);
+
+        // Compute quick stats
+        const statusCounts = {};
+        allRecords.forEach(r => { statusCounts[r.status] = (statusCounts[r.status]||0)+1; });
+        const statsText = Object.entries(statusCounts)
+            .map(([k,v]) => `${k.replace('_',' ')}: ${v}`).join('  |  ');
+        doc.setFontSize(9);
+        doc.setTextColor(100, 100, 100);
+        doc.text(statsText, 14, 33);
+
+        // Table
+        const statusFilter = document.getElementById('filterStatus').value;
+        const search = (document.getElementById('searchBox').value || '').toLowerCase();
+        const rows = allRecords
+            .filter(r => (!statusFilter || r.status === statusFilter) &&
+                (!search || (r.fullName||'').toLowerCase().includes(search) || (r.username||'').toLowerCase().includes(search)))
+            .map(r => [
+                fmtDate(r.attendanceDate),
+                r.fullName || '—',
+                r.username || '—',
+                r.userRole || '—',
+                r.status.replace('_',' '),
+                fmtTime(r.clockIn),
+                fmtTime(r.clockOut),
+                r.workHours != null ? `${r.workHours} hrs` : '—',
+                (r.notes || '').substring(0, 40)
+            ]);
+
+        doc.autoTable({
+            startY: 38,
+            head: [['Date','Full Name','Username','Role','Status','Clock In','Clock Out','Hours','Notes']],
+            body: rows,
+            styles: { fontSize: 8, cellPadding: 3 },
+            headStyles: { fillColor: [29, 53, 87], textColor: 255, fontStyle: 'bold' },
+            alternateRowStyles: { fillColor: [248, 249, 251] },
+            didParseCell: (data) => {
+                if (data.section === 'body' && data.column.index === 4) {
+                    const statusColors = {
+                        'PRESENT': [220, 252, 231],
+                        'LATE': [254, 243, 199],
+                        'ABSENT': [254, 226, 226],
+                        'HALF DAY': [237, 233, 254],
+                        'ON LEAVE': [219, 234, 254],
+                    };
+                    const c = statusColors[data.cell.text[0]];
+                    if (c) data.cell.styles.fillColor = c;
+                }
+            },
+            margin: { left: 14, right: 14 }
+        });
+
+        // Footer
+        const pageCount = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(8);
+            doc.setTextColor(150);
+            doc.text(`Page ${i} of ${pageCount}`, 297 - 14, 205, { align: 'right' });
+            doc.text('PrintProTrack Attendance Management System', 14, 205);
+        }
+
+        const fileName = `attendance_report_${today}.pdf`;
+        doc.save(fileName);
+        showToast(`✓ PDF exported: ${fileName}`, 'success');
+    }
+
+    // ── Helpers ────────────────────────────────────────────────────────────────
+    const STATUS_CLS = {
+        PRESENT:'b-present', LATE:'b-late', ABSENT:'b-absent',
+        HALF_DAY:'b-half', ON_LEAVE:'b-leave'
+    };
+    const STATUS_LABEL = {
+        PRESENT:'Present', LATE:'Late', ABSENT:'Absent',
+        HALF_DAY:'Half-Day', ON_LEAVE:'On Leave'
+    };
+
+    function statusBadge(s) {
+        return `<span class="badge ${STATUS_CLS[s]||'b-leave'}">${STATUS_LABEL[s]||s}</span>`;
+    }
+
+    function fmtTime(iso) {
+        if (!iso) return '—';
+        try { return new Date(iso).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }
+        catch(e) { return iso; }
+    }
+
+    function fmtDate(iso) {
+        if (!iso) return '—';
+        try { return new Date(iso).toLocaleDateString('en-US', {year:'numeric', month:'short', day:'numeric'}); }
+        catch(e) { return iso; }
+    }
+
+    function openModal(id)  { document.getElementById(id).classList.add('open'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+    ['markModal','editModal'].forEach(id => {
+        document.getElementById(id).addEventListener('click', function(e) {
+            if (e.target === this) closeModal(id);
+        });
+    });
+
+    let toastTimer;
+    function showToast(msg, type = 'success') {
+        const t = document.getElementById('toast');
+        const color = type === 'success' ? 'bg-gray-900' : 'bg-red-600';
+        const icon  = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+        t.className = `px-5 py-3 rounded-xl shadow-2xl text-sm font-semibold flex items-center gap-2 show text-white ${color}`;
+        t.innerHTML = `<i class="fas ${icon}"></i> ${msg}`;
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.remove('show'), 4000);
+    }
+
+    function logout() {
+        ['adminToken','token','admin'].forEach(k => localStorage.removeItem(k));
+        window.location.href='/';
+    }
+
+    // Load today's report on init
+    loadReport();
+</script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Energy Monitoring (View) — PrintProTrack Staff</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/>
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #f1f5f9; margin: 0; }
+        .sidebar { background: #1a3a2a; width: 260px; height: 100vh; position: fixed; }
+        .sidebar a { display: block; padding: 12px 20px; color: #9dbea8; text-decoration: none; }
+        .sidebar a:hover { background: #2d4a3a; color: white; }
+        .sidebar .active { background: #2d8a47; color: white; }
+        .main { margin-left: 260px; padding: 24px; }
+        .banner { background: linear-gradient(135deg,#1a3a2a,#1e5c2f); border-radius: 16px; padding: 24px; color: white; margin-bottom: 24px; }
+        .kpi-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 24px; }
+        .kpi-card { background: white; border-radius: 12px; padding: 16px; border-left: 4px solid #f59e0b; }
+        .chart-card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 24px; }
+        .data-table { width: 100%; background: white; border-radius: 12px; border-collapse: collapse; overflow: hidden; }
+        .data-table th, .data-table td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        .empty-state { text-align: center; padding: 48px; color: #94a3b8; }
+        .btn { background: #1e5c2f; color: white; padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; }
+        .btn:hover { background: #2d8a47; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+        .badge-running { background: #dcfce7; color: #15803d; }
+        .badge-idle { background: #fef3c7; color: #b45309; }
+        .badge-stopped { background: #fee2e2; color: #b91c1c; }
+        .chart-wrap { height: 220px; }
+        .logout-btn { margin-top: 20px; background: #dc2626; color: white; border: none; padding: 8px; width: 100%; border-radius: 8px; cursor: pointer; }
+    </style>
+</head>
+<body>
+<div class="sidebar">
+    <div class="p-4 text-white font-bold text-lg">PrintProTack Staff</div>
+    <a href='/staff-dashboard'>Dashboard</a>
+    <a href='/staff-maintenance'>Maintenance</a>
+    <a href='/staff-energy' class="active">Energy</a>
+    <a href='/staff-materials'>Materials</a>
+    <a href='/staff-spareparts'>Spare Parts</a>
+    <div style="position: absolute; bottom: 20px; width: 100%; padding: 0 16px;"><button class="logout-btn" onclick="logout()">Sign Out</button></div>
+</div>
+<div class="main">
+    <div class="banner"><h1><i class="fas fa-bolt"></i> Energy Monitoring</h1><p>View‑only — real‑time consumption and analytics</p></div>
+    <div class="kpi-grid" id="kpiGrid"></div>
+    <div class="chart-card"><h3>Energy Trend</h3><div class="chart-wrap"><canvas id="trendChart"></canvas></div><p id="trendEmpty" class="empty-state hidden">No data yet</p></div>
+    <div class="chart-card"><h3>Machine Status Distribution</h3><div class="chart-wrap"><canvas id="statusChart"></canvas></div></div>
+    <div class="chart-card"><h3>Machine Energy Breakdown</h3><div class="chart-wrap"><canvas id="machineChart"></canvas></div></div>
+    <div class="chart-card"><h3>Recent Readings</h3><div style="overflow-x:auto"><table class="data-table"><thead><tr><th>Machine</th><th>Energy (kWh)</th><th>Runtime</th><th>Cost</th><th>Timestamp</th></tr></thead><tbody id="readingsBody"><tr><td colspan="5" class="empty-state">Loading...</td></tr></tbody></table></div></div>
+</div>
+<script>
+    const API = 'http://localhost:8080/api/energy';
+    const token = localStorage.getItem('staffToken');
+    if (!token) location.href = '/staff-login';
+    function H() { return { Authorization: `Bearer ${token}` }; }
+    let trendChart, statusChart, machineChart;
+    async function loadAnalytics() { try { const r = await fetch(`${API}/analytics?period=WEEK`, { headers: H() }); if(r.ok){ const d=await r.json(); updateKPIs(d); renderTrend(d.trendData); renderStatusChart(d.statusDistribution); renderMachineChart(d.machineBreakdown); } } catch(e){} }
+    async function loadReadings() { try { const r = await fetch(`${API}/readings`, { headers: H() }); if(r.ok){ const data=await r.json(); document.getElementById('readingsBody').innerHTML=data.map(r=>`<tr><td>${esc(r.machineName)}</td><td>${r.energyKwh?.toFixed(2)}</td><td>${r.runtimeMinutes||'—'}</td><td>${r.totalCost?'$'+r.totalCost.toFixed(2):'—'}</td><td>${new Date(r.readingTimestamp).toLocaleString()}</td></tr>`).join('')||'<tr><td colspan="5" class="empty-state">No readings</td></tr>'; } } catch(e){} }
+    function updateKPIs(d){ document.getElementById('kpiGrid').innerHTML=`<div class="kpi-card"><div>Total Energy</div><div class="text-2xl font-bold">${d.totalEnergyKwh?.toFixed(1)||0} kWh</div></div><div class="kpi-card"><div>Total Cost</div><div class="text-2xl font-bold">$${d.totalCost?.toFixed(2)||0}</div></div><div class="kpi-card"><div>Runtime</div><div class="text-2xl font-bold">${((d.totalRuntimeMinutes||0)/60).toFixed(1)} h</div></div><div class="kpi-card"><div>Avg PF</div><div class="text-2xl font-bold">${d.avgPowerFactor?.toFixed(3)||'—'}</div></div>`; }
+    function renderTrend(data){ const ctx=document.getElementById('trendChart').getContext('2d'); if(trendChart)trendChart.destroy(); if(!data||!data.length){document.getElementById('trendEmpty').classList.remove('hidden');return}document.getElementById('trendEmpty').classList.add('hidden'); trendChart=new Chart(ctx,{type:'line',data:{labels:data.map(d=>d.label),datasets:[{label:'kWh',data:data.map(d=>d.kwh),borderColor:'#f59e0b',fill:true}]}}); }
+    function renderStatusChart(data){ const ctx=document.getElementById('statusChart').getContext('2d'); if(statusChart)statusChart.destroy(); if(!data||!data.length)return; statusChart=new Chart(ctx,{type:'doughnut',data:{labels:data.map(d=>d.status),datasets:[{data:data.map(d=>d.count),backgroundColor:['#22c55e','#f59e0b','#ef4444','#8b5cf6']}]}}); }
+    function renderMachineChart(data){ const ctx=document.getElementById('machineChart').getContext('2d'); if(machineChart)machineChart.destroy(); if(!data||!data.length)return; machineChart=new Chart(ctx,{type:'bar',data:{labels:data.map(d=>d.machine),datasets:[{label:'kWh',data:data.map(d=>d.kwh),backgroundColor:'#1e5c2f'}]}}); }
+    function esc(s){return s?String(s).replace(/[&<>]/g,function(m){return{m:'&amp;','<':'&lt;','>':'&gt;'}[m];}):'';}
+    function logout(){localStorage.clear();location.href='/';}
+    loadAnalytics(); loadReadings();
+</script>
+</body>
+</html>
+
+
+

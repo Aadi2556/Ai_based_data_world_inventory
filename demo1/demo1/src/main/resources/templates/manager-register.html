@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Manager Register — PrintProTrack</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --green-dark: #0d3d2b; --green-mid: #155c3e; --green-bright: #1e8a57;
+            --green-light: #2db870; --green-glow: #3ddc8c;
+            --gray-900: #0f1410; --gray-800: #1a2020; --gray-700: #2a3530;
+            --gray-500: #556860; --gray-300: #a8b8b0; --gray-100: #e8f0ec;
+            --white: #f4fbf7;
+        }
+        body { font-family: 'DM Sans', sans-serif; background: var(--gray-900); min-height: 100vh; display: flex; }
+        body::before {
+            content: ''; position: fixed; inset: 0; pointer-events: none;
+            background: radial-gradient(ellipse 70% 50% at 15% 70%, rgba(30,138,87,.07) 0%, transparent 60%),
+            radial-gradient(ellipse 50% 60% at 85% 20%, rgba(45,184,112,.04) 0%, transparent 50%);
+        }
+        .left {
+            width: 340px; min-height: 100vh; background: var(--gray-900);
+            border-right: 1px solid rgba(45,184,112,.06);
+            display: flex; flex-direction: column; justify-content: space-between;
+            padding: 48px 36px; position: sticky; top: 0; height: 100vh; flex-shrink: 0;
+        }
+        .brand-tag { font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 3px; color: var(--green-glow); text-transform: uppercase; margin-bottom: 10px; }
+        .brand-name { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 800; color: var(--white); line-height: 1; }
+        .brand-name span { color: var(--green-glow); }
+        .brand-desc { margin-top: 16px; font-size: 13px; color: var(--gray-300); line-height: 1.7; }
+        .divider { width: 40px; height: 3px; background: var(--green-glow); margin: 24px 0; }
+        .feature { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 14px; }
+        .feature-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green-glow); flex-shrink: 0; margin-top: 5px; }
+        .feature-dot.light { background: var(--green-light); }
+        .feature-text { font-size: 12px; color: #64748b; letter-spacing: .5px; line-height: 1.5; }
+        .left-foot { font-size: 12px; color: #374151; }
+        .left-foot a { color: var(--green-light); text-decoration: none; font-weight: 600; }
+        .right { flex: 1; overflow-y: auto; padding: 48px 56px; position: relative; z-index: 1; }
+        .form-header { margin-bottom: 36px; }
+        .form-header h1 { font-family: 'Syne', sans-serif; font-size: 38px; font-weight: 800; color: var(--white); letter-spacing: 1px; }
+        .form-header p { margin-top: 8px; font-size: 13.5px; color: var(--gray-300); }
+        .form-divider { width: 50px; height: 3px; background: var(--green-glow); margin: 14px 0 0; }
+        .alert { padding: 11px 14px; border-radius: 3px; font-size: 13px; margin-bottom: 20px; display: none; font-weight: 500; }
+        .alert.show { display: block; }
+        .alert.success { background: rgba(61,220,140,.15); color: var(--green-glow); border-left: 3px solid var(--green-glow); }
+        .alert.error   { background: rgba(220,60,60,.15); color: #ff7979; border-left: 3px solid #ff7979; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+        .form-grid .full { grid-column: 1 / -1; }
+        .section-head { grid-column: 1 / -1; font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #475569; border-bottom: 1px solid rgba(45,184,112,.07); padding-bottom: 6px; margin-top: 6px; }
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        .f-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gray-300); }
+        .f-input {
+            padding: 11px 13px; background: rgba(45,184,112,.04); border: 1.5px solid rgba(45,184,112,.1);
+            border-radius: 3px; color: var(--white); font-family: 'DM Sans', sans-serif;
+            font-size: 14px; outline: none; transition: border-color .2s, box-shadow .2s;
+        }
+        .f-input:focus { border-color: var(--green-light); box-shadow: 0 0 0 3px rgba(45,184,112,.12); }
+        .f-input::placeholder { color: #475569; }
+        .f-input.err { border-color: #ef4444; }
+        .field-err { font-size: 11px; color: #f87171; font-weight: 500; }
+        select.f-input option { background: var(--gray-900); }
+        .submit-btn {
+            width: 100%; padding: 15px; background: linear-gradient(135deg, var(--green-bright), var(--green-light)); color: #fff; border: none; border-radius: 3px;
+            font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: 2px;
+            text-transform: uppercase; cursor: pointer; transition: background .2s; margin-top: 4px;
+        }
+        .submit-btn:hover { background: linear-gradient(135deg, var(--green-light), var(--green-glow)); }
+        .submit-btn:disabled { background: #374151; color: #6b7280; cursor: not-allowed; }
+        .login-link { text-align: center; margin-top: 18px; font-size: 13px; color: var(--gray-300); }
+        .login-link a { color: var(--green-glow); text-decoration: none; font-weight: 600; }
+        @media (max-width: 900px) { .left { display: none; } .right { padding: 36px 24px; } }
+        @media (max-width: 560px) { .form-grid { grid-template-columns: 1fr; } .form-grid .full { grid-column: 1; } }
+    </style>
+</head>
+<body>
+<div class="left">
+    <div>
+        <div class="brand-tag"><i class="fas fa-chart-line" style="margin-right:5px"></i>Manager Portal</div>
+        <div class="brand-name">PRINT<span>CRAFT</span></div>
+        <p class="brand-desc">Lead your department with powerful oversight and analytics.</p>
+        <div class="divider"></div>
+        <div class="feature"><div class="feature-dot"></div><div class="feature-text">DEPARTMENT DASHBOARD & KPI</div></div>
+        <div class="feature"><div class="feature-dot light"></div><div class="feature-text">APPROVE REQUISITIONS & REPORTS</div></div>
+        <div class="feature"><div class="feature-dot"></div><div class="feature-text">TEAM PERFORMANCE & SCHEDULING</div></div>
+    </div>
+    <div class="left-foot">Already registered? <a href='/manager-login'>Sign in →</a></div>
+</div>
+<div class="right">
+    <div class="form-header">
+        <h1>MANAGER REGISTRATION</h1>
+        <div class="form-divider"></div>
+        <p style="margin-top:10px">Register as a department manager.</p>
+    </div>
+    <div id="alertBox" class="alert"></div>
+    <form id="registerForm" novalidate>
+        <div class="form-grid">
+            <div class="section-head">Personal Information</div>
+            <div class="form-group">
+                <label class="f-label">First Name *</label>
+                <input type="text" id="firstName" class="f-input" required/>
+                <div class="field-err" id="err-firstName"></div>
+            </div>
+            <div class="form-group">
+                <label class="f-label">Last Name *</label>
+                <input type="text" id="lastName" class="f-input" required/>
+                <div class="field-err" id="err-lastName"></div>
+            </div>
+            <div class="form-group full">
+                <label class="f-label">Email *</label>
+                <input type="email" id="email" class="f-input" required/>
+                <div class="field-err" id="err-email"></div>
+            </div>
+            <div class="form-group full">
+                <label class="f-label">Phone *</label>
+                <input type="tel" id="phone" class="f-input" placeholder="10–15 digits" required/>
+                <div class="field-err" id="err-phone"></div>
+            </div>
+            <div class="section-head">Account Credentials</div>
+            <div class="form-group full">
+                <label class="f-label">Username *</label>
+                <input type="text" id="username" class="f-input" required/>
+                <div class="field-err" id="err-username"></div>
+            </div>
+            <div class="form-group">
+                <label class="f-label">Password *</label>
+                <input type="password" id="password" class="f-input" placeholder="Min. 6 characters" required/>
+                <div class="field-err" id="err-password"></div>
+            </div>
+            <div class="form-group">
+                <label class="f-label">Confirm Password *</label>
+                <input type="password" id="confirmPw" class="f-input" required/>
+                <div class="field-err" id="err-confirmPw"></div>
+            </div>
+            <div class="section-head">Professional Details</div>
+            <div class="form-group">
+                <label class="f-label">Employee ID</label>
+                <input type="text" id="employeeId" class="f-input"/>
+            </div>
+            <div class="form-group">
+                <label class="f-label">Managed Department *</label>
+                <select id="managedDepartment" class="f-input" required>
+                    <option value="">Select department</option>
+                    <option value="OPERATIONS">Operations</option>
+                    <option value="WAREHOUSE">Warehouse</option>
+                    <option value="LOGISTICS">Logistics</option>
+                    <option value="PRODUCTION">Production</option>
+                    <option value="GENERAL">General</option>
+                    <option value="HR">Human Resources</option>
+                    <option value="FINANCE">Finance</option>
+                    <option value="SALES">Sales</option>
+                </select>
+                <div class="field-err" id="err-managedDepartment"></div>
+            </div>
+            <div class="form-group">
+                <label class="f-label">Job Title</label>
+                <input type="text" id="jobTitle" class="f-input" placeholder="e.g. Operations Manager"/>
+            </div>
+            <div class="form-group">
+                <label class="f-label">Experience (years)</label>
+                <input type="number" id="experienceYears" class="f-input" min="0" max="50"/>
+            </div>
+            <div class="form-group full">
+                <label class="f-label">Certifications</label>
+                <input type="text" id="certifications" class="f-input"/>
+            </div>
+            <div class="form-group full">
+                <label class="f-label">Notes</label>
+                <textarea id="notes" class="f-input" rows="2"></textarea>
+            </div>
+            <div class="form-group full">
+                <button type="submit" class="submit-btn" id="submitBtn">REGISTER</button>
+            </div>
+        </div>
+    </form>
+    <div class="login-link">Already have an account? <a href='/manager-login'>Sign in</a></div>
+</div>
+<script>
+    const API = 'http://localhost:8080/api/manager';
+    function showAlert(msg, type) {
+        const b = document.getElementById('alertBox'); b.textContent = msg; b.className = `alert ${type} show`;
+        b.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    function clearErrors() {
+        document.querySelectorAll('.field-err').forEach(e => e.textContent = '');
+        document.querySelectorAll('.f-input').forEach(e => e.classList.remove('err'));
+    }
+    function setErr(id, msg) {
+        document.getElementById(id).classList.add('err');
+        document.getElementById('err-'+id).textContent = msg;
+    }
+    function validate() {
+        clearErrors(); let ok = true;
+        const fn = document.getElementById('firstName').value.trim();
+        const ln = document.getElementById('lastName').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const phone = document.getElementById('phone').value.trim();
+        const un = document.getElementById('username').value.trim();
+        const pw = document.getElementById('password').value;
+        const cpw = document.getElementById('confirmPw').value;
+        const dept = document.getElementById('managedDepartment').value;
+        if (fn.length < 2)  { setErr('firstName', 'Min. 2 chars'); ok = false; }
+        if (ln.length < 2)  { setErr('lastName', 'Min. 2 chars'); ok = false; }
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setErr('email', 'Valid email required'); ok = false; }
+        if (!phone || !/^[0-9]{10,15}$/.test(phone)) { setErr('phone', '10–15 digits'); ok = false; }
+        if (un.length < 4)  { setErr('username', 'Min. 4 chars'); ok = false; }
+        if (pw.length < 6)  { setErr('password', 'Min. 6 chars'); ok = false; }
+        if (pw !== cpw)     { setErr('confirmPw', 'Passwords do not match'); ok = false; }
+        if (!dept)          { setErr('managedDepartment', 'Select department'); ok = false; }
+        return ok;
+    }
+    document.getElementById('registerForm').addEventListener('submit', async e => {
+        e.preventDefault(); if (!validate()) return;
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true; btn.textContent = 'REGISTERING...';
+        const payload = {
+            firstName: document.getElementById('firstName').value.trim(),
+            lastName: document.getElementById('lastName').value.trim(),
+            email: document.getElementById('email').value.trim(),
+            password: document.getElementById('password').value,
+            phone: document.getElementById('phone').value.trim(),
+            username: document.getElementById('username').value.trim(),
+            employeeId: document.getElementById('employeeId').value.trim() || null,
+            managedDepartment: document.getElementById('managedDepartment').value,
+            jobTitle: document.getElementById('jobTitle').value.trim() || null,
+            experienceYears: document.getElementById('experienceYears').value ? +document.getElementById('experienceYears').value : null,
+            certifications: document.getElementById('certifications').value.trim() || null,
+            notes: document.getElementById('notes').value.trim() || null,
+        };
+        try {
+            const res = await fetch(`${API}/register`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+            const data = await res.json();
+            if (res.ok) {
+                showAlert('Registration successful! Redirecting to login...', 'success');
+                setTimeout(() => location.href = '/manager-login', 1200);
+            } else {
+                showAlert(data.error || 'Registration failed', 'error');
+                btn.disabled = false; btn.textContent = 'REGISTER';
+            }
+        } catch {
+            showAlert('Cannot connect to server.', 'error');
+            btn.disabled = false; btn.textContent = 'REGISTER';
+        }
+    });
+</script>
+</body>
+</html>

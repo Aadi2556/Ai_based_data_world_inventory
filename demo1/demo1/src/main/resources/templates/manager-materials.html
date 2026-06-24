@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Manager - Materials</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <style>
+        :root { --forest: #1a3a2a; --pine: #1e5c2f; --sage: #2d8a47; --mint: #3daa5a; }
+        body { font-family: 'DM Sans', sans-serif; background: #f1f5f9; margin: 0; overflow: hidden; }
+        .sidebar { background: var(--forest); width: 260px; height: 100vh; flex-shrink: 0; display: flex; flex-direction: column; position: sticky; top: 0; }
+        .sidebar-logo { background: #fff; padding: 18px 22px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #0d2018; }
+        .sidebar-logo .brand-text { font-weight: 700; font-size: 17px; color: var(--pine); }
+        .sidebar-badge { font-size: 10px; font-weight: 700; background: #d1fae5; color: #065f46; padding: 2px 7px; border-radius: 99px; margin-left: auto; }
+        .sidebar-nav { flex: 1; overflow-y: auto; padding: 16px 12px; display: flex; flex-direction: column; gap: 2px; }
+        .nav-label { font-size: 10px; font-weight: 700; letter-spacing: 2px; color: #3d6b4e; text-transform: uppercase; padding: 10px 10px 4px; }
+        .nav-link { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; color: #9dbea8; font-size: 13.5px; font-weight: 500; text-decoration: none; transition: all .2s; border-left: 3px solid transparent; cursor: pointer; }
+        .nav-link:hover { background: rgba(255,255,255,.07); color: #fff; }
+        .nav-link.active { background: rgba(255,255,255,.12); color: #fff; border-left-color: var(--mint); }
+        .sidebar-footer { padding: 14px 12px; border-top: 1px solid #0d2018; }
+        .logout-btn { width: 100%; background: rgba(220,38,38,.15); color: #fca5a5; border: none; padding: 10px; border-radius: 9px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background .15s; }
+        .page-wrap { display: flex; height: 100vh; overflow: hidden; }
+        .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .scroll-area { flex: 1; overflow-y: auto; padding: 28px; }
+        .topnav { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 0 28px; height: 56px; display: flex; align-items: center; justify-content: space-between; }
+        .banner { background: linear-gradient(135deg, var(--forest) 0%, var(--pine) 55%, var(--sage) 100%); border-radius: 16px; padding: 24px 28px; color: #fff; display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+        .stat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 22px; }
+        .stat-card { background: #fff; border-radius: 14px; padding: 18px 20px; border-top: 3px solid transparent; }
+        .page-tabs { display: flex; gap: 4px; background: #fff; border-radius: 12px; padding: 5px; margin-bottom: 20px; }
+        .page-tab { flex: 1; padding: 10px; border-radius: 9px; border: none; background: transparent; font-size: 13.5px; font-weight: 500; color: #64748b; cursor: pointer; }
+        .page-tab.active { background: var(--pine); color: #fff; }
+        .panel { background: #fff; border-radius: 16px; overflow: hidden; margin-bottom: 20px; }
+        .panel-header { padding: 16px 22px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
+        .data-table { width: 100%; border-collapse: collapse; }
+        .data-table th { padding: 12px 16px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #94a3b8; background: #f8fafc; }
+        .data-table td { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; }
+        .badge { display: inline-flex; padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+        .b-NORMAL { background: #d1fae5; color: #065f46; }
+        .b-LOW { background: #fef3c7; color: #92400e; }
+        .b-CRITICAL { background: #fee2e2; color: #b91c1c; }
+        .action-btn { width: 30px; height: 30px; border-radius: 8px; border: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; margin: 0 2px; }
+        .action-btn.edit { background: #f0fdf4; color: #16a34a; }
+        .action-btn.del { background: #fef2f2; color: #dc2626; }
+        .action-btn.view { background: #eff6ff; color: #3b82f6; }
+        .empty-state { padding: 56px 20px; text-align: center; color: #94a3b8; }
+
+        /* Modal Styles */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal { background: #fff; border-radius: 12px; padding: 24px; width: 400px; max-width: 90%; }
+        .modal-header { font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 16px; }
+        .modal-body { font-size: 14px; color: #475569; margin-bottom: 24px; }
+        .modal-footer { display: flex; justify-content: flex-end; gap: 12px; }
+        .btn { padding: 8px 16px; border-radius: 6px; font-weight: 600; font-size: 14px; cursor: pointer; border: none; }
+        .btn-cancel { background: #e2e8f0; color: #475569; }
+        .btn-primary { background: var(--pine); color: #fff; }
+        .btn-danger { background: #dc2626; color: #fff; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 6px; }
+        .form-control { width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
+    </style>
+</head>
+<body>
+<div class="page-wrap">
+    <aside class="sidebar">
+        <div class="sidebar-logo"><i class="fas fa-print"></i><span class="brand-text">PrintProTrack</span><span class="sidebar-badge">MANAGER</span></div>
+        <nav class="sidebar-nav">
+            <div class="nav-label">Main</div><a href='/manager-dashboard' class="nav-link"><i class="fas fa-house"></i> Dashboard</a><a href='/manager-dashboard#profile' class="nav-link"><i class="fas fa-circle-user"></i> My Profile</a>
+            <div class="nav-label">Operations</div><a href='/manager-maintenance' class="nav-link"><i class="fas fa-screwdriver-wrench"></i> Machine Maintenance</a><a href='/manager-energy' class="nav-link"><i class="fas fa-bolt"></i> Energy Monitoring</a><a href='/manager-spareparts' class="nav-link"><i class="fas fa-cogs"></i> Spare Parts</a><a href='/manager-suppliers' class="nav-link"><i class="fas fa-truck"></i> Suppliers</a><a href='/manager-materials' class="nav-link active"><i class="fas fa-scroll"></i> Material Management</a>
+        </nav>
+        <div class="sidebar-footer"><button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Sign Out</button></div>
+    </aside>
+    <div class="main">
+        <nav class="topnav"><div><i class="fas fa-scroll"></i> Materials Management</div><div><span>Welcome, <strong id="topbarName">Manager</strong></span><button onclick="logout()" style="margin-left:15px;">Logout</button></div></nav>
+        <div class="scroll-area">
+            <div class="banner"><div><h1>Materials Inventory</h1><p>View, edit, or delete materials and usage logs.</p></div></div>
+            <div class="stat-grid"><div class="stat-card"><div class="label">Total Materials</div><div id="statTotal">0</div></div><div class="stat-card"><div class="label">Critical/Low</div><div id="statAlert">0</div></div><div class="stat-card"><div class="label">Monthly Usage</div><div id="statUsage">0</div></div><div class="stat-card"><div class="label">Inventory Value</div><div id="statValue">$0</div></div></div>
+            <div class="page-tabs" id="pageTabs"><button class="page-tab active" onclick="switchTab('inventory')">Inventory</button><button class="page-tab" onclick="switchTab('usage')">Usage & Wastage</button><button class="page-tab" onclick="switchTab('alerts')">Stock Alerts</button></div>
+            <div id="panelInventory" class="panel"><div class="panel-header"><div>Materials Inventory</div><div><input id="searchMaterial" placeholder="Search..." class="border rounded px-3 py-1"></div></div><table class="data-table"><thead><tr><th>Material</th><th>Category</th><th>Stock</th><th>Unit Cost</th><th>Status</th><th>Supplier</th><th>Actions</th></tr></thead><tbody id="materialsTbody"></tbody></table></div>
+            <div id="panelUsage" class="panel" style="display:none"><div class="panel-header"><div>Usage & Wastage Logs</div></div><table class="data-table"><thead><tr><th>Date</th><th>Material</th><th>Type</th><th>Quantity</th><th>Before→After</th><th>Job Ref</th><th>Logged By</th><th>Actions</th></tr></thead><tbody id="logsTbody"></tbody></table></div>
+            <div id="panelAlerts" class="panel" style="display:none"><div class="panel-header"><div>Stock Alerts</div></div><table class="data-table"><thead><tr><th>Severity</th><th>Material</th><th>Message</th><th>Stock</th><th>Status</th><th>Actions</th></tr></thead><tbody id="alertsTbody"></tbody></table></div>
+        </div>
+    </div>
+</div>
+
+<!-- Modals -->
+<div id="viewModal" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">View Details</div>
+        <div class="modal-body" id="viewBody" style="max-height: 400px; overflow-y: auto;"></div>
+        <div class="modal-footer"><button class="btn btn-cancel" onclick="closeModal('viewModal')">Close</button></div>
+    </div>
+</div>
+
+<div id="editModal" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-header" id="editHeader">Edit</div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label id="editLabel">Value</label>
+                <input type="text" id="editInput" class="form-control">
+            </div>
+            <input type="hidden" id="editId">
+            <input type="hidden" id="editType">
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-cancel" onclick="closeModal('editModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="saveEdit()">Save</button>
+        </div>
+    </div>
+</div>
+
+<div id="deleteModal" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">Confirm Delete</div>
+        <div class="modal-body">Are you sure you want to delete this item?</div>
+        <input type="hidden" id="deleteId">
+        <input type="hidden" id="deleteType">
+        <div class="modal-footer">
+            <button class="btn btn-cancel" onclick="closeModal('deleteModal')">Cancel</button>
+            <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API = 'http://localhost:8080';
+    const token = localStorage.getItem('token');
+    if (!token) location.href = '/login';
+    function H() { return { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }; }
+
+    let allMaterials = [], allLogs = [], allAlerts = [];
+    async function loadAll() {
+        allMaterials = await (await fetch(`${API}/admin/materials/api/all`, { headers: H() })).json();
+        allLogs = await (await fetch(`${API}/admin/materials/api/logs`, { headers: H() })).json();
+        allAlerts = await (await fetch(`${API}/admin/materials/api/alerts`, { headers: H() })).json();
+        renderMaterials(allMaterials); renderLogs(allLogs); renderAlerts(allAlerts);
+        const stats = await (await fetch(`${API}/admin/materials/api/stats`, { headers: H() })).json();
+        document.getElementById('statTotal').innerText = stats.totalMaterials||0;
+        document.getElementById('statAlert').innerText = (stats.criticalStockCount||0)+(stats.lowStockCount||0);
+        document.getElementById('statUsage').innerText = (stats.monthlyUsage||0).toFixed(1);
+        document.getElementById('statValue').innerText = '$'+(stats.totalInventoryValue||0).toFixed(2);
+    }
+
+    function renderMaterials(list) { const tb=document.getElementById('materialsTbody'); if(!list.length) { tb.innerHTML='<tr><td colspan="7" class="empty-state">No materials</td></tr>'; return; } tb.innerHTML=list.map(m=>`<tr><td>${escapeHtml(m.name)}</td><td>${m.category||''}</td><td>${m.currentStock}</td><td>$${(m.unitCost||0).toFixed(2)}</td><td><span class="badge b-${getStatus(m)}">${getStatus(m)}</span></td><td>${m.supplierName||'—'}</td><td><button class="action-btn view" onclick="viewMaterial(${m.id})"><i class="fas fa-eye"></i></button><button class="action-btn edit" onclick="editMaterial(${m.id})"><i class="fas fa-pen"></i></button><button class="action-btn del" onclick="deleteMaterial(${m.id})"><i class="fas fa-trash"></i></button></td></tr>`).join(''); }
+    function renderLogs(list) { const tb=document.getElementById('logsTbody'); if(!list.length) { tb.innerHTML='<tr><td colspan="8" class="empty-state">No logs</td></tr>'; return; } tb.innerHTML=list.map(l=>`<tr><td>${l.logDate||''}</td><td>${l.material?.name||'—'}</td><td>${l.logType}</td><td>${l.quantity}</td><td>${l.stockBefore||'—'} → ${l.stockAfter||'—'}</td><td>${l.jobReference||'—'}</td><td>${l.loggedBy||'—'}</td><td><button class="action-btn edit" onclick="editLog(${l.id})"><i class="fas fa-pen"></i></button><button class="action-btn del" onclick="deleteLog(${l.id})"><i class="fas fa-trash"></i></button></td></tr>`).join(''); }
+    function renderAlerts(list) { const tb=document.getElementById('alertsTbody'); if(!list.length) { tb.innerHTML='<tr><td colspan="6" class="empty-state">No alerts</td></tr>'; return; } tb.innerHTML=list.map(a=>`<tr><td><span class="badge b-CRITICAL">${a.severity}</span></td><td>${a.material?.name||'—'}</td><td>${a.message}</td><td>${a.stockLevelAtAlert||'—'}</td><td>${a.isAcknowledged?'Acknowledged':'Pending'}</td><td><button class="action-btn edit" onclick="ackAlert(${a.id})">Acknowledge</button></td></tr>`).join(''); }
+
+    function getStatus(m) { if(m.currentStock <= m.criticalStockLevel) return 'CRITICAL'; if(m.currentStock <= m.minimumStockLevel) return 'LOW'; return 'NORMAL'; }
+
+    function showModal(id) { document.getElementById(id).style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    function viewMaterial(id) {
+        const m=allMaterials.find(x=>String(x.id)===String(id));
+        if(!m) return;
+        document.getElementById('viewBody').innerHTML = `
+            <div style="display: grid; grid-template-columns: 100px 1fr; gap: 8px; font-size: 13px;">
+                <strong>Name:</strong> <span>${escapeHtml(m.name)}</span>
+                <strong>Category:</strong> <span>${escapeHtml(m.category)}</span>
+                <strong>Brand:</strong> <span>${escapeHtml(m.brand)}</span>
+                <strong>SKU:</strong> <span>${escapeHtml(m.skuCode)}</span>
+                <strong>Description:</strong> <span>${escapeHtml(m.description)}</span>
+                <strong>Status:</strong> <span><span class="badge b-${getStatus(m)}">${getStatus(m)}</span></span>
+                <strong>Stock:</strong> <span>${m.currentStock} / ${m.maximumStockLevel} ${escapeHtml(m.unit)}</span>
+                <strong>Min/Critical:</strong> <span>${m.minimumStockLevel} / ${m.criticalStockLevel}</span>
+                <strong>Unit Cost:</strong> <span>$${(m.unitCost||0).toFixed(2)}</span>
+                <strong>Supplier:</strong> <span>${escapeHtml(m.supplierName||'N/A')}</span>
+                <strong>Created:</strong> <span>${m.createdAt ? new Date(m.createdAt).toLocaleString() : '—'}</span>
+                <strong>Updated:</strong> <span>${m.updatedAt ? new Date(m.updatedAt).toLocaleString() : '—'}</span>
+            </div>
+        `;
+        showModal('viewModal');
+    }
+    function editMaterial(id) {
+        const m=allMaterials.find(x=>String(x.id)===String(id));
+        document.getElementById('editHeader').innerText = 'Edit Material';
+        document.getElementById('editLabel').innerText = 'Material Name:';
+        document.getElementById('editInput').value = m.name;
+        document.getElementById('editId').value = id;
+        document.getElementById('editType').value = 'material';
+        showModal('editModal');
+    }
+    function deleteMaterial(id) {
+        document.getElementById('deleteId').value = id;
+        document.getElementById('deleteType').value = 'material';
+        showModal('deleteModal');
+    }
+    function editLog(id) {
+        const l=allLogs.find(x=>String(x.id)===String(id));
+        document.getElementById('editHeader').innerText = 'Edit Log';
+        document.getElementById('editLabel').innerText = 'Quantity:';
+        document.getElementById('editInput').value = l.quantity;
+        document.getElementById('editId').value = id;
+        document.getElementById('editType').value = 'log';
+        showModal('editModal');
+    }
+    function deleteLog(id) {
+        document.getElementById('deleteId').value = id;
+        document.getElementById('deleteType').value = 'log';
+        showModal('deleteModal');
+    }
+
+    async function saveEdit() {
+        const id = document.getElementById('editId').value;
+        const type = document.getElementById('editType').value;
+        const val = document.getElementById('editInput').value;
+
+        if(!val) return;
+
+        if(type === 'material') {
+            const m = allMaterials.find(x=>String(x.id)===String(id));
+            m.name = val;
+            await fetch(`${API}/admin/materials/api/update/${id}`,{method:'PUT',headers:H(),body:JSON.stringify(m)});
+        } else if(type === 'log') {
+            const l = allLogs.find(x=>String(x.id)===String(id));
+            l.quantity = parseFloat(val);
+            await fetch(`${API}/admin/materials/api/logs/update/${id}`,{method:'PUT',headers:H(),body:JSON.stringify(l)});
+        }
+        closeModal('editModal');
+        loadAll();
+    }
+
+    async function confirmDelete() {
+        const id = document.getElementById('deleteId').value;
+        const type = document.getElementById('deleteType').value;
+
+        if(type === 'material') {
+            await fetch(`${API}/admin/materials/api/delete/${id}`,{method:'DELETE',headers:H()});
+        } else if(type === 'log') {
+            await fetch(`${API}/admin/materials/api/logs/delete/${id}`,{method:'DELETE',headers:H()});
+        }
+        closeModal('deleteModal');
+        loadAll();
+    }
+
+    async function ackAlert(id) { await fetch(`${API}/admin/materials/api/alerts/${id}/acknowledge`,{method:'PUT',headers:H(),body:JSON.stringify({adminName:'Manager'})}); loadAll(); }
+
+    function switchTab(tab) {
+        document.getElementById('panelInventory').style.display=tab==='inventory'?'block':'none';
+        document.getElementById('panelUsage').style.display=tab==='usage'?'block':'none';
+        document.getElementById('panelAlerts').style.display=tab==='alerts'?'block':'none';
+        const tabs = document.querySelectorAll('.page-tab');
+        tabs.forEach(t => t.classList.remove('active'));
+        if(tab === 'inventory') tabs[0].classList.add('active');
+        if(tab === 'usage') tabs[1].classList.add('active');
+        if(tab === 'alerts') tabs[2].classList.add('active');
+    }
+    function escapeHtml(s){ return s?String(s).replace(/[&<>]/g,function(m){if(m==='&')return'&amp;';if(m==='<')return'&lt;';if(m==='>')return'&gt;';return m;}):''; }
+    function logout(){ localStorage.clear(); location.href='/'; }
+    loadAll();
+</script>
+</body>
+</html>

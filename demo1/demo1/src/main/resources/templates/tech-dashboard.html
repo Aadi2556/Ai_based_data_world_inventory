@@ -1,0 +1,1461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Technician Dashboard — PrintProTrack</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .sidebar-link { transition: all 0.25s; }
+        .sidebar-link:hover { background-color: rgba(255,255,255,0.1); transform: translateX(4px); }
+        .sidebar-link.active { background-color: rgba(255,255,255,0.15); border-left: 3px solid #4ade80; }
+        .card-hover { transition: transform 0.25s, box-shadow 0.25s; overflow: hidden; }
+        .card-hover:hover { transform: translateY(-4px); box-shadow: 0 12px 30px -5px rgba(0,0,0,0.12); }
+        .bg-sidebar { background-color: #1a3a2a; }
+        .text-brand { color: #1e5c2f; }
+        .bg-brand { background-color: #1e5c2f; }
+        .bg-brand-gradient { background: linear-gradient(135deg, #1e5c2f 0%, #2d8a47 50%, #3daa5a 100%); }
+        .hover-brand:hover { background-color: #164823; }
+        .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 200; align-items: center; justify-content: center; }
+        .modal-backdrop.open { display: flex; }
+        .modal-box { background: #fff; border-radius: 12px; padding: 28px; width: 520px; max-width: 92vw; animation: popIn 0.2s ease; }
+        @keyframes popIn { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: scale(1); } }
+        .form-input { width: 100%; padding: 9px 12px; border: 1.5px solid #e2e8f0; border-radius: 7px; font-size: 14px; outline: none; transition: border-color 0.2s; }
+        .form-input:focus { border-color: #2d8a47; box-shadow: 0 0 0 3px rgba(45,138,71,0.1); }
+        .form-input:disabled { background: #f8fafc; color: #94a3b8; cursor: not-allowed; }
+        .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.35); border-top-color: #fff; border-radius: 50%; animation: spin 0.55s linear infinite; margin-right: 6px; vertical-align: middle; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .alert { display: none; }
+        .alert.show { display: block; }
+        .badge-status { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; gap: 4px; }
+        .status-scheduled   { background: rgba(59,130,246,.2);  color: #1e3a8a; }
+        .status-in_progress { background: rgba(245,158,11,.2);  color: #92400e; }
+        .status-completed   { background: rgba(34,197,94,.2);   color: #14532d; }
+        .status-cancelled   { background: rgba(239,68,68,.2);   color: #991b1b; }
+        .type-badge { display: inline-flex; padding: 3px 10px; border-radius: 99px; font-size: 10px; font-weight: 600; background: #e2e8f0; color: #1e293b; }
+        .notes-box { background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; font-size: 13px; color: #374151; min-height: 60px; white-space: pre-wrap; }
+        .notes-history-item { background: #f0fdf4; border-left: 3px solid #22c55e; padding: 8px 12px; border-radius: 0 6px 6px 0; font-size: 12px; }
+        .req-status-PENDING  { background: #fef3c7; color: #92400e; }
+        .req-status-REVIEWED { background: #dbeafe; color: #1d4ed8; }
+        .req-status-ORDERED  { background: #d1fae5; color: #065f46; }
+        .req-status-REJECTED { background: #fee2e2; color: #b91c1c; }
+        .req-urgency-LOW      { background: #f1f5f9; color: #475569; }
+        .req-urgency-MEDIUM   { background: #dbeafe; color: #1d4ed8; }
+        .req-urgency-HIGH     { background: #fef3c7; color: #92400e; }
+        .req-urgency-CRITICAL { background: #fee2e2; color: #b91c1c; }
+
+        /* ── AI Chat styles ── */
+        #chatMessages {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            overflow-y: auto;
+            padding: 20px;
+            flex: 1;
+            background: #f9fafb;
+            scroll-behavior: smooth;
+            min-height: 0;
+        }
+        #chatMessages::-webkit-scrollbar { width: 5px; }
+        #chatMessages::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .bubble-user {
+            background: #1e5c2f;
+            color: #fff;
+            border-radius: 18px 18px 4px 18px;
+            padding: 11px 16px;
+            max-width: 75%;
+            font-size: 0.88rem;
+            line-height: 1.55;
+            align-self: flex-end;
+            word-break: break-word;
+        }
+        .bubble-ai {
+            background: #fff;
+            color: #1e293b;
+            border: 1px solid #e2e8f0;
+            border-radius: 18px 18px 18px 4px;
+            padding: 11px 16px;
+            max-width: 75%;
+            font-size: 0.88rem;
+            line-height: 1.55;
+            align-self: flex-start;
+            word-break: break-word;
+        }
+        .bubble-error {
+            background: #fef2f2;
+            color: #b91c1c;
+            border: 1px solid #fecaca;
+            border-radius: 12px;
+            padding: 11px 16px;
+            max-width: 75%;
+            font-size: 0.85rem;
+            align-self: flex-start;
+        }
+        .ai-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 4px;
+        }
+        .typing-indicator {
+            display: flex; gap: 5px; padding: 12px 16px;
+            background: #fff; border: 1px solid #e2e8f0;
+            border-radius: 18px 18px 18px 4px;
+            width: fit-content; align-self: flex-start;
+        }
+        .typing-indicator span { width: 7px; height: 7px; background: #94a3b8; border-radius: 50%; animation: bounce 1.2s infinite; }
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes bounce { 0%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-5px); } }
+        .chip {
+            display: inline-block; padding: 5px 12px;
+            background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534;
+            border-radius: 20px; font-size: 12px; font-weight: 500;
+            cursor: pointer; transition: background 0.15s; white-space: nowrap;
+        }
+        .chip:hover { background: #dcfce7; }
+        .send-btn {
+            background: #1e5c2f; color: #fff; border: none; padding: 0 20px;
+            border-radius: 24px; font-size: 0.88rem; font-weight: 600; cursor: pointer;
+            transition: background 0.2s; height: 42px; display: flex; align-items: center;
+            gap: 7px; white-space: nowrap; flex-shrink: 0;
+        }
+        .send-btn:hover { background: #164823; }
+        .send-btn:disabled { background: #86efac; cursor: not-allowed; }
+        .msg-input {
+            flex: 1; padding: 10px 16px; border: 1.5px solid #e2e8f0;
+            border-radius: 24px; font-size: 0.88rem; outline: none;
+            transition: border-color 0.2s; font-family: 'Inter', sans-serif; min-width: 0;
+        }
+        .msg-input:focus { border-color: #1e5c2f; box-shadow: 0 0 0 3px rgba(30,92,47,0.08); }
+        .machine-pill {
+            padding: 5px 13px; border: 1.5px solid #e2e8f0; border-radius: 20px;
+            font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s;
+            background: #fff; color: #475569;
+        }
+        .machine-pill.active { background: #1e5c2f; color: #fff; border-color: #1e5c2f; }
+        .machine-pill:hover:not(.active) { border-color: #1e5c2f; color: #1e5c2f; }
+        .confidence-bar { height: 3px; background: #e2e8f0; border-radius: 2px; margin-top: 8px; }
+        .confidence-fill { height: 100%; border-radius: 2px; transition: width 0.4s ease; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex overflow-hidden text-gray-800">
+
+<!-- ══════════════════════════ SIDEBAR ══════════════════════════ -->
+<aside class="bg-sidebar text-white w-72 flex-shrink-0 flex flex-col h-screen hidden md:flex shadow-2xl z-20">
+    <div class="px-6 py-5 flex items-center space-x-3 border-b border-green-900 bg-white">
+        <i class="fas fa-print text-2xl text-brand"></i>
+        <h1 class="text-xl font-bold tracking-wide text-brand">PrintProTrack</h1>
+        <span class="ml-auto px-2 py-0.5 bg-green-100 text-green-800 rounded-full text-xs font-semibold">TECHNICIAN</span>
+    </div>
+    <nav class="flex-1 overflow-y-auto py-5 px-4 space-y-1">
+        <p class="text-xs font-semibold text-green-700 uppercase tracking-widest px-3 mb-3">WORKSPACE</p>
+        <a href="#" onclick="showSection('dashboard'); setActive(this)" class="sidebar-link active flex items-center p-3 rounded-lg text-gray-300 hover:text-white group">
+            <i class="fa-solid fa-gauge-high w-5 text-center text-gray-400 group-hover:text-green-400"></i>
+            <span class="ml-3 font-medium text-sm">Dashboard</span>
+        </a>
+        <a href="#" onclick="showSection('tasks'); setActive(this)" class="sidebar-link flex items-center p-3 rounded-lg text-gray-300 hover:text-white group">
+            <i class="fa-solid fa-list-check w-5 text-center text-gray-400 group-hover:text-green-400"></i>
+            <span class="ml-3 font-medium text-sm">My Tasks</span>
+        </a>
+        <a href="#" onclick="showSection('repairs'); setActive(this)" class="sidebar-link flex items-center p-3 rounded-lg text-gray-300 hover:text-white group">
+            <i class="fa-solid fa-wrench w-5 text-center text-gray-400 group-hover:text-green-400"></i>
+            <span class="ml-3 font-medium text-sm">Repair Logs</span>
+        </a>
+        <p class="text-xs font-semibold text-green-700 uppercase tracking-widest px-3 mt-5 mb-2">MONITORING</p>
+        <a href='/tech-energy' class="sidebar-link flex items-center p-3 rounded-lg text-gray-300 hover:text-white group">
+            <i class="fa-solid fa-bolt w-5 text-center text-gray-400 group-hover:text-yellow-400"></i>
+            <span class="ml-3 font-medium text-sm">Energy Consumption</span>
+        </a>
+        <a href='/tech-spareparts' class="sidebar-link flex items-center p-3 rounded-lg text-gray-300 hover:text-white group">
+            <i class="fa-solid fa-cogs w-5 text-center text-gray-400 group-hover:text-teal-400"></i>
+            <span class="ml-3 font-medium text-sm">Spare Parts</span>
+        </a>
+        <a href="#" onclick="showSection('sparerequests'); setActive(this)" class="sidebar-link flex items-center p-3 rounded-lg text-gray-300 hover:text-white group">
+            <i class="fa-solid fa-paper-plane w-5 text-center text-gray-400 group-hover:text-orange-400"></i>
+            <span class="ml-3 font-medium text-sm">Part Requests</span>
+            <span id="sidebarReqBadge" class="ml-auto hidden bg-orange-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"></span>
+        </a>
+        <a href='/attendance-technician' class="sidebar-link flex items-center p-3 rounded-lg text-gray-300 hover:text-white group">
+            <i class="fa-solid fa-calendar-check w-5 text-center text-gray-400 group-hover:text-blue-400"></i>
+            <span class="ml-3 font-medium text-sm">Attendance</span>
+        </a>
+        <a href="#" onclick="showSection('profile'); setActive(this)" class="sidebar-link flex items-center p-3 rounded-lg text-gray-300 hover:text-white group">
+            <i class="fa-solid fa-circle-user w-5 text-center text-gray-400 group-hover:text-green-400"></i>
+            <span class="ml-3 font-medium text-sm">My Profile</span>
+        </a>
+        <!-- ✨ AI Recommendations -->
+        <a href="#" onclick="showSection('ai-chat'); setActive(this)" class="sidebar-link flex items-center p-3 rounded-lg text-gray-300 hover:text-white group">
+            <i class="fa-solid fa-robot w-5 text-center text-gray-400 group-hover:text-purple-400"></i>
+            <span class="ml-3 font-medium text-sm">AI Recommendations</span>
+        </a>
+    </nav>
+    <div class="p-4 border-t border-green-900">
+        <button onclick="logout()" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-900 hover:bg-red-800 text-red-200 rounded-lg text-sm font-semibold transition">
+            <i class="fas fa-sign-out-alt"></i> Sign Out
+        </button>
+    </div>
+</aside>
+
+<!-- ══════════════════════════ MAIN ══════════════════════════ -->
+<div class="flex-1 flex flex-col h-screen overflow-hidden">
+
+    <!-- Top Nav -->
+    <nav class="bg-white shadow-md w-full z-10">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex justify-between items-center py-3.5">
+                <div class="flex items-center gap-3">
+                    <button class="md:hidden text-gray-500 mr-2" id="mobileMenuBtn"><i class="fas fa-bars text-xl"></i></button>
+                    <i class="fas fa-print text-xl text-brand"></i>
+                    <span class="text-lg font-bold text-gray-800">PrintProTrack</span>
+                    <span class="px-2.5 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-semibold">TECHNICIAN</span>
+                </div>
+                <div class="flex items-center gap-5">
+                    <span class="text-gray-600 text-sm hidden sm:block">Welcome, <span id="topbarName" class="font-semibold text-gray-800">Technician</span></span>
+                    <button onclick="showSection('profile'); setActiveByText('profile')" class="text-gray-500 hover:text-green-600 text-sm flex items-center gap-1 transition">
+                        <i class="fas fa-user"></i><span class="hidden sm:inline">Profile</span>
+                    </button>
+                    <button onclick="logout()" class="text-gray-500 hover:text-red-600 text-sm flex items-center gap-1 transition">
+                        <i class="fas fa-sign-out-alt"></i><span class="hidden sm:inline">Logout</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
+        <div class="max-w-7xl mx-auto space-y-8">
+
+            <!-- ══════════ DASHBOARD SECTION ══════════ -->
+            <div id="section-dashboard" class="page-section">
+                <div class="bg-brand-gradient rounded-2xl p-8 shadow-lg text-white mb-6">
+                    <h2 class="text-3xl font-bold mb-1" id="dashGreeting">Technician Control Panel</h2>
+                    <p class="text-green-100 text-base" id="dashSub">Manage your assigned tasks, repairs, and monitor facility systems.</p>
+                </div>
+
+                <!-- KPI Stats Row -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                    <div class="bg-white rounded-xl p-5 shadow-sm border-t-4 border-emerald-500">
+                        <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Assigned Tasks</p>
+                        <p class="text-2xl font-bold text-gray-800" id="kpiTotal">0</p>
+                        <p class="text-xs text-gray-400 mt-1">Total</p>
+                    </div>
+                    <div class="bg-white rounded-xl p-5 shadow-sm border-t-4 border-amber-500">
+                        <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">In Progress</p>
+                        <p class="text-2xl font-bold text-amber-600" id="kpiProgress">0</p>
+                        <p class="text-xs text-gray-400 mt-1">Active</p>
+                    </div>
+                    <div class="bg-white rounded-xl p-5 shadow-sm border-t-4 border-green-500">
+                        <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Completed</p>
+                        <p class="text-2xl font-bold text-green-600" id="kpiCompleted">0</p>
+                        <p class="text-xs text-gray-400 mt-1">Done</p>
+                    </div>
+                    <div class="bg-white rounded-xl p-5 shadow-sm border-t-4 border-red-400">
+                        <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Open Repairs</p>
+                        <p class="text-2xl font-bold text-red-500" id="kpiOpenRepairs">0</p>
+                        <p class="text-xs text-gray-400 mt-1">Pending</p>
+                    </div>
+                </div>
+
+                <!-- Feature Cards Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <section class="bg-white rounded-xl shadow-sm border-t-4 border-emerald-500 p-6 card-hover cursor-pointer" onclick="showSection('tasks'); setActiveByText('tasks')">
+                        <div class="flex items-center justify-between mb-4 border-b pb-3">
+                            <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2"><i class="fa-solid fa-list-check text-emerald-600"></i> My Tasks</h3>
+                            <span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold">Active</span>
+                        </div>
+                        <ul class="space-y-2 text-sm text-gray-500 mb-5">
+                            <li class="flex items-start gap-2"><i class="fa-solid fa-chevron-right text-emerald-400 mt-0.5 text-xs"></i> View all assigned maintenance tasks</li>
+                            <li class="flex items-start gap-2"><i class="fa-solid fa-chevron-right text-emerald-400 mt-0.5 text-xs"></i> Update task status in real-time</li>
+                            <li class="flex items-start gap-2"><i class="fa-solid fa-chevron-right text-emerald-400 mt-0.5 text-xs"></i> Add progress notes per task</li>
+                            <li class="flex items-start gap-2"><i class="fa-solid fa-chevron-right text-emerald-400 mt-0.5 text-xs"></i> Filter by status & priority</li>
+                        </ul>
+                        <button class="w-full bg-emerald-600 text-white font-semibold px-4 py-2.5 rounded-lg text-sm hover:bg-emerald-700 transition">View Tasks <i class="fa-solid fa-arrow-right ml-1"></i></button>
+                    </section>
+
+                    <section class="bg-white rounded-xl shadow-sm border-t-4 border-red-400 p-6 card-hover cursor-pointer" onclick="showSection('repairs'); setActiveByText('repair')">
+                        <div class="flex items-center justify-between mb-4 border-b pb-3">
+                            <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2"><i class="fa-solid fa-wrench text-red-500"></i> Repair Logs</h3>
+                            <span class="px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-xs font-semibold">Active</span>
+                        </div>
+                        <ul class="space-y-2 text-sm text-gray-500 mb-5">
+                            <li class="flex items-start gap-2"><i class="fa-solid fa-chevron-right text-red-400 mt-0.5 text-xs"></i> Log new repairs & issues found</li>
+                            <li class="flex items-start gap-2"><i class="fa-solid fa-chevron-right text-red-400 mt-0.5 text-xs"></i> Track severity — Low to Critical</li>
+                            <li class="flex items-start gap-2"><i class="fa-solid fa-chevron-right text-red-400 mt-0.5 text-xs"></i> Record parts used & downtime</li>
+                            <li class="flex items-start gap-2"><i class="fa-solid fa-chevron-right text-red-400 mt-0.5 text-xs"></i> Link repairs to maintenance tasks</li>
+                        </ul>
+                        <button class="w-full bg-red-500 text-white font-semibold px-4 py-2.5 rounded-lg text-sm hover:bg-red-600 transition">Open Repair Logs <i class="fa-solid fa-arrow-right ml-1"></i></button>
+                    </section>
+
+                    <section class="bg-white rounded-xl shadow-sm border-t-4 border-indigo-500 p-6 card-hover cursor-pointer" onclick="showSection('profile'); setActiveByText('profile')">
+                        <div class="flex items-center justify-between mb-4 border-b pb-3">
+                            <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2"><i class="fa-solid fa-circle-user text-indigo-500"></i> My Profile</h3>
+                        </div>
+                        <ul class="space-y-2 text-sm text-gray-500 mb-5">
+                            <li class="flex items-start gap-2"><i class="fa-solid fa-chevron-right text-indigo-400 mt-0.5 text-xs"></i> View & edit your account details</li>
+                            <li class="flex items-start gap-2"><i class="fa-solid fa-chevron-right text-indigo-400 mt-0.5 text-xs"></i> Update specialization & experience</li>
+                            <li class="flex items-start gap-2"><i class="fa-solid fa-chevron-right text-indigo-400 mt-0.5 text-xs"></i> Change password securely</li>
+                        </ul>
+                        <button class="w-full bg-indigo-50 text-indigo-700 border border-indigo-200 font-semibold px-4 py-2.5 rounded-lg hover:bg-indigo-100 transition text-sm">Go to Profile <i class="fa-solid fa-arrow-right ml-1"></i></button>
+                    </section>
+
+                    <section class="bg-white rounded-xl shadow-sm border-t-4 border-yellow-500 p-6 card-hover cursor-pointer" onclick="window.location.href='/tech-energy'">
+                        <div class="flex items-center justify-between mb-4 border-b pb-3">
+                            <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2"><i class="fa-solid fa-bolt text-yellow-500"></i> Energy Consumption</h3>
+                            <span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full text-xs font-semibold">Active</span>
+                        </div>
+                        <ul class="space-y-2 text-sm text-gray-500 mb-5">
+                            <li class="flex items-start gap-2"><i class="fa-solid fa-chevron-right text-yellow-400 mt-0.5 text-xs"></i> Monitor machine energy usage</li>
+                            <li class="flex items-start gap-2"><i class="fa-solid fa-chevron-right text-yellow-400 mt-0.5 text-xs"></i> Machine runtime analytics & trends</li>
+                            <li class="flex items-start gap-2"><i class="fa-solid fa-chevron-right text-yellow-400 mt-0.5 text-xs"></i> Per-machine status & cost view</li>
+                        </ul>
+                        <button class="w-full bg-yellow-500 text-white font-semibold px-4 py-2.5 rounded-lg text-sm hover:bg-yellow-600 transition">View Analytics <i class="fa-solid fa-chart-line ml-1"></i></button>
+                    </section>
+
+                    <section class="bg-white rounded-xl shadow-sm border-t-4 border-blue-500 p-6 card-hover cursor-pointer" onclick="window.location.href='/attendance-technician'">
+                        <div class="flex items-center justify-between mb-4 border-b pb-3">
+                            <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2"><i class="fa-solid fa-calendar-check text-blue-500"></i> Mark Attendance</h3>
+                            <span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">Active</span>
+                        </div>
+                        <ul class="space-y-2 text-sm text-gray-500 mb-5">
+                            <li class="flex items-start gap-2"><i class="fa-solid fa-chevron-right text-blue-400 mt-0.5 text-xs"></i> Quick check-in / check-out</li>
+                            <li class="flex items-start gap-2"><i class="fa-solid fa-chevron-right text-blue-400 mt-0.5 text-xs"></i> View personal attendance history</li>
+                            <li class="flex items-start gap-2"><i class="fa-solid fa-chevron-right text-blue-400 mt-0.5 text-xs"></i> Request leave or overtime</li>
+                        </ul>
+                        <button class="w-full bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-lg text-sm hover:bg-blue-700 transition">Mark Attendance <i class="fa-solid fa-arrow-right ml-1"></i></button>
+                    </section>
+
+                    <section class="bg-white rounded-xl shadow-sm border-t-4 border-teal-500 p-6 card-hover cursor-pointer lg:col-span-2" onclick="window.location.href='/tech-spareparts'">
+                        <div class="flex items-center justify-between mb-4 border-b pb-3">
+                            <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2"><i class="fa-solid fa-cogs text-teal-600"></i> Spare Parts Inventory</h3>
+                            <span class="px-2 py-0.5 bg-teal-100 text-teal-700 rounded-full text-xs font-semibold">Active</span>
+                        </div>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-gray-500 mb-5">
+                            <div class="flex items-start gap-2"><i class="fa-solid fa-chevron-right text-teal-400 mt-0.5 text-xs"></i> Browse full parts inventory</div>
+                            <div class="flex items-start gap-2"><i class="fa-solid fa-chevron-right text-teal-400 mt-0.5 text-xs"></i> Check real-time stock levels</div>
+                            <div class="flex items-start gap-2"><i class="fa-solid fa-chevron-right text-teal-400 mt-0.5 text-xs"></i> Submit part requests to admin</div>
+                            <div class="flex items-start gap-2"><i class="fa-solid fa-chevron-right text-teal-400 mt-0.5 text-xs"></i> Search by name, SKU & category</div>
+                        </div>
+                        <button class="bg-teal-600 text-white font-semibold px-5 py-2.5 rounded-lg text-sm hover:bg-teal-700 transition">View Inventory <i class="fa-solid fa-arrow-right ml-1"></i></button>
+                    </section>
+
+                    <section class="bg-white rounded-xl shadow-sm border-t-4 border-orange-400 p-6 card-hover cursor-pointer" onclick="showSection('sparerequests'); setActiveByText('part request')">
+                        <div class="flex items-center justify-between mb-4 border-b pb-3">
+                            <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2"><i class="fa-solid fa-paper-plane text-orange-500"></i> Part Requests</h3>
+                            <span id="dashReqBadge" class="hidden px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full text-xs font-semibold">0 pending</span>
+                        </div>
+                        <ul class="space-y-2 text-sm text-gray-500 mb-5">
+                            <li class="flex items-start gap-2"><i class="fa-solid fa-chevron-right text-orange-400 mt-0.5 text-xs"></i> Request spare parts from admin</li>
+                            <li class="flex items-start gap-2"><i class="fa-solid fa-chevron-right text-orange-400 mt-0.5 text-xs"></i> Track request status in real-time</li>
+                            <li class="flex items-start gap-2"><i class="fa-solid fa-chevron-right text-orange-400 mt-0.5 text-xs"></i> Set urgency level for each request</li>
+                        </ul>
+                        <button class="w-full bg-orange-500 text-white font-semibold px-4 py-2.5 rounded-lg text-sm hover:bg-orange-600 transition">My Requests <i class="fa-solid fa-arrow-right ml-1"></i></button>
+                    </section>
+
+                    <!-- ✨ AI Recommendations Card -->
+                    <section class="bg-white rounded-xl shadow-sm border-t-4 border-purple-500 p-6 card-hover cursor-pointer" onclick="showSection('ai-chat'); setActiveByText('ai recommendations')">
+                        <div class="flex items-center justify-between mb-4 border-b pb-3">
+                            <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                                <i class="fa-solid fa-robot text-purple-500"></i> AI Recommendations
+                            </h3>
+                            <span class="px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full text-xs font-semibold">AI</span>
+                        </div>
+                        <ul class="space-y-2 text-sm text-gray-500 mb-5">
+                            <li class="flex items-start gap-2"><i class="fa-solid fa-chevron-right text-purple-400 mt-0.5 text-xs"></i> Step-by-step repair procedures</li>
+                            <li class="flex items-start gap-2"><i class="fa-solid fa-chevron-right text-purple-400 mt-0.5 text-xs"></i> Diagnose machine faults & error codes</li>
+                            <li class="flex items-start gap-2"><i class="fa-solid fa-chevron-right text-purple-400 mt-0.5 text-xs"></i> Cleaning, lubrication & calibration tips</li>
+                            <li class="flex items-start gap-2"><i class="fa-solid fa-chevron-right text-purple-400 mt-0.5 text-xs"></i> Part identification & replacement guidance</li>
+                        </ul>
+                        <button class="w-full bg-purple-600 text-white font-semibold px-4 py-2.5 rounded-lg text-sm hover:bg-purple-700 transition">
+                            Open AI Chat <i class="fa-solid fa-robot ml-1"></i>
+                        </button>
+                    </section>
+                </div>
+
+                <!-- Recent activity panels -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                    <div class="bg-white rounded-xl shadow-sm p-5">
+                        <h3 class="text-md font-bold text-gray-700 flex items-center gap-2 mb-3"><i class="fas fa-clock text-amber-500"></i> Recent Tasks</h3>
+                        <div id="recentTasksList" class="space-y-2 max-h-56 overflow-y-auto text-sm"></div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm p-5">
+                        <h3 class="text-md font-bold text-gray-700 flex items-center gap-2 mb-3"><i class="fas fa-screwdriver-wrench text-red-500"></i> Recent Repairs</h3>
+                        <div id="recentRepairsList" class="space-y-2 max-h-56 overflow-y-auto text-sm"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ══════════ MY TASKS SECTION ══════════ -->
+            <div id="section-tasks" class="page-section hidden">
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-100 flex flex-wrap justify-between items-center gap-3">
+                        <h2 class="text-xl font-bold text-gray-800"><i class="fas fa-list-check text-brand mr-2"></i> My Assigned Tasks</h2>
+                        <select id="taskStatusFilter" onchange="filterTasks()" class="form-input w-40 text-sm">
+                            <option value="">All Status</option>
+                            <option value="SCHEDULED">Scheduled</option>
+                            <option value="IN_PROGRESS">In Progress</option>
+                            <option value="COMPLETED">Completed</option>
+                        </select>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Task / Machine</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Scheduled</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Actions</th>
+                            </tr>
+                            </thead>
+                            <tbody id="tasksTableBody" class="divide-y divide-gray-100 bg-white"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ══════════ REPAIR LOGS SECTION ══════════ -->
+            <div id="section-repairs" class="page-section hidden">
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+                        <h2 class="text-xl font-bold text-gray-800"><i class="fas fa-wrench text-brand mr-2"></i> My Repair Logs</h2>
+                        <button onclick="openRepairModal()" class="px-4 py-2 bg-brand text-white rounded-lg text-sm font-semibold hover:bg-green-700">
+                            <i class="fas fa-plus mr-1"></i> Log Repair
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Title / Machine</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Severity</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Reported</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Status</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500">Actions</th>
+                            </tr>
+                            </thead>
+                            <tbody id="repairsTableBody" class="divide-y divide-gray-100 bg-white"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ══════════ SPARE PART REQUESTS SECTION ══════════ -->
+            <div id="section-sparerequests" class="page-section hidden">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2"><i class="fa-solid fa-paper-plane text-orange-500"></i> Spare Part Requests</h2>
+                        <p class="text-gray-500 text-sm mt-0.5">Submit requests for spare parts — admin will be notified and place orders accordingly.</p>
+                    </div>
+                    <button onclick="openSpareRequestModal()" class="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition shadow-sm flex-shrink-0">
+                        <i class="fas fa-plus"></i> New Request
+                    </button>
+                </div>
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-white rounded-xl p-4 shadow-sm border-l-4 border-amber-400"><p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Pending</p><p class="text-2xl font-bold text-amber-500" id="reqKpiPending">0</p></div>
+                    <div class="bg-white rounded-xl p-4 shadow-sm border-l-4 border-blue-400"><p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Reviewed</p><p class="text-2xl font-bold text-blue-500" id="reqKpiReviewed">0</p></div>
+                    <div class="bg-white rounded-xl p-4 shadow-sm border-l-4 border-green-400"><p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Ordered</p><p class="text-2xl font-bold text-green-600" id="reqKpiOrdered">0</p></div>
+                    <div class="bg-white rounded-xl p-4 shadow-sm border-l-4 border-red-400"><p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Rejected</p><p class="text-2xl font-bold text-red-500" id="reqKpiRejected">0</p></div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm p-4 mb-4 flex flex-wrap items-center gap-3">
+                    <select id="reqStatusFilter" onchange="renderRequestsTable()" class="form-input w-44 text-sm">
+                        <option value="">All Statuses</option>
+                        <option value="PENDING">Pending</option>
+                        <option value="REVIEWED">Reviewed</option>
+                        <option value="ORDERED">Ordered</option>
+                        <option value="REJECTED">Rejected</option>
+                    </select>
+                    <select id="reqUrgencyFilter" onchange="renderRequestsTable()" class="form-input w-40 text-sm">
+                        <option value="">All Urgency</option>
+                        <option value="CRITICAL">Critical</option>
+                        <option value="HIGH">High</option>
+                        <option value="MEDIUM">Medium</option>
+                        <option value="LOW">Low</option>
+                    </select>
+                    <button onclick="loadMyRequests()" class="flex items-center gap-1.5 px-4 py-2 text-sm text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 transition ml-auto">
+                        <i class="fas fa-rotate-right"></i> Refresh
+                    </button>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-5 py-3 text-left text-xs font-bold text-gray-400 uppercase">Part Name</th>
+                                <th class="px-5 py-3 text-left text-xs font-bold text-gray-400 uppercase">Part #</th>
+                                <th class="px-5 py-3 text-left text-xs font-bold text-gray-400 uppercase">Qty</th>
+                                <th class="px-5 py-3 text-left text-xs font-bold text-gray-400 uppercase">Urgency</th>
+                                <th class="px-5 py-3 text-left text-xs font-bold text-gray-400 uppercase">Reason</th>
+                                <th class="px-5 py-3 text-left text-xs font-bold text-gray-400 uppercase">Submitted</th>
+                                <th class="px-5 py-3 text-left text-xs font-bold text-gray-400 uppercase">Status</th>
+                                <th class="px-5 py-3 text-left text-xs font-bold text-gray-400 uppercase">Admin Note</th>
+                            </tr>
+                            </thead>
+                            <tbody id="requestsTableBody" class="divide-y divide-gray-100 bg-white">
+                            <tr><td colspan="8" class="text-center py-10 text-gray-400"><i class="fas fa-circle-notch fa-spin text-2xl mb-2 block text-orange-300"></i>Loading your requests…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ══════════ PROFILE SECTION ══════════ -->
+            <div id="section-profile" class="page-section hidden">
+                <div id="profileAlert" class="alert mb-4 px-4 py-3 rounded-lg text-sm font-medium"></div>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+                        <div class="bg-brand-gradient p-8 text-center">
+                            <div id="profileAvatar" class="w-20 h-20 rounded-full bg-white bg-opacity-20 flex items-center justify-center text-white text-3xl font-bold mx-auto mb-4 border-4 border-white border-opacity-40">TC</div>
+                            <h3 id="profileFullName" class="text-xl font-bold text-white">Technician</h3>
+                            <p id="profileUsername" class="text-green-200 text-sm mt-1">@username</p>
+                        </div>
+                        <div class="p-5 space-y-3 text-sm">
+                            <div class="flex justify-between py-2 border-b border-gray-100"><span class="text-gray-400">Employee ID</span><span id="profileEmpId" class="font-semibold">—</span></div>
+                            <div class="flex justify-between py-2 border-b border-gray-100"><span class="text-gray-400">Specialization</span><span id="profileSpecialization">—</span></div>
+                            <div class="flex justify-between py-2 border-b border-gray-100"><span class="text-gray-400">Experience</span><span id="profileExp">—</span></div>
+                            <div class="flex justify-between py-2"><span class="text-gray-400">Status</span><span id="profileStatusBadge" class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs">Active</span></div>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm overflow-hidden">
+                        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                            <h3 class="text-lg font-bold text-gray-800">Edit Profile</h3>
+                            <div class="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg">
+                                <i class="fas fa-lock text-amber-500 text-xs"></i>
+                                <span class="text-xs text-amber-700 font-medium">Account deletion requires admin</span>
+                            </div>
+                        </div>
+                        <div class="p-6">
+                            <form id="profileUpdateForm">
+                                <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Personal Information</p>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+                                    <div><label class="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">First Name</label><input type="text" id="editFirstName" class="form-input" /></div>
+                                    <div><label class="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Last Name</label><input type="text" id="editLastName" class="form-input" /></div>
+                                    <div><label class="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Email</label><input type="email" id="editEmail" class="form-input" /></div>
+                                    <div><label class="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Phone</label><input type="tel" id="editPhone" class="form-input" /></div>
+                                    <div><label class="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Specialization</label><input type="text" id="editSpecialization" class="form-input" /></div>
+                                    <div><label class="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Experience Years</label><input type="number" id="editExp" class="form-input" /></div>
+                                </div>
+                                <div class="border-t border-gray-100 pt-5 mt-2 mb-5">
+                                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Change Password <span class="text-gray-300 normal-case font-normal">(optional)</span></p>
+                                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                        <div><label class="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Current Password</label><input type="password" id="currentPw" class="form-input" placeholder="Current password"/></div>
+                                        <div><label class="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">New Password</label><input type="password" id="newPw" class="form-input" placeholder="Min. 6 chars"/></div>
+                                        <div><label class="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Confirm New</label><input type="password" id="confirmPw" class="form-input" placeholder="Repeat new"/></div>
+                                    </div>
+                                </div>
+                                <div class="flex gap-3 justify-end">
+                                    <button type="button" onclick="resetProfileForm()" class="px-5 py-2.5 text-sm font-semibold text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 transition">Reset</button>
+                                    <button type="submit" id="updateProfileBtn" class="px-6 py-2.5 text-sm font-semibold text-white bg-brand rounded-lg hover:bg-green-700 transition flex items-center gap-2">
+                                        <i class="fas fa-save"></i> Save Changes
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ══════════════════════════════════════════
+                 AI CHAT SECTION  ✨ NEW
+            ══════════════════════════════════════════ -->
+            <div id="section-ai-chat" class="page-section hidden">
+                <div class="flex flex-col gap-4" style="height: calc(100vh - 140px); min-height: 600px;">
+
+                    <!-- Header -->
+                    <div class="bg-brand-gradient rounded-2xl p-6 shadow-lg text-white flex items-center justify-between flex-shrink-0">
+                        <div>
+                            <div class="flex items-center gap-3 mb-1">
+                                <div class="w-9 h-9 rounded-xl bg-white bg-opacity-20 flex items-center justify-center">
+                                    <i class="fas fa-robot text-white text-base"></i>
+                                </div>
+                                <h2 class="text-2xl font-bold">Machine Recommendation System</h2>
+                            </div>
+                            <p class="text-green-100 text-sm">Get AI-powered guidance on repairs, maintenance procedures, and technical troubleshooting.</p>
+                        </div>
+                        <div class="hidden sm:flex flex-col items-end gap-1">
+                            <div class="flex items-center gap-2">
+                                <span id="aiStatusDot" class="w-2.5 h-2.5 rounded-full bg-green-300 animate-pulse"></span>
+                                <span id="aiStatusText" class="text-green-100 text-xs font-medium">Connecting...</span>
+                            </div>
+                            <span class="text-green-200 text-xs" id="aiQaCount">—</span>
+                        </div>
+                    </div>
+
+                    <!-- Machine selector -->
+                    <div class="bg-white rounded-xl shadow-sm p-4 flex-shrink-0 border border-gray-100">
+                        <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Select Machine Context</p>
+                        <div class="flex flex-wrap gap-2" id="machinePills">
+                            <button class="machine-pill active" data-id="0" onclick="selectMachine(this, 0)">All Machines</button>
+                            <button class="machine-pill" data-id="1" onclick="selectMachine(this, 1)">
+                                <i class="fas fa-print mr-1 text-xs"></i> HP LaserJet Pro M402
+                            </button>
+                            <button class="machine-pill" data-id="2" onclick="selectMachine(this, 2)">
+                                <i class="fas fa-copy mr-1 text-xs"></i> Canon ImageRunner
+                            </button>
+                            <button class="machine-pill" data-id="3" onclick="selectMachine(this, 3)">
+                                <i class="fas fa-droplet mr-1 text-xs"></i> Epson EcoTank L805
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Chat panel -->
+                    <div class="bg-white rounded-xl shadow-sm flex flex-col overflow-hidden flex-1 border border-gray-100" style="min-height: 0;">
+                        <div id="chatMessages">
+                            <div style="align-self: flex-start; max-width: 85%;">
+                                <div class="ai-label"><i class="fas fa-robot mr-1"></i> AI Assistant</div>
+                                <div class="bubble-ai">
+                                    🔧 Hello, Technician! I'm your <strong>Machine Recommendation System</strong>. I can help you with hands-on tasks like:<br><br>
+                                    • Step-by-step repair procedures<br>
+                                    • Diagnosing machine faults &amp; error codes<br>
+                                    • Cleaning, lubrication &amp; calibration tips<br>
+                                    • Part identification &amp; replacement guidance<br><br>
+                                    Select a machine above or describe your issue to get started!
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick prompts -->
+                        <div id="quickPromptsBar" class="px-5 py-3 border-t border-gray-100 flex flex-wrap gap-2 flex-shrink-0">
+                            <span class="text-xs text-gray-400 font-medium self-center mr-1">Quick ask:</span>
+                            <button class="chip" onclick="quickAsk('How do I clean the print heads step by step?')">Clean print heads</button>
+                            <button class="chip" onclick="quickAsk('How to fix a paper jam?')">Fix paper jam</button>
+                            <button class="chip" onclick="quickAsk('How to replace the toner cartridge?')">Replace toner</button>
+                            <button class="chip" onclick="quickAsk('What causes streaks in printing?')">Print streaks</button>
+                            <button class="chip" onclick="quickAsk('How to calibrate the machine after repair?')">Calibration guide</button>
+                        </div>
+
+                        <!-- Input bar -->
+                        <div class="px-5 py-4 border-t border-gray-100 flex gap-3 items-center flex-shrink-0">
+                            <input type="text" id="questionInput" class="msg-input" placeholder="Describe your repair issue or ask a technical question..." autocomplete="off"/>
+                            <button id="sendBtn" class="send-btn" onclick="sendMessage()">
+                                <i class="fas fa-paper-plane"></i>
+                                <span class="hidden sm:inline">Send</span>
+                            </button>
+                            <button onclick="clearChat()" title="Clear chat" class="w-10 h-10 flex items-center justify-center rounded-full border border-gray-200 text-gray-400 hover:text-red-500 hover:border-red-200 transition text-sm flex-shrink-0">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- END AI CHAT SECTION -->
+
+        </div>
+    </main>
+</div>
+
+<!-- ══════════════ TASK STATUS MODAL ══════════════ -->
+<div id="statusModal" class="modal-backdrop">
+    <div class="modal-box" style="width:560px">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold text-gray-800">Update Task Status</h3>
+            <button onclick="closeModal('statusModal')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+        </div>
+        <div id="statusModalInfo" class="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4 text-sm"></div>
+        <div id="existingNotesBlock" class="mb-4 hidden">
+            <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Existing Notes</p>
+            <div id="existingNotesDisplay" class="notes-history-item text-gray-600"></div>
+        </div>
+        <div class="mb-4">
+            <label class="text-xs font-bold text-gray-500 uppercase tracking-widest block mb-2">New Status</label>
+            <select id="newStatusSelect" class="form-input">
+                <option value="SCHEDULED">Scheduled</option>
+                <option value="IN_PROGRESS">In Progress</option>
+                <option value="COMPLETED">Completed</option>
+            </select>
+        </div>
+        <div class="mb-5">
+            <label class="text-xs font-bold text-gray-500 uppercase tracking-widest block mb-2">Progress Notes <span class="text-gray-300 normal-case font-normal">(optional)</span></label>
+            <textarea id="statusNotes" class="form-input" rows="4" placeholder="Describe what was done, issues encountered, parts used, or next steps..."></textarea>
+        </div>
+        <div class="flex justify-end gap-3">
+            <button onclick="closeModal('statusModal')" class="px-5 py-2.5 text-sm font-semibold text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 transition">Cancel</button>
+            <button id="statusSubmitBtn" onclick="submitStatusUpdate()" class="px-5 py-2.5 text-sm font-semibold text-white bg-brand rounded-lg hover:bg-green-700 transition flex items-center gap-2">
+                <i class="fas fa-check"></i> Update Status
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════ TASK DETAIL VIEW MODAL ══════════════ -->
+<div id="taskDetailModal" class="modal-backdrop">
+    <div class="modal-box" style="width:580px">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold text-gray-800">Task Details</h3>
+            <button onclick="closeModal('taskDetailModal')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+        </div>
+        <div id="taskDetailContent" class="space-y-3 text-sm"></div>
+        <div class="flex justify-end gap-3 mt-5">
+            <button onclick="closeModal('taskDetailModal')" class="px-4 py-2.5 border border-gray-200 rounded-lg text-gray-600 text-sm">Close</button>
+            <button id="taskDetailUpdateBtn" class="px-4 py-2.5 bg-amber-500 text-white rounded-lg text-sm font-semibold hover:bg-amber-600">
+                <i class="fas fa-pen mr-1"></i> Update Status
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════ REPAIR MODAL ══════════════ -->
+<div id="repairModal" class="modal-backdrop">
+    <div class="modal-box" style="width:600px; max-height:90vh; overflow-y:auto">
+        <div class="flex items-center justify-between mb-4">
+            <h3 id="repairModalTitle" class="text-lg font-bold text-gray-800">Log Repair</h3>
+            <button onclick="closeModal('repairModal')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+        </div>
+        <form id="repairFormModal">
+            <input type="hidden" id="repairId" />
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                <div class="md:col-span-2"><label class="text-xs font-semibold text-gray-500 uppercase block mb-1">Title *</label><input id="repairTitle" placeholder="e.g. Roller bearing replacement" class="form-input" required /></div>
+                <div><label class="text-xs font-semibold text-gray-500 uppercase block mb-1">Machine *</label><select id="repairMachineId" class="form-input" required><option value="">Select Machine</option></select></div>
+                <div><label class="text-xs font-semibold text-gray-500 uppercase block mb-1">Linked Task</label><select id="repairScheduleId" class="form-input"><option value="">Optional</option></select></div>
+                <div><label class="text-xs font-semibold text-gray-500 uppercase block mb-1">Severity</label><select id="repairSeverity" class="form-input"><option>LOW</option><option>MEDIUM</option><option>HIGH</option><option>CRITICAL</option></select></div>
+                <div><label class="text-xs font-semibold text-gray-500 uppercase block mb-1">Status</label><select id="repairStatusSelect" class="form-input"><option>OPEN</option><option>IN_PROGRESS</option><option>RESOLVED</option><option>CLOSED</option></select></div>
+                <div><label class="text-xs font-semibold text-gray-500 uppercase block mb-1">Cost (LKR)</label><input id="repairCost" placeholder="0.00" type="number" step="0.01" class="form-input" /></div>
+                <div><label class="text-xs font-semibold text-gray-500 uppercase block mb-1">Downtime (hours)</label><input id="repairDowntime" placeholder="0" type="number" class="form-input" /></div>
+            </div>
+            <div class="space-y-3">
+                <div><label class="text-xs font-semibold text-gray-500 uppercase block mb-1">Problem Description</label><textarea id="repairProblem" placeholder="Describe the issue found..." class="form-input" rows="2"></textarea></div>
+                <div><label class="text-xs font-semibold text-gray-500 uppercase block mb-1">Action Taken</label><textarea id="repairAction" placeholder="What was done to fix it..." class="form-input" rows="2"></textarea></div>
+                <div><label class="text-xs font-semibold text-gray-500 uppercase block mb-1">Parts Replaced</label><textarea id="repairParts" placeholder="List any parts replaced..." class="form-input" rows="2"></textarea></div>
+            </div>
+            <div class="flex justify-end gap-3 mt-5">
+                <button type="button" onclick="closeModal('repairModal')" class="px-5 py-2.5 border border-gray-200 rounded-lg text-gray-600 text-sm">Cancel</button>
+                <button type="submit" class="px-5 py-2.5 bg-brand text-white rounded-lg text-sm font-semibold hover:bg-green-700">Save Repair</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ══════════════ SPARE PART REQUEST MODAL ══════════════ -->
+<div id="spareRequestModal" class="modal-backdrop">
+    <div class="modal-box" style="width:560px; max-height:90vh; overflow-y:auto; padding:0; border-radius:16px;">
+        <div style="background: linear-gradient(135deg,#c2410c 0%,#ea580c 60%,#fb923c 100%); padding:20px 24px; border-radius:16px 16px 0 0; display:flex; align-items:center; justify-content:space-between;">
+            <div>
+                <h3 class="text-lg font-bold text-white">Request Spare Part</h3>
+                <p class="text-orange-100 text-xs mt-0.5">Admin will be notified and place an order accordingly</p>
+            </div>
+            <button onclick="closeModal('spareRequestModal')" class="text-white hover:text-orange-200 text-xl transition"><i class="fas fa-times"></i></button>
+        </div>
+        <div style="padding:24px;">
+            <div id="spareReqAlert" class="alert mb-4 px-4 py-3 rounded-lg text-sm font-medium"></div>
+            <div class="mb-4">
+                <label class="text-xs font-semibold text-gray-500 uppercase tracking-widest block mb-1.5">Select from Inventory <span class="text-gray-300 normal-case font-normal">(optional)</span></label>
+                <select id="reqPartSelect" class="form-input" onchange="onReqPartSelect(this.value)"><option value="">— Choose existing part or type manually —</option></select>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div class="sm:col-span-2"><label class="text-xs font-semibold text-gray-500 uppercase tracking-widest block mb-1.5">Part Name *</label><input type="text" id="reqPartName" class="form-input" placeholder="e.g. Ink Roller Bearing" /></div>
+                <div><label class="text-xs font-semibold text-gray-500 uppercase tracking-widest block mb-1.5">Part Number</label><input type="text" id="reqPartNumber" class="form-input" placeholder="e.g. SP-00042" /></div>
+                <div><label class="text-xs font-semibold text-gray-500 uppercase tracking-widest block mb-1.5">Quantity Needed *</label><input type="number" id="reqQty" class="form-input" min="1" value="1" /></div>
+                <div><label class="text-xs font-semibold text-gray-500 uppercase tracking-widest block mb-1.5">Urgency Level *</label>
+                    <select id="reqUrgency" class="form-input">
+                        <option value="LOW">Low — Not urgent</option>
+                        <option value="MEDIUM" selected>Medium — Needed soon</option>
+                        <option value="HIGH">High — Urgent</option>
+                        <option value="CRITICAL">Critical — Production stopped</option>
+                    </select>
+                </div>
+                <div class="sm:col-span-2"><label class="text-xs font-semibold text-gray-500 uppercase tracking-widest block mb-1.5">Reason / Description</label><textarea id="reqReason" class="form-input" rows="3" placeholder="Why is this part needed?"></textarea></div>
+            </div>
+            <div class="flex justify-end gap-3 border-t border-gray-100 pt-4">
+                <button onclick="closeModal('spareRequestModal')" class="px-5 py-2.5 text-sm font-semibold text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 transition">Cancel</button>
+                <button onclick="submitSpareRequest()" id="spareReqSubmitBtn" class="px-6 py-2.5 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg transition flex items-center gap-2">
+                    <i class="fas fa-paper-plane"></i> Submit Request
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API_BASE  = 'http://localhost:8080/api';
+    const AI_URL    = 'http://localhost:8080/api/ai/maintenance-ask';
+    const HEALTH_URL = 'http://localhost:8002/health';
+
+    let techToken   = localStorage.getItem('techToken') || localStorage.getItem('token');
+    if (!techToken) window.location.href='/';
+
+    let technicianProfile = null;
+    let allMachines       = [];
+    let myTasks           = [];
+    let myRepairs         = [];
+    let myRequests        = [];
+    let sparePartsCache   = [];
+    let currentTaskForUpdate = null;
+
+    function authHeaders() {
+        return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${techToken}` };
+    }
+
+    async function fetchWithAuth(url, options = {}) {
+        const res = await fetch(url, { ...options, headers: authHeaders() });
+        if (res.status === 401) { logout(); throw new Error('Unauthorized'); }
+        return res;
+    }
+
+    // ─── Load profile ────────────────────────────────────────────
+    async function loadProfile() {
+        try {
+            const res  = await fetchWithAuth(`${API_BASE}/technician/profile`);
+            const data = await res.json();
+            technicianProfile = data;
+            localStorage.setItem('technician', JSON.stringify(data));
+            const full = `${data.firstName || ''} ${data.lastName || ''}`.trim();
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            document.getElementById('topbarName').innerText      = full || 'Technician';
+            document.getElementById('dashGreeting').innerText    = `Welcome back, ${data.firstName || 'Technician'}!`;
+            document.getElementById('dashSub').innerText         = `Logged in as Technician · ${data.username || ''} · Today, ${time}`;
+            document.getElementById('profileFullName').innerText = full;
+            document.getElementById('profileUsername').innerText = `@${data.username || ''}`;
+            document.getElementById('profileEmpId').innerText    = data.employeeId || '—';
+            document.getElementById('profileSpecialization').innerText = data.specialization || '—';
+            document.getElementById('profileExp').innerText      = data.experienceYears ? `${data.experienceYears} yrs` : '—';
+            document.getElementById('profileAvatar').innerText   = (data.firstName?.[0] || '') + (data.lastName?.[0] || '') || 'TC';
+            document.getElementById('editFirstName').value       = data.firstName || '';
+            document.getElementById('editLastName').value        = data.lastName  || '';
+            document.getElementById('editEmail').value           = data.email     || '';
+            document.getElementById('editPhone').value           = data.phone     || '';
+            document.getElementById('editSpecialization').value  = data.specialization  || '';
+            document.getElementById('editExp').value             = data.experienceYears || '';
+            return data;
+        } catch(e) { console.error(e); return null; }
+    }
+
+    // ─── Load machines ───────────────────────────────────────────
+    async function loadMachines() {
+        try {
+            const res = await fetchWithAuth(`${API_BASE}/maintenance/machines`);
+            allMachines = await res.json();
+            const sel = document.getElementById('repairMachineId');
+            sel.innerHTML = '<option value="">Select Machine</option>' +
+                allMachines.map(m => `<option value="${m.id}">${m.name}${m.model ? ' ('+m.model+')' : ''}</option>`).join('');
+        } catch(e) { console.warn('machines load', e); }
+    }
+
+    // ─── Load tasks ──────────────────────────────────────────────
+    async function loadTasks() {
+        try {
+            const res = await fetchWithAuth(`${API_BASE}/maintenance/schedules`);
+            if (res.ok) {
+                const allTasks = await res.json();
+                const p = technicianProfile || JSON.parse(localStorage.getItem('technician') || '{}');
+                const techName = `${p.firstName || ''} ${p.lastName || ''}`.trim().toLowerCase();
+                const techUser = (p.username || '').toLowerCase();
+                myTasks = allTasks.filter(t => {
+                    const assigned = (t.assignedTechnician || '').toLowerCase();
+                    return assigned === techName || (techUser && assigned.includes(techUser));
+                });
+            } else { myTasks = []; }
+            renderTasksTable();
+            updateKPIs();
+            renderRecentTasks();
+            const schedSel = document.getElementById('repairScheduleId');
+            if (schedSel) {
+                schedSel.innerHTML = '<option value="">Optional</option>' +
+                    myTasks.map(t => `<option value="${t.id}">${t.title} (${t.machineName})</option>`).join('');
+            }
+        } catch(e) { console.error(e); myTasks = []; renderTasksTable(); updateKPIs(); renderRecentTasks(); }
+    }
+
+    function renderTasksTable() {
+        const filter   = document.getElementById('taskStatusFilter')?.value || '';
+        const filtered = filter ? myTasks.filter(t => t.status === filter) : myTasks;
+        const tbody    = document.getElementById('tasksTableBody');
+        if (!filtered.length) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-10 text-gray-400"><i class="fas fa-clipboard-list text-3xl mb-2 block"></i>No tasks assigned</td>';
+            return;
+        }
+        tbody.innerHTML = filtered.map(t => {
+            const hasNotes     = t.notes && t.notes.trim();
+            const notesSnippet = hasNotes ? `<span class="text-xs text-gray-500 italic" title="${escapeHtml(t.notes)}">${escapeHtml(t.notes.slice(0,50))}${t.notes.length > 50 ? '…' : ''}</span>` : `<span class="text-xs text-gray-300">—</span>`;
+            const canUpdate = t.status !== 'COMPLETED' && t.status !== 'CANCELLED';
+            return `<tr class="hover:bg-gray-50 transition-colors">
+                <td class="px-6 py-3"><div class="font-medium text-gray-800">${escapeHtml(t.title)}</div><div class="text-xs text-gray-400 mt-0.5">${escapeHtml(t.machineName)}</div></td>
+                <td class="px-6 py-3"><span class="type-badge">${t.maintenanceType || '—'}</span></td>
+                <td class="px-6 py-3 text-sm text-gray-600">${formatDate(t.scheduledDate)}</td>
+                <td class="px-6 py-3"><span class="badge-status status-${(t.status||'').toLowerCase()}">${(t.status||'').replace('_',' ')}</span></td>
+                <td class="px-6 py-3 max-w-xs">${notesSnippet}</td>
+                <td class="px-6 py-3 text-center">
+                    <div class="flex gap-1.5 justify-center">
+                        <button onclick="viewTaskDetails(${t.id})" title="View details" class="text-blue-600 hover:bg-blue-50 p-1.5 rounded transition"><i class="fas fa-eye text-sm"></i></button>
+                        ${canUpdate ? `<button onclick="openStatusModal(${t.id})" title="Update status" class="text-amber-600 hover:bg-amber-50 p-1.5 rounded transition"><i class="fas fa-pen text-sm"></i></button>` : `<span class="p-1.5 text-gray-300"><i class="fas fa-lock text-sm"></i></span>`}
+                        <button onclick="openRepairModalWithTask(${t.id})" title="Log repair" class="text-green-600 hover:bg-green-50 p-1.5 rounded transition"><i class="fas fa-wrench text-sm"></i></button>
+                    </div>
+                </td>
+              </tr>`;
+        }).join('');
+    }
+
+    function updateKPIs() {
+        document.getElementById('kpiTotal').innerText     = myTasks.length;
+        document.getElementById('kpiProgress').innerText  = myTasks.filter(t => t.status === 'IN_PROGRESS').length;
+        document.getElementById('kpiCompleted').innerText = myTasks.filter(t => t.status === 'COMPLETED').length;
+        document.getElementById('kpiOpenRepairs').innerText = myRepairs.filter(r => r.status === 'OPEN' || r.status === 'IN_PROGRESS').length;
+    }
+
+    function renderRecentTasks() {
+        const recent = myTasks.slice(0, 4);
+        document.getElementById('recentTasksList').innerHTML = recent.map(t =>
+            `<div class="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
+                <div><span class="text-sm font-medium text-gray-700">${escapeHtml(t.title)}</span><span class="text-xs text-gray-400 ml-2">${escapeHtml(t.machineName)}</span></div>
+                <span class="badge-status status-${(t.status||'').toLowerCase()} text-xs">${(t.status||'').replace('_',' ')}</span>
+            </div>`
+        ).join('') || '<div class="text-gray-400 text-sm py-2">No tasks assigned yet</div>';
+    }
+
+    function renderRecentRepairs() {
+        const recent = myRepairs.slice(0, 4);
+        document.getElementById('recentRepairsList').innerHTML = recent.map(r =>
+            `<div class="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
+                <div><span class="text-sm font-medium text-gray-700">${escapeHtml(r.title)}</span><span class="text-xs text-gray-400 ml-2">${escapeHtml(r.machineName)}</span></div>
+                <span class="text-xs px-2 py-0.5 rounded-full ${r.severity === 'CRITICAL' ? 'bg-red-100 text-red-700' : r.severity === 'HIGH' ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-600'}">${r.severity}</span>
+            </div>`
+        ).join('') || '<div class="text-gray-400 text-sm py-2">No repair logs yet</div>';
+    }
+
+    // ─── Load repairs ────────────────────────────────────────────
+    async function loadRepairs() {
+        try {
+            const res  = await fetchWithAuth(`${API_BASE}/repairs`);
+            if (res.ok) {
+                const all  = await res.json();
+                const p = technicianProfile || JSON.parse(localStorage.getItem('technician') || '{}');
+                const techName = `${p.firstName || ''} ${p.lastName || ''}`.trim().toLowerCase();
+                const techUser = (p.username || '').toLowerCase();
+                myRepairs = all.filter(r => {
+                    const tf = (r.technician || '').toLowerCase();
+                    return tf === techName || (techUser && tf.includes(techUser));
+                });
+            } else {
+                myRepairs = [];
+            }
+            renderRepairsTable();
+            updateKPIs();
+            renderRecentRepairs();
+        } catch(e) { console.error(e); myRepairs = []; renderRepairsTable(); updateKPIs(); renderRecentRepairs(); }
+    }
+
+    function renderRepairsTable() {
+        const tbody = document.getElementById('repairsTableBody');
+        if (!myRepairs.length) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-10 text-gray-400"><i class="fas fa-tools text-3xl mb-2 block"></i>No repair logs yet</td></tr>';
+            return;
+        }
+        tbody.innerHTML = myRepairs.map(r => `
+            <tr class="hover:bg-gray-50 transition-colors">
+                <td class="px-6 py-3"><div class="font-medium text-gray-800">${escapeHtml(r.title)}</div><div class="text-xs text-gray-400 mt-0.5">${escapeHtml(r.machineName)}</div></td>
+                <td class="px-6 py-3"><span class="px-2 py-1 rounded-full text-xs font-semibold ${r.severity === 'CRITICAL' ? 'bg-red-100 text-red-700' : r.severity === 'HIGH' ? 'bg-orange-100 text-orange-700' : r.severity === 'MEDIUM' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'}">${r.severity}</span></td>
+                <td class="px-6 py-3 text-sm text-gray-600">${formatDateShort(r.reportedDate)}</td>
+                <td class="px-6 py-3"><span class="badge-status">${r.status}</span></td>
+                <td class="px-6 py-3 text-center"><button onclick="editRepair(${r.id})" class="text-amber-600 hover:bg-amber-50 p-1.5 rounded transition"><i class="fas fa-edit text-sm"></i></button></td>
+              </tr>`).join('');
+    }
+
+    // ─── Task status update ───────────────────────────────────────
+    function openStatusModal(taskId) {
+        currentTaskForUpdate = myTasks.find(t => t.id === taskId);
+        if (!currentTaskForUpdate) return;
+        const t = currentTaskForUpdate;
+        document.getElementById('statusModalInfo').innerHTML =
+            `<div class="font-semibold text-gray-800 mb-1">${escapeHtml(t.title)}</div>
+             <div class="flex flex-wrap gap-3 text-gray-500 text-xs">
+                <span><i class="fas fa-cog mr-1"></i>${escapeHtml(t.machineName)}</span>
+                <span><i class="fas fa-calendar mr-1"></i>${formatDate(t.scheduledDate)}</span>
+                <span>Current: <span class="badge-status status-${(t.status||'').toLowerCase()} ml-1">${(t.status||'').replace('_',' ')}</span></span>
+             </div>`;
+        const existingBlock   = document.getElementById('existingNotesBlock');
+        const existingDisplay = document.getElementById('existingNotesDisplay');
+        if (t.notes && t.notes.trim()) { existingDisplay.innerText = t.notes; existingBlock.classList.remove('hidden'); }
+        else { existingBlock.classList.add('hidden'); }
+        document.getElementById('newStatusSelect').value = t.status || 'SCHEDULED';
+        document.getElementById('statusNotes').value = '';
+        openModal('statusModal');
+    }
+
+    async function submitStatusUpdate() {
+        const newStatus = document.getElementById('newStatusSelect').value;
+        const newNotes  = document.getElementById('statusNotes').value.trim();
+        const payload   = { status: newStatus, notes: newNotes || null };
+        const btn = document.getElementById('statusSubmitBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Updating...';
+        try {
+            const res = await fetchWithAuth(`${API_BASE}/technician/my-tasks/${currentTaskForUpdate.id}/status`, { method: 'PATCH', body: JSON.stringify(payload) });
+            if (res.ok) { await loadTasks(); closeModal('statusModal'); showToast('Task status updated successfully!', 'success'); }
+            else { const err = await res.json().catch(() => ({})); showToast(err.error || err.message || 'Update failed', 'error'); }
+        } catch(e) { showToast('Connection error', 'error'); }
+        finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> Update Status'; }
+    }
+
+    function viewTaskDetails(id) {
+        const t = myTasks.find(x => x.id === id);
+        if (!t) return;
+        const canUpdate = t.status !== 'COMPLETED' && t.status !== 'CANCELLED';
+        document.getElementById('taskDetailContent').innerHTML = `
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-gray-50 rounded-lg p-3"><p class="text-xs text-gray-400 mb-0.5">Title</p><p class="font-semibold">${escapeHtml(t.title)}</p></div>
+                <div class="bg-gray-50 rounded-lg p-3"><p class="text-xs text-gray-400 mb-0.5">Machine</p><p class="font-semibold">${escapeHtml(t.machineName)}</p></div>
+                <div class="bg-gray-50 rounded-lg p-3"><p class="text-xs text-gray-400 mb-0.5">Type</p><p class="font-semibold">${t.maintenanceType || '—'}</p></div>
+                <div class="bg-gray-50 rounded-lg p-3"><p class="text-xs text-gray-400 mb-0.5">Scheduled Date</p><p class="font-semibold">${formatDate(t.scheduledDate)}</p></div>
+                <div class="bg-gray-50 rounded-lg p-3 col-span-2"><p class="text-xs text-gray-400 mb-0.5">Status</p><span class="badge-status status-${(t.status||'').toLowerCase()}">${(t.status||'').replace('_',' ')}</span></div>
+                ${t.description ? `<div class="bg-gray-50 rounded-lg p-3 col-span-2"><p class="text-xs text-gray-400 mb-0.5">Description</p><p class="text-gray-700">${escapeHtml(t.description)}</p></div>` : ''}
+                ${t.notes ? `<div class="col-span-2"><p class="text-xs font-bold text-gray-400 uppercase mb-2">Progress Notes</p><div class="notes-box text-gray-700">${escapeHtml(t.notes)}</div></div>` : ''}
+            </div>`;
+        document.getElementById('taskDetailUpdateBtn').style.display = canUpdate ? 'flex' : 'none';
+        document.getElementById('taskDetailUpdateBtn').onclick = () => { closeModal('taskDetailModal'); openStatusModal(id); };
+        openModal('taskDetailModal');
+    }
+
+    // ─── Repair modal ────────────────────────────────────────────
+    function openRepairModal() {
+        document.getElementById('repairModalTitle').innerText = 'Log New Repair';
+        document.getElementById('repairFormModal').reset();
+        document.getElementById('repairId').value = '';
+        openModal('repairModal');
+    }
+
+    function openRepairModalWithTask(taskId) {
+        openRepairModal();
+        setTimeout(() => {
+            const s = document.getElementById('repairScheduleId');
+            if (s) s.value = taskId;
+            const task = myTasks.find(t => t.id === taskId);
+            if (task?.machineId) document.getElementById('repairMachineId').value = task.machineId;
+        }, 50);
+    }
+
+    async function editRepair(id) {
+        const r = myRepairs.find(x => x.id === id);
+        if (!r) return;
+        document.getElementById('repairModalTitle').innerText  = 'Edit Repair';
+        document.getElementById('repairId').value              = r.id;
+        document.getElementById('repairTitle').value           = r.title;
+        document.getElementById('repairMachineId').value       = r.machineId || '';
+        document.getElementById('repairScheduleId').value      = r.scheduleId || '';
+        document.getElementById('repairSeverity').value        = r.severity;
+        document.getElementById('repairStatusSelect').value    = r.status;
+        document.getElementById('repairCost').value            = r.repairCost || '';
+        document.getElementById('repairDowntime').value        = r.downtimeHours || '';
+        document.getElementById('repairProblem').value         = r.problemDescription || '';
+        document.getElementById('repairAction').value          = r.repairAction || '';
+        document.getElementById('repairParts').value           = r.partsReplaced || '';
+        openModal('repairModal');
+    }
+
+    document.getElementById('repairFormModal').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('repairId').value;
+        const payload = {
+            title: document.getElementById('repairTitle').value,
+            machineId: parseInt(document.getElementById('repairMachineId').value),
+            scheduleId: document.getElementById('repairScheduleId').value ? parseInt(document.getElementById('repairScheduleId').value) : null,
+            severity: document.getElementById('repairSeverity').value,
+            status: document.getElementById('repairStatusSelect').value,
+            problemDescription: document.getElementById('repairProblem').value,
+            repairAction: document.getElementById('repairAction').value,
+            partsReplaced: document.getElementById('repairParts').value,
+            repairCost: document.getElementById('repairCost').value || null,
+            downtimeHours: document.getElementById('repairDowntime').value ? parseInt(document.getElementById('repairDowntime').value) : null,
+            technician: `${technicianProfile?.firstName} ${technicianProfile?.lastName}`.trim(),
+            reportedDate: new Date().toISOString().slice(0,19)
+        };
+        const url = id ? `${API_BASE}/repairs/${id}` : `${API_BASE}/repairs`;
+        const method = id ? 'PUT' : 'POST';
+        try {
+            const res = await fetchWithAuth(url, { method, body: JSON.stringify(payload) });
+            if (res.ok) { await loadRepairs(); closeModal('repairModal'); showToast('Repair saved!', 'success'); }
+            else {
+                const data = await res.json().catch(() => ({}));
+                showToast(data.error || 'Failed to save repair', 'error');
+            }
+        } catch (err) {
+            showToast('Connection error', 'error');
+        }
+    });
+
+    // ─── Spare Part Requests ─────────────────────────────────────
+    async function loadSparePartsForDropdown() {
+        try {
+            const res = await fetchWithAuth(`${API_BASE}/spareparts`);
+            sparePartsCache = await res.json();
+            const sel = document.getElementById('reqPartSelect');
+            sel.innerHTML = '<option value="">— Choose existing part or type manually —</option>' +
+                sparePartsCache.map(p => `<option value="${p.id}" data-name="${escapeHtml(p.partName)}" data-num="${escapeHtml(p.partNumber||'')}">${escapeHtml(p.partName)}${p.partNumber ? ' ('+escapeHtml(p.partNumber)+')' : ''} — Stock: ${p.quantityInStock}</option>`).join('');
+        } catch(e) { console.warn(e); }
+    }
+
+    function onReqPartSelect(id) {
+        if (!id) { document.getElementById('reqPartName').value = ''; document.getElementById('reqPartNumber').value = ''; return; }
+        const opt = document.querySelector(`#reqPartSelect option[value="${id}"]`);
+        if (opt) { document.getElementById('reqPartName').value = opt.dataset.name || ''; document.getElementById('reqPartNumber').value = opt.dataset.num || ''; }
+    }
+
+    function openSpareRequestModal() {
+        document.getElementById('reqPartSelect').value  = '';
+        document.getElementById('reqPartName').value    = '';
+        document.getElementById('reqPartNumber').value  = '';
+        document.getElementById('reqQty').value         = '1';
+        document.getElementById('reqUrgency').value     = 'MEDIUM';
+        document.getElementById('reqReason').value      = '';
+        document.getElementById('spareReqAlert').className = 'alert mb-4 px-4 py-3 rounded-lg text-sm font-medium';
+        openModal('spareRequestModal');
+    }
+
+    async function submitSpareRequest() {
+        const partName = document.getElementById('reqPartName').value.trim();
+        const qty      = parseInt(document.getElementById('reqQty').value);
+        if (!partName)       { showSpareReqAlert('Part name is required.', 'error'); return; }
+        if (!qty || qty < 1) { showSpareReqAlert('Please enter a valid quantity (min 1).', 'error'); return; }
+        const partIdVal = document.getElementById('reqPartSelect').value;
+        const payload = {
+            sparePartId: partIdVal ? parseInt(partIdVal) : null,
+            sparePartName: partName,
+            partNumber: document.getElementById('reqPartNumber').value.trim() || null,
+            requestedQuantity: qty,
+            urgency: document.getElementById('reqUrgency').value,
+            reason: document.getElementById('reqReason').value.trim() || null
+        };
+        const btn = document.getElementById('spareReqSubmitBtn');
+        btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Submitting…';
+        try {
+            const res  = await fetchWithAuth(`${API_BASE}/technician/spare-requests`, { method: 'POST', body: JSON.stringify(payload) });
+            const data = await res.json();
+            if (res.ok) { closeModal('spareRequestModal'); showToast('Request submitted! Admin will be notified.', 'success'); await loadMyRequests(); }
+            else { showSpareReqAlert(data.error || 'Submission failed. Please try again.', 'error'); }
+        } catch(e) { showSpareReqAlert('Connection error.', 'error'); }
+        finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Request'; }
+    }
+
+    function showSpareReqAlert(msg, type) {
+        const el = document.getElementById('spareReqAlert');
+        el.textContent = msg;
+        el.className = `alert show mb-4 px-4 py-3 rounded-lg text-sm font-medium ${type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`;
+    }
+
+    async function loadMyRequests() {
+        try {
+            const res  = await fetchWithAuth(`${API_BASE}/technician/spare-requests`);
+            myRequests = await res.json();
+            renderRequestsTable(); updateRequestKPIs(); updateRequestBadges();
+        } catch(e) { console.warn(e); myRequests = []; renderRequestsTable(); }
+    }
+
+    function renderRequestsTable() {
+        const statusFilter  = document.getElementById('reqStatusFilter')?.value  || '';
+        const urgencyFilter = document.getElementById('reqUrgencyFilter')?.value || '';
+        let filtered = myRequests;
+        if (statusFilter)  filtered = filtered.filter(r => r.status  === statusFilter);
+        if (urgencyFilter) filtered = filtered.filter(r => r.urgency === urgencyFilter);
+        const tbody = document.getElementById('requestsTableBody');
+        if (!filtered.length) {
+            tbody.innerHTML = `<tr><td colspan="8" class="text-center py-12 text-gray-400">${myRequests.length ? 'No requests match your filter.' : 'No requests yet.'}</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = filtered.map(r => {
+            const statusClass  = `req-status-${r.status || 'PENDING'}`;
+            const urgencyClass = `req-urgency-${r.urgency || 'MEDIUM'}`;
+            const date = r.createdAt ? new Date(r.createdAt).toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' }) : '—';
+            return `<tr class="hover:bg-gray-50 transition-colors">
+                <td class="px-5 py-3.5"><div class="font-semibold text-gray-800 text-sm">${escapeHtml(r.sparePartName)}</div></td>
+                <td class="px-5 py-3.5 text-xs font-mono text-gray-500">${r.partNumber ? escapeHtml(r.partNumber) : '—'}</td>
+                <td class="px-5 py-3.5 text-sm font-bold text-gray-700">${r.requestedQuantity}</td>
+                <td class="px-5 py-3.5"><span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${urgencyClass}">${r.urgency || 'MEDIUM'}</span></td>
+                <td class="px-5 py-3.5 max-w-xs text-xs text-gray-500">${r.reason ? `<span title="${escapeHtml(r.reason)}">${escapeHtml(r.reason.slice(0,55))}${r.reason.length > 55 ? '…' : ''}</span>` : '<span class="text-gray-300">—</span>'}</td>
+                <td class="px-5 py-3.5 text-xs text-gray-500">${date}</td>
+                <td class="px-5 py-3.5"><span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${statusClass}">${r.status || 'PENDING'}</span></td>
+                <td class="px-5 py-3.5 text-xs text-blue-600 max-w-xs">${r.adminNotes ? `<span title="${escapeHtml(r.adminNotes)}">${escapeHtml(r.adminNotes.slice(0,50))}${r.adminNotes.length > 50 ? '…' : ''}</span>` : '<span class="text-gray-300">—</span>'}</td>
+              </tr>`;
+        }).join('');
+    }
+
+    function updateRequestKPIs() {
+        document.getElementById('reqKpiPending').innerText  = myRequests.filter(r => r.status === 'PENDING').length;
+        document.getElementById('reqKpiReviewed').innerText = myRequests.filter(r => r.status === 'REVIEWED').length;
+        document.getElementById('reqKpiOrdered').innerText  = myRequests.filter(r => r.status === 'ORDERED').length;
+        document.getElementById('reqKpiRejected').innerText = myRequests.filter(r => r.status === 'REJECTED').length;
+    }
+
+    function updateRequestBadges() {
+        const pending   = myRequests.filter(r => r.status === 'PENDING').length;
+        const sideBadge = document.getElementById('sidebarReqBadge');
+        const dashBadge = document.getElementById('dashReqBadge');
+        if (pending > 0) { sideBadge.textContent = pending; sideBadge.classList.remove('hidden'); } else { sideBadge.classList.add('hidden'); }
+        if (pending > 0) { dashBadge.textContent = `${pending} pending`; dashBadge.classList.remove('hidden'); } else { dashBadge.classList.add('hidden'); }
+    }
+
+    // ─── Profile update ──────────────────────────────────────────
+    document.getElementById('profileUpdateForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const newPw    = document.getElementById('newPw').value;
+        const confirmP = document.getElementById('confirmPw').value;
+        if (newPw && newPw !== confirmP) { showProfileAlert('New passwords do not match.', 'error'); return; }
+        const payload = {
+            firstName: document.getElementById('editFirstName').value,
+            lastName: document.getElementById('editLastName').value,
+            email: document.getElementById('editEmail').value,
+            phone: document.getElementById('editPhone').value,
+            specialization: document.getElementById('editSpecialization').value,
+            experienceYears: parseInt(document.getElementById('editExp').value) || null
+        };
+        if (newPw) { payload.currentPassword = document.getElementById('currentPw').value; payload.newPassword = newPw; }
+        const btn = document.getElementById('updateProfileBtn');
+        btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Saving...';
+        try {
+            const res = await fetchWithAuth(`${API_BASE}/technician/profile`, { method: 'PUT', body: JSON.stringify(payload) });
+            if (res.ok) { await loadProfile(); showProfileAlert('Profile updated successfully!', 'success'); }
+            else { showProfileAlert('Update failed.', 'error'); }
+        } catch(e) { showProfileAlert('Connection error.', 'error'); }
+        finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Save Changes'; }
+    });
+
+    function resetProfileForm() {
+        if (technicianProfile) {
+            document.getElementById('editFirstName').value      = technicianProfile.firstName || '';
+            document.getElementById('editLastName').value       = technicianProfile.lastName  || '';
+            document.getElementById('editEmail').value          = technicianProfile.email     || '';
+            document.getElementById('editPhone').value          = technicianProfile.phone     || '';
+            document.getElementById('editSpecialization').value = technicianProfile.specialization  || '';
+            document.getElementById('editExp').value            = technicianProfile.experienceYears || '';
+        }
+        ['currentPw','newPw','confirmPw'].forEach(id => document.getElementById(id).value = '');
+    }
+
+    function showProfileAlert(msg, type) {
+        const el = document.getElementById('profileAlert');
+        el.textContent = msg;
+        el.className = `alert show mb-4 px-4 py-3 rounded-lg text-sm font-medium ${type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`;
+        setTimeout(() => { el.className = 'alert mb-4 px-4 py-3 rounded-lg text-sm font-medium'; }, 5000);
+    }
+
+    // ─── AI Chat logic ────────────────────────────────────────────
+    let selectedMachineId = 0;
+    const chatInput  = document.getElementById('questionInput');
+    const sendBtn    = document.getElementById('sendBtn');
+    const chatMsgs   = document.getElementById('chatMessages');
+
+    chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
+
+    function selectMachine(el, id) {
+        document.querySelectorAll('.machine-pill').forEach(p => p.classList.remove('active'));
+        el.classList.add('active');
+        selectedMachineId = id;
+    }
+
+    function quickAsk(text) { chatInput.value = text; sendMessage(); }
+
+    function addUserBubble(text) {
+        const div = document.createElement('div');
+        div.className = 'bubble-user';
+        div.textContent = text;
+        chatMsgs.appendChild(div);
+        scrollBottom();
+    }
+
+    function addAiBubble(text, confidence) {
+        const wrapper = document.createElement('div');
+        wrapper.style.cssText = 'align-self: flex-start; max-width: 85%;';
+        const label = document.createElement('div');
+        label.className = 'ai-label';
+        label.innerHTML = '<i class="fas fa-robot mr-1"></i> AI Assistant';
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble-ai';
+        bubble.innerHTML = formatAnswer(text);
+        wrapper.appendChild(label);
+        wrapper.appendChild(bubble);
+        if (confidence !== undefined) {
+            const pct   = Math.round(confidence * 100);
+            const color = confidence >= 0.7 ? '#16a34a' : confidence >= 0.4 ? '#d97706' : '#dc2626';
+            const confEl = document.createElement('div');
+            confEl.style.cssText = 'margin-top: 6px; padding: 0 4px;';
+            confEl.innerHTML = `<div style="display:flex; align-items:center; gap:8px;">
+                <div class="confidence-bar" style="flex:1;"><div class="confidence-fill" style="width:${pct}%; background:${color};"></div></div>
+                <span style="font-size:11px; color:${color}; font-weight:600; white-space:nowrap;">${pct}% confidence</span>
+            </div>`;
+            wrapper.appendChild(confEl);
+        }
+        chatMsgs.appendChild(wrapper);
+        scrollBottom();
+    }
+
+    function addErrorBubble(text) {
+        const div = document.createElement('div');
+        div.className = 'bubble-error';
+        div.innerHTML = `<i class="fas fa-exclamation-circle mr-2"></i>${text}`;
+        chatMsgs.appendChild(div);
+        scrollBottom();
+    }
+
+    function formatAnswer(text) {
+        return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+    }
+
+    function showTyping() {
+        const row = document.createElement('div');
+        row.id = 'typingRow';
+        row.style.cssText = 'align-self: flex-start;';
+        row.innerHTML = `<div class="ai-label"><i class="fas fa-robot mr-1"></i> AI Assistant</div>
+            <div class="typing-indicator"><span></span><span></span><span></span></div>`;
+        chatMsgs.appendChild(row);
+        scrollBottom();
+    }
+
+    function removeTyping() { const row = document.getElementById('typingRow'); if (row) row.remove(); }
+    function scrollBottom()  { chatMsgs.scrollTop = chatMsgs.scrollHeight; }
+
+    async function sendMessage() {
+        const question = chatInput.value.trim();
+        if (!question) return;
+        addUserBubble(question);
+        chatInput.value = '';
+        sendBtn.disabled = true;
+        document.getElementById('quickPromptsBar').style.display = 'none';
+        showTyping();
+        try {
+            const res = await fetch(AI_URL, {
+                method: 'POST',
+                headers: authHeaders(),
+                body: JSON.stringify({ question, machineId: selectedMachineId })
+            });
+            removeTyping();
+            if (!res.ok) { addErrorBubble(`Server error ${res.status}: ${res.statusText}`); return; }
+            const data = await res.json();
+            addAiBubble(data.answer || 'No answer returned.', data.confidence);
+        } catch (err) {
+            removeTyping();
+            addErrorBubble(`Connection error: ${err.message}. Make sure the Spring Boot server is running.`);
+        } finally {
+            sendBtn.disabled = false;
+            chatInput.focus();
+        }
+    }
+
+    function clearChat() {
+        if (!confirm('Clear the conversation history?')) return;
+        chatMsgs.innerHTML = '';
+        document.getElementById('quickPromptsBar').style.display = 'flex';
+        const welcome = document.createElement('div');
+        welcome.style.cssText = 'align-self: flex-start; max-width: 85%;';
+        welcome.innerHTML = `<div class="ai-label"><i class="fas fa-robot mr-1"></i> AI Assistant</div>
+            <div class="bubble-ai">Chat cleared. Describe your technical issue or ask a repair question!</div>`;
+        chatMsgs.appendChild(welcome);
+    }
+
+    async function checkAiHealth() {
+        const dot = document.getElementById('aiStatusDot');
+        const txt = document.getElementById('aiStatusText');
+        const cnt = document.getElementById('aiQaCount');
+        try {
+            const res  = await fetch(HEALTH_URL);
+            if (res.ok) {
+                const data = await res.json();
+                dot.className = 'w-2.5 h-2.5 rounded-full bg-green-300';
+                txt.textContent = 'AI Online';
+                cnt.textContent = `${data.size || 0} Q&A pairs loaded`;
+            } else { throw new Error('not ok'); }
+        } catch {
+            dot.className = 'w-2.5 h-2.5 rounded-full bg-red-400';
+            txt.textContent = 'AI Offline';
+            cnt.textContent = 'Python service not running';
+        }
+    }
+
+    // ─── UI Helpers ──────────────────────────────────────────────
+    function showSection(section) {
+        document.querySelectorAll('.page-section').forEach(el => el.classList.add('hidden'));
+        document.getElementById(`section-${section}`)?.classList.remove('hidden');
+        if (section === 'tasks')         renderTasksTable();
+        if (section === 'repairs')       renderRepairsTable();
+        if (section === 'profile')       loadProfile();
+        if (section === 'sparerequests') loadMyRequests();
+        if (section === 'ai-chat')       { checkAiHealth(); setTimeout(() => chatInput.focus(), 100); }
+    }
+
+    function setActive(el) {
+        document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+        el.classList.add('active');
+    }
+
+    function setActiveByText(name) {
+        document.querySelectorAll('.sidebar-link').forEach(link => {
+            if (link.innerText.toLowerCase().includes(name)) link.classList.add('active');
+            else link.classList.remove('active');
+        });
+    }
+
+    function openModal(id)  { document.getElementById(id).classList.add('open'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+    ['statusModal','taskDetailModal','repairModal','spareRequestModal'].forEach(id => {
+        document.getElementById(id).addEventListener('click', function(e) { if (e.target === this) closeModal(id); });
+    });
+
+    function showToast(msg, type) {
+        const t = document.createElement('div');
+        t.className = `fixed bottom-5 right-5 px-4 py-2.5 rounded-lg shadow-lg text-white text-sm font-medium z-50 flex items-center gap-2 ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`;
+        t.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> ${escapeHtml(msg)}`;
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 3500);
+    }
+
+    function filterTasks() { renderTasksTable(); }
+
+    function formatDate(d)      { if (!d) return '—'; try { return new Date(d).toLocaleString();     } catch(e) { return d; } }
+    function formatDateShort(d) { if (!d) return '—'; try { return new Date(d).toLocaleDateString(); } catch(e) { return d; } }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+    }
+
+    function logout() {
+        localStorage.removeItem('techToken');
+        localStorage.removeItem('token');
+        localStorage.removeItem('technician');
+        window.location.href='/';
+    }
+
+    // ─── Init ────────────────────────────────────────────────────
+    async function init() {
+        const cached = localStorage.getItem('technician');
+        if (cached) {
+            try {
+                const p    = JSON.parse(cached);
+                const full = `${p.firstName || ''} ${p.lastName || ''}`.trim();
+                if (full) document.getElementById('topbarName').innerText = full;
+            } catch(e) {}
+        }
+        await loadProfile();
+        await loadMachines();
+        await loadTasks();
+        await loadRepairs();
+        await loadMyRequests();
+        await loadSparePartsForDropdown();
+
+        if (window.location.hash === '#profile') {
+            showSection('profile');
+            setActiveByText('profile');
+        } else if (window.location.hash === '#ai-chat') {
+            showSection('ai-chat');
+            setActiveByText('ai recommendations');
+        } else {
+            showSection('dashboard');
+            setActive(document.querySelector('.sidebar-link'));
+        }
+
+        setInterval(checkAiHealth, 30000);
+    }
+
+    init();
+
+    document.getElementById('mobileMenuBtn')?.addEventListener('click', () => {
+        document.querySelector('aside').classList.toggle('hidden');
+    });
+</script>
+</body>
+</html>
+

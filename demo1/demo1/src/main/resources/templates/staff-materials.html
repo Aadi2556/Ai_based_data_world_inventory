@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Materials — PrintProTrack Staff</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+
+        /* ── Sidebar ── */
+        .bg-sidebar { background-color: #1a3a2a; }
+        .sidebar-link { transition: all 0.25s; }
+        .sidebar-link:hover { background-color: rgba(255,255,255,0.1); transform: translateX(4px); }
+        .sidebar-link.active { background-color: rgba(255,255,255,0.15); border-left: 3px solid #4ade80; }
+
+        /* ── Brand ── */
+        .text-brand { color: #1e5c2f; }
+        .bg-brand { background-color: #1e5c2f; }
+        .bg-brand-gradient { background: linear-gradient(135deg, #1e5c2f 0%, #2d8a47 50%, #3daa5a 100%); }
+
+        /* ── Cards ── */
+        .card-hover { transition: transform 0.2s, box-shadow 0.2s; }
+        .card-hover:hover { transform: translateY(-3px); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
+
+        /* ── Stock bar ── */
+        .stock-bar-wrap { width: 72px; height: 6px; background: #e5e7eb; border-radius: 99px; overflow: hidden; display: inline-block; vertical-align: middle; }
+        .stock-bar-fill { height: 100%; border-radius: 99px; transition: width .3s; }
+
+        /* ── Badges ── */
+        .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+        .b-CRITICAL   { background: #fee2e2; color: #b91c1c; }
+        .b-LOW        { background: #fef3c7; color: #92400e; }
+        .b-NORMAL     { background: #dcfce7; color: #15803d; }
+        .b-OVERSTOCKED{ background: #dbeafe; color: #1d4ed8; }
+        .b-USAGE      { background: #dbeafe; color: #1d4ed8; }
+        .b-WASTAGE    { background: #fee2e2; color: #b91c1c; }
+        .b-RESTOCK    { background: #dcfce7; color: #15803d; }
+        .b-ADJUSTMENT { background: #fef3c7; color: #92400e; }
+
+        /* Request urgency badges */
+        .u-LOW      { background: #f1f5f9; color: #475569; }
+        .u-MEDIUM   { background: #dbeafe; color: #1d4ed8; }
+        .u-HIGH     { background: #fef3c7; color: #92400e; }
+        .u-CRITICAL { background: #fee2e2; color: #b91c1c; }
+
+        /* Request status badges */
+        .s-PENDING  { background: #fef3c7; color: #92400e; }
+        .s-REVIEWED { background: #dbeafe; color: #1d4ed8; }
+        .s-ORDERED  { background: #dcfce7; color: #065f46; }
+        .s-REJECTED { background: #fee2e2; color: #b91c1c; }
+
+        /* ── Modal ── */
+        .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 200; align-items: center; justify-content: center; }
+        .modal-backdrop.open { display: flex; }
+        .modal-box { background: #fff; border-radius: 14px; padding: 28px; width: 540px; max-width: 94vw; max-height: 92vh; overflow-y: auto; animation: popIn .2s ease; }
+        @keyframes popIn { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: scale(1); } }
+
+        /* ── Form inputs ── */
+        .fi { width: 100%; padding: 9px 13px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; font-family: 'Inter', sans-serif; outline: none; transition: border-color .2s, box-shadow .2s; }
+        .fi:focus { border-color: #2d8a47; box-shadow: 0 0 0 3px rgba(45,138,71,.12); }
+
+        /* ── Tab buttons ── */
+        .tab-btn { padding: 9px 18px; border-radius: 9px; border: none; background: transparent; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 500; color: #64748b; cursor: pointer; transition: all .2s; display: flex; align-items: center; gap: 6px; }
+        .tab-btn.active { background: #1e5c2f; color: #fff; font-weight: 600; }
+        .tab-btn:not(.active):hover { background: #e8f5ec; color: #1e5c2f; }
+
+        /* ── Spinner ── */
+        .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .55s linear infinite; margin-right: 5px; vertical-align: middle; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .alert-show { display: block !important; }
+
+        /* ── View toggle ── */
+        .view-btn { padding: 7px 11px; border-radius: 7px; border: none; font-size: 13px; cursor: pointer; transition: all .15s; }
+        .view-btn.active { background: #1e5c2f; color: #fff; }
+        .view-btn:not(.active) { background: #f1f5f9; color: #64748b; }
+
+        /* ── Notification panel ── */
+        .notif-panel { position: fixed; top: 0; right: 0; bottom: 0; width: 340px; max-width: 95vw; background: #fff; box-shadow: -4px 0 24px rgba(0,0,0,.12); z-index: 400; display: flex; flex-direction: column; transform: translateX(100%); transition: transform .3s cubic-bezier(.4,0,.2,1); }
+        .notif-panel.open { transform: translateX(0); }
+        .notif-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.3); z-index: 399; }
+        .notif-overlay.open { display: block; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex overflow-hidden text-gray-800">
+
+<!-- ══════════════════════ SIDEBAR ══════════════════════ -->
+<aside class="bg-sidebar text-white w-72 flex-shrink-0 flex flex-col h-screen hidden md:flex shadow-2xl z-20">
+    <div class="px-6 py-5 flex items-center gap-3 border-b border-green-900 bg-white">
+        <i class="fas fa-print text-2xl text-brand"></i>
+        <h1 class="text-xl font-bold tracking-wide text-brand">PrintProTrack</h1>
+        <span class="ml-auto px-2 py-0.5 bg-green-100 text-green-800 rounded-full text-xs font-semibold">STAFF</span>
+    </div>
+    <nav class="flex-1 overflow-y-auto py-5 px-4 space-y-1">
+        <p class="text-xs font-semibold text-green-700 uppercase tracking-widest px-3 mb-3">WORKSPACE</p>
+        <a href='/staff-dashboard' class="sidebar-link flex items-center p-3 rounded-lg text-gray-300 hover:text-white group">
+            <i class="fa-solid fa-gauge-high w-5 text-center text-gray-400 group-hover:text-green-400"></i>
+            <span class="ml-3 font-medium text-sm">Dashboard</span>
+        </a>
+        <a href='/staff-maintenance' class="sidebar-link flex items-center p-3 rounded-lg text-gray-300 hover:text-white group">
+            <i class="fa-solid fa-screwdriver-wrench w-5 text-center text-gray-400 group-hover:text-green-400"></i>
+            <span class="ml-3 font-medium text-sm">Maintenance</span>
+        </a>
+        <p class="text-xs font-semibold text-green-700 uppercase tracking-widest px-3 mt-5 mb-2">MONITORING</p>
+        <a href='/staff-energy' class="sidebar-link flex items-center p-3 rounded-lg text-gray-300 hover:text-white group">
+            <i class="fa-solid fa-bolt w-5 text-center text-gray-400 group-hover:text-yellow-400"></i>
+            <span class="ml-3 font-medium text-sm">Energy</span>
+        </a>
+        <a href='/staff-materials' class="sidebar-link active flex items-center p-3 rounded-lg text-gray-300 hover:text-white group">
+            <i class="fa-solid fa-layer-group w-5 text-center text-gray-400 group-hover:text-green-400"></i>
+            <span class="ml-3 font-medium text-sm">Materials</span>
+            <span id="sidebarReqBadge" class="ml-auto hidden bg-orange-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"></span>
+        </a>
+        <a href='/staff-spareparts' class="sidebar-link flex items-center p-3 rounded-lg text-gray-300 hover:text-white group">
+            <i class="fa-solid fa-cogs w-5 text-center text-gray-400 group-hover:text-teal-400"></i>
+            <span class="ml-3 font-medium text-sm">Spare Parts</span>
+        </a>
+        <a href='/attendance-staff' class="sidebar-link flex items-center p-3 rounded-lg text-gray-300 hover:text-white group">
+            <i class="fa-solid fa-calendar-check w-5 text-center text-gray-400 group-hover:text-blue-400"></i>
+            <span class="ml-3 font-medium text-sm">Attendance</span>
+        </a>
+        <a href='/staff-dashboard#profile' class="sidebar-link flex items-center p-3 rounded-lg text-gray-300 hover:text-white group">
+            <i class="fa-solid fa-circle-user w-5 text-center text-gray-400 group-hover:text-green-400"></i>
+            <span class="ml-3 font-medium text-sm">My Profile</span>
+        </a>
+    </nav>
+    <div class="p-4 border-t border-green-900">
+        <button onclick="logout()" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-900 hover:bg-red-800 text-red-200 rounded-lg text-sm font-semibold transition">
+            <i class="fas fa-sign-out-alt"></i> Sign Out
+        </button>
+    </div>
+</aside>
+
+<!-- ══════════════════════ MAIN ══════════════════════ -->
+<div class="flex-1 flex flex-col h-screen overflow-hidden">
+
+    <!-- Top Nav -->
+    <nav class="bg-white shadow-md w-full z-10">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex justify-between items-center py-3.5">
+                <div class="flex items-center gap-3">
+                    <button class="md:hidden text-gray-500 mr-2" id="mobileMenuBtn"><i class="fas fa-bars text-xl"></i></button>
+                    <i class="fas fa-layer-group text-xl text-brand"></i>
+                    <span class="text-lg font-bold text-gray-800">Materials Management</span>
+                    <span class="px-2.5 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-semibold">STAFF</span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <!-- Alert bell -->
+                    <button onclick="openNotifPanel()" class="relative p-2 rounded-xl hover:bg-gray-100 transition" title="Stock Alerts">
+                        <i class="fas fa-bell text-gray-500 text-lg"></i>
+                        <span id="notifBadge" class="hidden absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white rounded-full text-[10px] font-bold flex items-center justify-center px-1"></span>
+                    </button>
+                    <span class="text-gray-600 text-sm hidden sm:block">Welcome, <span id="topbarName" class="font-semibold text-gray-800">Staff</span></span>
+                    <button onclick="logout()" class="text-gray-500 hover:text-red-600 text-sm flex items-center gap-1 transition">
+                        <i class="fas fa-sign-out-alt"></i><span class="hidden sm:inline">Logout</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
+        <div class="max-w-7xl mx-auto space-y-6">
+
+            <!-- Page alert -->
+            <div id="pageAlert" class="hidden px-4 py-3 rounded-xl text-sm font-semibold"></div>
+
+            <!-- Banner -->
+            <div class="bg-brand-gradient rounded-2xl p-7 shadow-lg text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold mb-1"><i class="fas fa-layer-group mr-2 opacity-80"></i>Materials Inventory</h2>
+                    <p class="text-green-100 text-sm">Browse stock levels, view usage logs, and request materials from admin.</p>
+                </div>
+                <div class="flex gap-3 flex-shrink-0">
+                    <button onclick="openRequestModal()"
+                            class="flex items-center gap-2 bg-white bg-opacity-20 hover:bg-opacity-30 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition">
+                        <i class="fas fa-paper-plane"></i> Request Material
+                    </button>
+                    <button onclick="openNotifPanel()" class="relative flex items-center gap-2 bg-white bg-opacity-10 hover:bg-opacity-20 text-white font-semibold px-4 py-2.5 rounded-xl text-sm transition">
+                        <i class="fas fa-bell"></i> Alerts
+                        <span id="bannerAlertBadge" class="hidden bg-red-500 text-white rounded-full text-xs px-1.5 py-0.5 font-bold"></span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- KPI tiles -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white rounded-xl p-5 shadow-sm border-t-4 border-blue-500">
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Total Materials</p>
+                    <p class="text-2xl font-bold text-gray-800" id="kpiTotal">—</p>
+                    <p class="text-xs text-gray-400 mt-1">In inventory</p>
+                </div>
+                <div class="bg-white rounded-xl p-5 shadow-sm border-t-4 border-red-500">
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Critical / Low</p>
+                    <p class="text-2xl font-bold text-red-500" id="kpiAlert">—</p>
+                    <p class="text-xs text-gray-400 mt-1" id="kpiAlertSub">items need attention</p>
+                </div>
+                <div class="bg-white rounded-xl p-5 shadow-sm border-t-4 border-amber-500">
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">My Requests</p>
+                    <p class="text-2xl font-bold text-amber-500" id="kpiMyReq">—</p>
+                    <p class="text-xs text-gray-400 mt-1">Submitted</p>
+                </div>
+                <div class="bg-white rounded-xl p-5 shadow-sm border-t-4 border-orange-400">
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Pending</p>
+                    <p class="text-2xl font-bold text-orange-500" id="kpiPending">—</p>
+                    <p class="text-xs text-gray-400 mt-1">Awaiting admin</p>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="bg-white rounded-xl shadow-sm p-1.5 flex gap-1">
+                <button class="tab-btn active" id="tabInventory" onclick="switchTab('inventory')">
+                    <i class="fas fa-boxes"></i> Inventory
+                    <span id="invCount" class="ml-1 bg-white bg-opacity-20 text-xs font-bold px-1.5 py-0.5 rounded-full"></span>
+                </button>
+                <button class="tab-btn" id="tabLogs" onclick="switchTab('logs')">
+                    <i class="fas fa-chart-bar"></i> Usage & Wastage
+                </button>
+                <button class="tab-btn" id="tabAlerts" onclick="switchTab('alerts')">
+                    <i class="fas fa-bell"></i> Alerts
+                    <span id="alertCount" class="ml-1 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full hidden"></span>
+                </button>
+                <button class="tab-btn" id="tabRequests" onclick="switchTab('requests')">
+                    <i class="fas fa-paper-plane"></i> My Requests
+                    <span id="reqCount" class="ml-1 bg-orange-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full hidden"></span>
+                </button>
+            </div>
+
+            <!-- ════ INVENTORY PANEL ════ -->
+            <div id="panelInventory">
+                <!-- Search + filter bar -->
+                <div class="bg-white rounded-xl shadow-sm p-4 mb-4 flex flex-wrap items-center gap-3">
+                    <div class="relative flex-1 min-w-48">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                        <input type="text" id="searchInv" placeholder="Search by name, SKU, brand…"
+                               class="fi pl-9 border-gray-200 text-sm" oninput="filterInventory()"/>
+                    </div>
+                    <select id="catFilter" onchange="filterInventory()" class="fi w-44 border-gray-200 text-sm">
+                        <option value="">All Categories</option>
+                        <option value="PRINTING_PAPER">Printing Paper</option>
+                        <option value="INK_TONER">Ink / Toner</option>
+                        <option value="VINYL">Vinyl</option>
+                        <option value="CARDSTOCK">Cardstock</option>
+                        <option value="LAMINATE">Laminate</option>
+                        <option value="BINDING_MATERIAL">Binding Material</option>
+                        <option value="CLEANING_SUPPLY">Cleaning Supply</option>
+                        <option value="OTHER">Other</option>
+                    </select>
+                    <select id="stockFilter" onchange="filterInventory()" class="fi w-36 border-gray-200 text-sm">
+                        <option value="">All Levels</option>
+                        <option value="CRITICAL">Critical</option>
+                        <option value="LOW">Low Stock</option>
+                        <option value="NORMAL">Normal</option>
+                        <option value="OVERSTOCKED">Overstocked</option>
+                    </select>
+                    <div class="flex gap-1 ml-auto">
+                        <button class="view-btn active" id="viewTable" onclick="setView('table')" title="Table"><i class="fas fa-list"></i></button>
+                        <button class="view-btn" id="viewGrid" onclick="setView('grid')" title="Cards"><i class="fas fa-grip"></i></button>
+                    </div>
+                    <span id="invRecordCount" class="text-xs text-gray-400 bg-gray-100 px-2.5 py-1.5 rounded-full font-semibold">0 items</span>
+                </div>
+
+                <!-- Table view -->
+                <div id="invTableView" class="bg-white rounded-xl shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-50 border-b border-gray-100">
+                            <tr>
+                                <th class="px-5 py-3.5 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Material</th>
+                                <th class="px-5 py-3.5 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Category</th>
+                                <th class="px-5 py-3.5 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Stock Level</th>
+                                <th class="px-5 py-3.5 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
+                                <th class="px-5 py-3.5 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Unit Cost</th>
+                                <th class="px-5 py-3.5 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Supplier</th>
+                                <th class="px-5 py-3.5 text-center text-xs font-bold text-gray-400 uppercase tracking-wider">Request</th>
+                            </tr>
+                            </thead>
+                            <tbody id="invTableBody" class="divide-y divide-gray-50"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Grid view -->
+                <div id="invGridView" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+            </div>
+
+            <!-- ════ USAGE LOGS PANEL ════ -->
+            <div id="panelLogs" class="hidden">
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                    <div class="px-5 py-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
+                        <h3 class="font-bold text-gray-800 flex items-center gap-2"><i class="fas fa-chart-bar text-amber-500"></i> Usage & Wastage Logs</h3>
+                        <select id="logTypeFilter" onchange="filterLogs()" class="fi w-40 border-gray-200 text-sm">
+                            <option value="">All Types</option>
+                            <option value="USAGE">Usage</option>
+                            <option value="WASTAGE">Wastage</option>
+                            <option value="RESTOCK">Restock</option>
+                            <option value="ADJUSTMENT">Adjustment</option>
+                        </select>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-50 border-b border-gray-100">
+                            <tr>
+                                <th class="px-5 py-3 text-left text-xs font-bold text-gray-400 uppercase">Date</th>
+                                <th class="px-5 py-3 text-left text-xs font-bold text-gray-400 uppercase">Material</th>
+                                <th class="px-5 py-3 text-left text-xs font-bold text-gray-400 uppercase">Type</th>
+                                <th class="px-5 py-3 text-left text-xs font-bold text-gray-400 uppercase">Quantity</th>
+                                <th class="px-5 py-3 text-left text-xs font-bold text-gray-400 uppercase">Before → After</th>
+                                <th class="px-5 py-3 text-left text-xs font-bold text-gray-400 uppercase">Job Ref</th>
+                                <th class="px-5 py-3 text-left text-xs font-bold text-gray-400 uppercase">Logged By</th>
+                            </tr>
+                            </thead>
+                            <tbody id="logsTableBody" class="divide-y divide-gray-50"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ════ ALERTS PANEL ════ -->
+            <div id="panelAlerts" class="hidden">
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                    <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                        <h3 class="font-bold text-gray-800 flex items-center gap-2"><i class="fas fa-bell text-red-500"></i> Active Stock Alerts</h3>
+                        <span class="text-xs text-gray-400">View-only — contact admin to resolve</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-50 border-b border-gray-100">
+                            <tr>
+                                <th class="px-5 py-3 text-left text-xs font-bold text-gray-400 uppercase">Severity</th>
+                                <th class="px-5 py-3 text-left text-xs font-bold text-gray-400 uppercase">Material</th>
+                                <th class="px-5 py-3 text-left text-xs font-bold text-gray-400 uppercase">Message</th>
+                                <th class="px-5 py-3 text-left text-xs font-bold text-gray-400 uppercase">Stock Level</th>
+                                <th class="px-5 py-3 text-left text-xs font-bold text-gray-400 uppercase">Date</th>
+                                <th class="px-5 py-3 text-left text-xs font-bold text-gray-400 uppercase">Action</th>
+                            </tr>
+                            </thead>
+                            <tbody id="alertsTableBody" class="divide-y divide-gray-50"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ════ MY REQUESTS PANEL ════ -->
+            <div id="panelRequests" class="hidden">
+
+                <!-- Request KPIs -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                    <div class="bg-white rounded-xl p-4 shadow-sm border-l-4 border-amber-400">
+                        <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Pending</p>
+                        <p class="text-2xl font-bold text-amber-500" id="rKpiPending">0</p>
+                    </div>
+                    <div class="bg-white rounded-xl p-4 shadow-sm border-l-4 border-blue-400">
+                        <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Reviewed</p>
+                        <p class="text-2xl font-bold text-blue-500" id="rKpiReviewed">0</p>
+                    </div>
+                    <div class="bg-white rounded-xl p-4 shadow-sm border-l-4 border-green-400">
+                        <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Ordered</p>
+                        <p class="text-2xl font-bold text-green-600" id="rKpiOrdered">0</p>
+                    </div>
+                    <div class="bg-white rounded-xl p-4 shadow-sm border-l-4 border-red-400">
+                        <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Rejected</p>
+                        <p class="text-2xl font-bold text-red-500" id="rKpiRejected">0</p>
+                    </div>
+                </div>
+
+                <!-- Filter bar -->
+                <div class="bg-white rounded-xl shadow-sm p-4 mb-4 flex flex-wrap items-center gap-3">
+                    <select id="reqStatusFilter" onchange="filterRequests()" class="fi w-44 border-gray-200 text-sm">
+                        <option value="">All Statuses</option>
+                        <option value="PENDING">Pending</option>
+                        <option value="REVIEWED">Reviewed</option>
+                        <option value="ORDERED">Ordered</option>
+                        <option value="REJECTED">Rejected</option>
+                    </select>
+                    <button onclick="loadMyRequests()" class="flex items-center gap-1.5 px-4 py-2 text-sm text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 transition ml-auto">
+                        <i class="fas fa-rotate-right"></i> Refresh
+                    </button>
+                    <button onclick="openRequestModal()"
+                            class="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold px-4 py-2 rounded-lg text-sm transition">
+                        <i class="fas fa-plus"></i> New Request
+                    </button>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-50 border-b border-gray-100">
+                            <tr>
+                                <th class="px-5 py-3 text-left text-xs font-bold text-gray-400 uppercase">Material</th>
+                                <th class="px-5 py-3 text-left text-xs font-bold text-gray-400 uppercase">SKU</th>
+                                <th class="px-5 py-3 text-left text-xs font-bold text-gray-400 uppercase">Qty</th>
+                                <th class="px-5 py-3 text-left text-xs font-bold text-gray-400 uppercase">Urgency</th>
+                                <th class="px-5 py-3 text-left text-xs font-bold text-gray-400 uppercase">Reason</th>
+                                <th class="px-5 py-3 text-left text-xs font-bold text-gray-400 uppercase">Submitted</th>
+                                <th class="px-5 py-3 text-left text-xs font-bold text-gray-400 uppercase">Status</th>
+                                <th class="px-5 py-3 text-left text-xs font-bold text-gray-400 uppercase">Admin Note</th>
+                            </tr>
+                            </thead>
+                            <tbody id="reqTableBody" class="divide-y divide-gray-50">
+                            <tr><td colspan="8" class="text-center py-10 text-gray-400">
+                                <i class="fas fa-circle-notch fa-spin text-2xl mb-2 block text-orange-300"></i>
+                                Loading your requests…
+                            </td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+</div>
+
+<!-- ════════════ NOTIFICATION PANEL ════════════ -->
+<div id="notifOverlay" class="notif-overlay" onclick="closeNotifPanel()"></div>
+<div id="notifPanel" class="notif-panel">
+    <div class="bg-brand-gradient px-5 py-5 flex items-center justify-between flex-shrink-0">
+        <div>
+            <h3 class="font-bold text-white text-lg flex items-center gap-2"><i class="fas fa-bell"></i> Stock Alerts</h3>
+            <p class="text-green-100 text-xs mt-0.5">Materials needing attention</p>
+        </div>
+        <button onclick="closeNotifPanel()" class="text-white hover:text-green-200 text-xl transition"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="flex-1 overflow-y-auto divide-y divide-gray-100" id="notifList">
+        <div class="py-12 text-center text-gray-300"><i class="fas fa-check-circle text-4xl mb-3 block text-green-200"></i><p class="text-sm">No active alerts</p></div>
+    </div>
+    <div class="p-4 border-t border-gray-100 flex-shrink-0">
+        <button onclick="switchTab('alerts'); closeNotifPanel();"
+                class="w-full py-2.5 bg-brand text-white rounded-xl text-sm font-semibold hover:bg-green-700 transition">
+            View All Alerts
+        </button>
+    </div>
+</div>
+
+<!-- ════════════ REQUEST MODAL ════════════ -->
+<div id="requestModal" class="modal-backdrop">
+    <div class="modal-box">
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg,#c2410c 0%,#ea580c 60%,#fb923c 100%);
+                    padding: 20px 24px; border-radius: 10px 10px 0 0; margin: -28px -28px 20px;
+                    display: flex; align-items: center; justify-content: space-between;">
+            <div>
+                <h3 class="text-lg font-bold text-white">Request Material</h3>
+                <p class="text-orange-100 text-xs mt-0.5">Admin will be notified and arrange a restock order</p>
+            </div>
+            <button onclick="closeModal('requestModal')" class="text-white hover:text-orange-200 text-xl transition"><i class="fas fa-times"></i></button>
+        </div>
+
+        <div id="reqAlert" class="hidden mb-4 px-4 py-3 rounded-lg text-sm font-medium"></div>
+
+        <!-- Pick from inventory -->
+        <div class="mb-4">
+            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-widest mb-1.5">
+                Select from Inventory <span class="text-gray-300 normal-case font-normal">(optional — auto-fills fields)</span>
+            </label>
+            <select id="reqMaterialSelect" class="fi" onchange="onMaterialSelect(this.value)">
+                <option value="">— Choose existing material or enter manually —</option>
+            </select>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <div class="sm:col-span-2">
+                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-widest mb-1.5">Material Name *</label>
+                <input type="text" id="reqMatName" class="fi" placeholder="e.g. A4 Bond Paper 80gsm" />
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-widest mb-1.5">SKU / Code</label>
+                <input type="text" id="reqSku" class="fi" placeholder="e.g. PAP-A4-80G" />
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-widest mb-1.5">Quantity Needed *</label>
+                <input type="number" id="reqQty" class="fi" min="0.01" step="0.1" value="1" />
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-widest mb-1.5">Unit</label>
+                <select id="reqUnit" class="fi">
+                    <option value="">Select…</option>
+                    <option value="REAMS">Reams</option>
+                    <option value="SHEETS">Sheets</option>
+                    <option value="LITERS">Liters</option>
+                    <option value="MILLILITERS">Milliliters</option>
+                    <option value="KILOGRAMS">Kilograms</option>
+                    <option value="GRAMS">Grams</option>
+                    <option value="ROLLS">Rolls</option>
+                    <option value="UNITS">Units</option>
+                    <option value="BOXES">Boxes</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-widest mb-1.5">Urgency *</label>
+                <select id="reqUrgency" class="fi">
+                    <option value="LOW">Low — Not urgent</option>
+                    <option value="MEDIUM" selected>Medium — Needed soon</option>
+                    <option value="HIGH">High — Urgent</option>
+                    <option value="CRITICAL">Critical — Production stopped</option>
+                </select>
+            </div>
+            <div class="sm:col-span-2">
+                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-widest mb-1.5">
+                    Reason <span class="text-gray-300 normal-case font-normal">(optional)</span>
+                </label>
+                <textarea id="reqReason" class="fi" rows="3"
+                          placeholder="Why is this material needed? e.g. running low for print job batch, monthly restock…"></textarea>
+            </div>
+        </div>
+
+        <div class="flex items-start gap-2 bg-orange-50 border border-orange-100 rounded-lg px-3 py-2.5 mb-5 text-xs text-orange-700">
+            <i class="fas fa-info-circle mt-0.5 flex-shrink-0"></i>
+            <span>Critical requests appear at the top of the admin queue and are treated as high priority.</span>
+        </div>
+
+        <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
+            <button onclick="closeModal('requestModal')" class="px-5 py-2.5 text-sm font-semibold text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 transition">Cancel</button>
+            <button onclick="submitRequest()" id="reqSubmitBtn"
+                    class="px-6 py-2.5 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg transition flex items-center gap-2">
+                <i class="fas fa-paper-plane"></i> Submit Request
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ═══════════════════════════════════════════════════════
+    //  GLOBALS
+    // ═══════════════════════════════════════════════════════
+    const API_ADMIN = 'http://localhost:8080/admin/materials/api';
+    const API_STAFF = 'http://localhost:8080/api/staff/material-requests';
+
+    const token = localStorage.getItem('staffToken') || localStorage.getItem('token');
+    if (!token) location.href = '/staff-login';
+
+    function H() { return { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }; }
+
+    let allMaterials = [], allLogs = [], allAlerts = [], myRequests = [];
+    let currentView  = 'table';
+    let currentTab   = 'inventory';
+
+    // ═══════════════════════════════════════════════════════
+    //  INIT
+    // ═══════════════════════════════════════════════════════
+    (async function init() {
+        const stored = JSON.parse(localStorage.getItem('staff') || localStorage.getItem('staffOperator') || '{}');
+        if (stored.firstName)
+            document.getElementById('topbarName').textContent = `${stored.firstName} ${stored.lastName || ''}`.trim();
+
+        await Promise.all([loadMaterials(), loadLogs(), loadAlerts(), loadMyRequests()]);
+    })();
+
+    // ═══════════════════════════════════════════════════════
+    //  API LOADERS
+    // ═══════════════════════════════════════════════════════
+    async function loadMaterials() {
+        try {
+            const r = await fetch(`${API_ADMIN}/all`, { headers: H() });
+            if (!r.ok) throw new Error(r.status);
+            allMaterials = await r.json();
+            renderInventory(allMaterials);
+            document.getElementById('invCount').textContent = allMaterials.length;
+            document.getElementById('kpiTotal').textContent = allMaterials.length;
+            populateMaterialDropdown();
+
+            const alerts = allMaterials.filter(m => getStatus(m) === 'CRITICAL' || getStatus(m) === 'LOW').length;
+            document.getElementById('kpiAlert').textContent = alerts;
+            document.getElementById('kpiAlertSub').textContent = `${allMaterials.filter(m=>getStatus(m)==='CRITICAL').length} critical, ${allMaterials.filter(m=>getStatus(m)==='LOW').length} low`;
+        } catch(e) {
+            emptyRow('invTableBody', 7, 'Could not load materials.');
+        }
+    }
+
+    async function loadLogs() {
+        try {
+            const r = await fetch(`${API_ADMIN}/logs`, { headers: H() });
+            if (!r.ok) throw new Error(r.status);
+            allLogs = await r.json();
+            renderLogs(allLogs);
+        } catch { emptyRow('logsTableBody', 7, 'Could not load logs.'); }
+    }
+
+    async function loadAlerts() {
+        try {
+            const r = await fetch(`${API_ADMIN}/alerts`, { headers: H() });
+            if (!r.ok) throw new Error(r.status);
+            allAlerts = (await r.json()).filter(a => !a.isResolved);
+            renderAlerts(allAlerts);
+
+            const cnt = allAlerts.length;
+            const badge = document.getElementById('notifBadge');
+            const bannerBadge = document.getElementById('bannerAlertBadge');
+            const tabCount = document.getElementById('alertCount');
+            if (cnt > 0) {
+                badge.textContent = cnt; badge.classList.remove('hidden');
+                bannerBadge.textContent = cnt; bannerBadge.classList.remove('hidden');
+                tabCount.textContent = cnt; tabCount.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+                bannerBadge.classList.add('hidden');
+                tabCount.classList.add('hidden');
+            }
+            renderNotifPanel();
+        } catch { emptyRow('alertsTableBody', 6, 'Could not load alerts.'); }
+    }
+
+    async function loadMyRequests() {
+        try {
+            const r = await fetch(API_STAFF, { headers: H() });
+            if (!r.ok) throw new Error(r.status);
+            myRequests = await r.json();
+            renderRequests(myRequests);
+            updateRequestKPIs();
+
+            const pending = myRequests.filter(req => req.status === 'PENDING').length;
+            document.getElementById('kpiMyReq').textContent  = myRequests.length;
+            document.getElementById('kpiPending').textContent = pending;
+
+            const sideBadge = document.getElementById('sidebarReqBadge');
+            const reqTab    = document.getElementById('reqCount');
+            if (pending > 0) {
+                sideBadge.textContent = pending; sideBadge.classList.remove('hidden');
+                reqTab.textContent    = pending; reqTab.classList.remove('hidden');
+            } else {
+                sideBadge.classList.add('hidden');
+                reqTab.classList.add('hidden');
+            }
+        } catch(e) {
+            emptyRow('reqTableBody', 8, 'Could not load requests.');
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  RENDER FUNCTIONS
+    // ═══════════════════════════════════════════════════════
+    function getStatus(m) {
+        if (!m) return 'NORMAL';
+        if (m.currentStock <= m.criticalStockLevel) return 'CRITICAL';
+        if (m.currentStock <= m.minimumStockLevel)  return 'LOW';
+        if (m.currentStock >= m.maximumStockLevel * 0.9) return 'OVERSTOCKED';
+        return 'NORMAL';
+    }
+
+    function stockBarHTML(current, min, max) {
+        const pct   = max > 0 ? Math.min(100, (current / max) * 100) : 0;
+        const color = current <= 0 ? '#ef4444' : current <= min ? '#f59e0b' : '#22c55e';
+        return `<div class="flex items-center gap-2">
+            <div class="stock-bar-wrap"><div class="stock-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+            <span class="text-xs font-semibold font-mono ${color==='#ef4444'?'text-red-500':color==='#f59e0b'?'text-amber-500':'text-gray-700'}">${current}</span>
+        </div>`;
+    }
+
+    function renderInventory(list) {
+        document.getElementById('invRecordCount').textContent = `${list.length} item${list.length !== 1 ? 's' : ''}`;
+
+        // ── Table view ──
+        const tb = document.getElementById('invTableBody');
+        if (!list.length) { emptyRow('invTableBody', 7, 'No materials found.'); }
+        else {
+            tb.innerHTML = list.map(m => {
+                const st = getStatus(m);
+                return `<tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-5 py-3.5">
+                        <div class="font-semibold text-gray-800 text-sm">${esc(m.name)}</div>
+                        <div class="text-xs text-gray-400 mt-0.5 flex gap-2">
+                            ${m.skuCode ? `<span class="font-mono">${esc(m.skuCode)}</span>` : ''}
+                            ${m.brand   ? `<span>${esc(m.brand)}</span>` : ''}
+                        </div>
+                    </td>
+                    <td class="px-5 py-3.5">
+                        <span class="px-2 py-1 bg-green-50 text-green-700 rounded-lg text-xs font-semibold">${(m.category||'').replace(/_/g,' ')}</span>
+                    </td>
+                    <td class="px-5 py-3.5">
+                        ${stockBarHTML(m.currentStock, m.minimumStockLevel, m.maximumStockLevel)}
+                        <div class="text-xs text-gray-400 mt-0.5">Min: ${m.minimumStockLevel} · Max: ${m.maximumStockLevel} ${m.unit||''}</div>
+                    </td>
+                    <td class="px-5 py-3.5"><span class="badge b-${st}">${st}</span></td>
+                    <td class="px-5 py-3.5 text-sm text-gray-600">${m.unitCost != null ? '$'+m.unitCost.toFixed(2) : '—'}</td>
+                    <td class="px-5 py-3.5 text-xs text-gray-500">${m.supplierName ? esc(m.supplierName) : '—'}</td>
+                    <td class="px-5 py-3.5 text-center">
+                        <button onclick="openRequestModalFor(${m.id})"
+                                class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 transition flex items-center gap-1 mx-auto">
+                            <i class="fas fa-paper-plane text-xs"></i> Request
+                        </button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        // ── Grid view ──
+        const grid = document.getElementById('invGridView');
+        if (!list.length) { grid.innerHTML = '<div class="col-span-full text-center py-12 text-gray-400"><i class="fas fa-boxes text-4xl mb-3 block"></i>No materials found.</div>'; }
+        else {
+            grid.innerHTML = list.map(m => {
+                const st = getStatus(m);
+                const topColor = st === 'CRITICAL' ? '#ef4444' : st === 'LOW' ? '#f59e0b' : st === 'OVERSTOCKED' ? '#3b82f6' : '#22c55e';
+                return `<div class="bg-white rounded-2xl p-5 shadow-sm card-hover overflow-hidden relative">
+                    <div style="position:absolute;top:0;left:0;right:0;height:3px;background:${topColor}"></div>
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex-1 min-w-0">
+                            <p class="font-bold text-gray-800 text-sm leading-snug truncate">${esc(m.name)}</p>
+                            <p class="text-xs text-gray-400 font-mono mt-0.5">${m.skuCode ? esc(m.skuCode) : '—'}</p>
+                        </div>
+                        <span class="badge b-${st} ml-2 flex-shrink-0">${st}</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-y-2 text-xs mb-4">
+                        <div><p class="text-gray-400">In Stock</p><p class="font-bold ${st==='CRITICAL'?'text-red-500':st==='LOW'?'text-amber-500':'text-gray-700'}">${m.currentStock} ${m.unit||''}</p></div>
+                        <div><p class="text-gray-400">Threshold</p><p class="font-bold text-gray-600">${m.minimumStockLevel}</p></div>
+                        <div><p class="text-gray-400">Unit Price</p><p class="font-bold text-gray-700">${m.unitCost != null ? '$'+m.unitCost.toFixed(2) : '—'}</p></div>
+                        <div><p class="text-gray-400">Category</p><p class="font-bold text-gray-700 truncate text-xs">${(m.category||'').replace(/_/g,' ')}</p></div>
+                    </div>
+                    <button onclick="openRequestModalFor(${m.id})"
+                            class="w-full py-1.5 bg-orange-50 text-orange-600 text-xs font-semibold rounded-lg hover:bg-orange-100 transition">
+                        <i class="fas fa-paper-plane mr-1"></i>Request Restock
+                    </button>
+                </div>`;
+            }).join('');
+        }
+    }
+
+    function renderLogs(list) {
+        const tb = document.getElementById('logsTableBody');
+        if (!list.length) { emptyRow('logsTableBody', 7, 'No log entries found.'); return; }
+        tb.innerHTML = list.map(l => `<tr class="hover:bg-gray-50">
+            <td class="px-5 py-3 text-xs text-gray-500">${fDate(l.logDate)}</td>
+            <td class="px-5 py-3 font-semibold text-gray-800 text-sm">${l.material ? esc(l.material.name) : '—'}</td>
+            <td class="px-5 py-3"><span class="badge b-${l.logType}">${l.logType}</span></td>
+            <td class="px-5 py-3 font-bold text-gray-700">${l.quantity}</td>
+            <td class="px-5 py-3 text-xs font-mono text-gray-500">${l.stockBefore?.toFixed(1) ?? '—'} → ${l.stockAfter?.toFixed(1) ?? '—'}</td>
+            <td class="px-5 py-3 text-xs text-gray-500">${l.jobReference || '—'}</td>
+            <td class="px-5 py-3 text-xs text-gray-500">${l.loggedBy || '—'}</td>
+        </tr>`).join('');
+    }
+
+    function renderAlerts(list) {
+        const tb = document.getElementById('alertsTableBody');
+        if (!list.length) {
+            tb.innerHTML = `<tr><td colspan="6" class="text-center py-12 text-gray-400">
+                <i class="fas fa-check-circle text-4xl mb-3 block text-green-200"></i>
+                All stock levels are healthy!
+            </td></tr>`;
+            return;
+        }
+        const sevColor = { CRITICAL: 'text-red-600 bg-red-50', WARNING: 'text-amber-600 bg-amber-50', INFO: 'text-blue-600 bg-blue-50' };
+        tb.innerHTML = list.map(a => `<tr class="hover:bg-gray-50">
+            <td class="px-5 py-3.5">
+                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${sevColor[a.severity]||'text-gray-600 bg-gray-100'}">
+                    ${a.severity}
+                </span>
+            </td>
+            <td class="px-5 py-3.5 font-semibold text-gray-800 text-sm">${a.material ? esc(a.material.name) : '—'}</td>
+            <td class="px-5 py-3.5 text-xs text-gray-600 max-w-xs">${esc(a.message)}</td>
+            <td class="px-5 py-3.5 text-xs font-mono text-gray-500">${a.stockLevelAtAlert?.toFixed(1) ?? '—'}</td>
+            <td class="px-5 py-3.5 text-xs text-gray-500">${fDate(a.createdAt)}</td>
+            <td class="px-5 py-3.5">
+                <button onclick="openRequestModalFor(${a.material?.id || ''})"
+                        class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 transition flex items-center gap-1">
+                    <i class="fas fa-paper-plane text-xs"></i> Request Restock
+                </button>
+            </td>
+        </tr>`).join('');
+    }
+
+    function renderRequests(list) {
+        const tb = document.getElementById('reqTableBody');
+        if (!list.length) {
+            tb.innerHTML = `<tr><td colspan="8" class="text-center py-12 text-gray-400">
+                <i class="fas fa-paper-plane text-4xl mb-3 block text-gray-200"></i>
+                No requests yet. Click "New Request" to get started.
+            </td></tr>`;
+            return;
+        }
+        const filter = document.getElementById('reqStatusFilter')?.value || '';
+        const filtered = filter ? list.filter(r => r.status === filter) : list;
+        tb.innerHTML = filtered.map(r => {
+            const date = r.createdAt ? new Date(r.createdAt).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}) : '—';
+            const reason = r.reason ? esc(r.reason) : '—';
+            return `<tr class="hover:bg-gray-50">
+                <td class="px-5 py-3.5 font-semibold text-gray-800 text-sm">${esc(r.materialName)}</td>
+                <td class="px-5 py-3.5 text-xs font-mono text-gray-500">${r.skuCode ? esc(r.skuCode) : '—'}</td>
+                <td class="px-5 py-3.5 font-bold text-gray-700">${r.requestedQuantity} ${r.unit||''}</td>
+                <td class="px-5 py-3.5">
+                    <span class="badge u-${r.urgency||'MEDIUM'}">${r.urgency||'MEDIUM'}</span>
+                </td>
+                <td class="px-5 py-3.5 max-w-xs text-xs text-gray-500">
+                    ${reason.length > 55 ? `<span title="${reason}">${reason.slice(0,55)}…</span>` : reason}
+                </td>
+                <td class="px-5 py-3.5 text-xs text-gray-500">${date}</td>
+                <td class="px-5 py-3.5">
+                    <span class="badge s-${r.status||'PENDING'}">${r.status||'PENDING'}</span>
+                </td>
+                <td class="px-5 py-3.5 text-xs text-blue-600 max-w-xs">
+                    ${r.adminNotes ? `<span title="${esc(r.adminNotes)}">${esc(r.adminNotes.slice(0,50))}${r.adminNotes.length>50?'…':''}</span>` : '<span class="text-gray-300">—</span>'}
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    function updateRequestKPIs() {
+        document.getElementById('rKpiPending').textContent  = myRequests.filter(r=>r.status==='PENDING').length;
+        document.getElementById('rKpiReviewed').textContent = myRequests.filter(r=>r.status==='REVIEWED').length;
+        document.getElementById('rKpiOrdered').textContent  = myRequests.filter(r=>r.status==='ORDERED').length;
+        document.getElementById('rKpiRejected').textContent = myRequests.filter(r=>r.status==='REJECTED').length;
+    }
+
+    function renderNotifPanel() {
+        const el = document.getElementById('notifList');
+        if (!allAlerts.length) {
+            el.innerHTML = '<div class="py-12 text-center text-gray-300"><i class="fas fa-check-circle text-4xl mb-3 block text-green-200"></i><p class="text-sm">All stock levels are healthy!</p></div>';
+            return;
+        }
+        const sevColor = { CRITICAL: { bg: '#fef2f2', text: '#b91c1c', icon: '#ef4444' }, WARNING: { bg: '#fefce8', text: '#92400e', icon: '#f59e0b' }, INFO: { bg: '#eff6ff', text: '#1d4ed8', icon: '#3b82f6' } };
+        el.innerHTML = allAlerts.map(a => {
+            const c = sevColor[a.severity] || { bg: '#f8fafc', text: '#374151', icon: '#94a3b8' };
+            return `<div class="flex items-start gap-3 px-5 py-4 hover:bg-gray-50 transition cursor-pointer" onclick="switchTab('alerts'); closeNotifPanel()">
+                <div style="width:36px;height:36px;border-radius:10px;background:${c.bg};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                    <i class="fas fa-triangle-exclamation" style="color:${c.icon};font-size:13px"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="font-semibold text-sm text-gray-800 truncate">${a.material?.name || '—'}</p>
+                    <p class="text-xs text-gray-500 mt-0.5 line-clamp-2">${esc(a.message)}</p>
+                </div>
+                <span class="text-xs font-bold px-2 py-1 rounded-full flex-shrink-0" style="background:${c.bg};color:${c.text}">${a.severity}</span>
+            </div>`;
+        }).join('');
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  FILTERS
+    // ═══════════════════════════════════════════════════════
+    function filterInventory() {
+        const q    = document.getElementById('searchInv').value.toLowerCase();
+        const cat  = document.getElementById('catFilter').value;
+        const stk  = document.getElementById('stockFilter').value;
+        const list = allMaterials.filter(m =>
+            (!q   || m.name.toLowerCase().includes(q) || (m.skuCode||'').toLowerCase().includes(q) || (m.brand||'').toLowerCase().includes(q)) &&
+            (!cat || m.category === cat) &&
+            (!stk || getStatus(m) === stk)
+        );
+        renderInventory(list);
+    }
+
+    function filterLogs() {
+        const t = document.getElementById('logTypeFilter').value;
+        renderLogs(t ? allLogs.filter(l => l.logType === t) : allLogs);
+    }
+
+    function filterRequests() { renderRequests(myRequests); }
+
+    // ═══════════════════════════════════════════════════════
+    //  TABS
+    // ═══════════════════════════════════════════════════════
+    function switchTab(tab) {
+        currentTab = tab;
+        ['inventory','logs','alerts','requests'].forEach(t => {
+            const panel  = document.getElementById(`panel${t.charAt(0).toUpperCase()+t.slice(1)}`);
+            const button = document.getElementById(`tab${t.charAt(0).toUpperCase()+t.slice(1)}`);
+            panel.classList.toggle('hidden', t !== tab);
+            button.classList.toggle('active', t === tab);
+        });
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  VIEW TOGGLE
+    // ═══════════════════════════════════════════════════════
+    function setView(v) {
+        currentView = v;
+        document.getElementById('invTableView').classList.toggle('hidden', v !== 'table');
+        document.getElementById('invGridView').classList.toggle('hidden', v !== 'grid');
+        document.getElementById('viewTable').classList.toggle('active', v === 'table');
+        document.getElementById('viewGrid').classList.toggle('active', v === 'grid');
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  REQUEST MODAL
+    // ═══════════════════════════════════════════════════════
+    function populateMaterialDropdown() {
+        const sel = document.getElementById('reqMaterialSelect');
+        sel.innerHTML = '<option value="">— Choose existing material or enter manually —</option>' +
+            allMaterials.map(m =>
+                `<option value="${m.id}" data-name="${esc(m.name)}" data-sku="${esc(m.skuCode||'')}" data-unit="${m.unit||''}">
+                    ${esc(m.name)}${m.skuCode?` (${esc(m.skuCode)})`:''}${m.unit?' — '+m.unit:''}
+                </option>`
+            ).join('');
+    }
+
+    function onMaterialSelect(id) {
+        if (!id) {
+            document.getElementById('reqMatName').value = '';
+            document.getElementById('reqSku').value = '';
+            document.getElementById('reqUnit').value = '';
+            return;
+        }
+        const opt = document.querySelector(`#reqMaterialSelect option[value="${id}"]`);
+        if (opt) {
+            document.getElementById('reqMatName').value = opt.dataset.name || '';
+            document.getElementById('reqSku').value     = opt.dataset.sku  || '';
+            document.getElementById('reqUnit').value    = opt.dataset.unit || '';
+        }
+    }
+
+    function openRequestModal() {
+        document.getElementById('reqMaterialSelect').value = '';
+        document.getElementById('reqMatName').value  = '';
+        document.getElementById('reqSku').value      = '';
+        document.getElementById('reqQty').value      = '1';
+        document.getElementById('reqUnit').value     = '';
+        document.getElementById('reqUrgency').value  = 'MEDIUM';
+        document.getElementById('reqReason').value   = '';
+        hideReqAlert();
+        openModal('requestModal');
+    }
+
+    function openRequestModalFor(materialId) {
+        openRequestModal();
+        if (materialId) {
+            setTimeout(() => {
+                document.getElementById('reqMaterialSelect').value = materialId;
+                onMaterialSelect(String(materialId));
+            }, 50);
+        }
+    }
+
+    async function submitRequest() {
+        const name = document.getElementById('reqMatName').value.trim();
+        const qty  = parseFloat(document.getElementById('reqQty').value);
+
+        if (!name)      { showReqAlert('Material name is required.', 'error'); return; }
+        if (!qty || qty <= 0) { showReqAlert('Please enter a valid quantity.', 'error'); return; }
+
+        const matId = document.getElementById('reqMaterialSelect').value;
+        const payload = {
+            materialId:        matId ? parseInt(matId) : null,
+            materialName:      name,
+            skuCode:           document.getElementById('reqSku').value.trim() || null,
+            requestedQuantity: qty,
+            unit:              document.getElementById('reqUnit').value || null,
+            urgency:           document.getElementById('reqUrgency').value,
+            reason:            document.getElementById('reqReason').value.trim() || null
+        };
+
+        const btn = document.getElementById('reqSubmitBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Submitting…';
+
+        try {
+            const r    = await fetch(API_STAFF, { method: 'POST', headers: H(), body: JSON.stringify(payload) });
+            const data = await r.json();
+            if (r.ok) {
+                closeModal('requestModal');
+                showToast('Request submitted! Admin will be notified.', 'success');
+                await loadMyRequests();
+            } else {
+                showReqAlert(data.error || 'Submission failed. Please try again.', 'error');
+            }
+        } catch {
+            showReqAlert('Connection error. Is the server running?', 'error');
+        } finally {
+            btn.disabled  = false;
+            btn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Request';
+        }
+    }
+
+    function showReqAlert(msg, type) {
+        const el = document.getElementById('reqAlert');
+        el.textContent = msg;
+        el.className = `mb-4 px-4 py-3 rounded-lg text-sm font-medium ${type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`;
+        el.classList.remove('hidden');
+    }
+    function hideReqAlert() { document.getElementById('reqAlert').classList.add('hidden'); }
+
+    // ═══════════════════════════════════════════════════════
+    //  NOTIFICATION PANEL
+    // ═══════════════════════════════════════════════════════
+    function openNotifPanel()  { document.getElementById('notifPanel').classList.add('open'); document.getElementById('notifOverlay').classList.add('open'); }
+    function closeNotifPanel() { document.getElementById('notifPanel').classList.remove('open'); document.getElementById('notifOverlay').classList.remove('open'); }
+
+    // ═══════════════════════════════════════════════════════
+    //  UTILITIES
+    // ═══════════════════════════════════════════════════════
+    function openModal(id)  { document.getElementById(id).classList.add('open'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+    document.getElementById('requestModal').addEventListener('click', function(e) {
+        if (e.target === this) closeModal('requestModal');
+    });
+
+    function showToast(msg, type) {
+        const t = document.createElement('div');
+        t.className = `fixed bottom-5 right-5 px-4 py-2.5 rounded-lg shadow-lg text-white text-sm font-medium z-50 flex items-center gap-2 ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`;
+        t.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> ${esc(msg)}`;
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 3500);
+    }
+
+    function emptyRow(tbodyId, cols, msg) {
+        document.getElementById(tbodyId).innerHTML =
+            `<tr><td colspan="${cols}" class="text-center py-10 text-gray-400">
+                <i class="fas fa-folder-open text-3xl mb-2 block text-gray-200"></i>${msg}
+            </td></tr>`;
+    }
+
+    function esc(s) { if (!s) return ''; return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+    function fDate(s) { if (!s) return '—'; try { return new Date(s).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}); } catch { return s; } }
+
+    function logout() { localStorage.clear(); location.href = '/'; }
+
+    document.getElementById('mobileMenuBtn')?.addEventListener('click', () => {
+        document.querySelector('aside').classList.toggle('hidden');
+    });
+</script>
+</body>
+</html>
+
+
+

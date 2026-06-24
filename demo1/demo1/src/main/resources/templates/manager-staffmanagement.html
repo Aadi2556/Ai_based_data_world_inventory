@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Staff Management — PrintProTrack Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .sidebar-link { transition: all 0.25s; }
+        .sidebar-link:hover { background-color: rgba(255,255,255,0.1); transform: translateX(4px); }
+        .sidebar-link.active { background-color: rgba(255,255,255,0.15); border-left: 3px solid #4ade80; }
+        .bg-sidebar { background-color: #1a3a2a; }
+        .text-brand { color: #1e5c2f; }
+        .bg-brand { background-color: #1e5c2f; }
+        .bg-brand-gradient { background: linear-gradient(135deg, #1e5c2f 0%, #2d8a47 50%, #3daa5a 100%); }
+        .hover-brand:hover { background-color: #164823; }
+        .tab-btn { transition: all 0.2s; border-bottom: 3px solid transparent; }
+        .tab-btn.active { border-bottom-color: #1e5c2f; color: #1e5c2f; font-weight: 700; }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+        .tbl-row { transition: background 0.15s; }
+        .tbl-row:hover { background: #f0fdf4; }
+        .badge-active   { background:#dcfce7; color:#166534; }
+        .badge-inactive { background:#fee2e2; color:#991b1b; }
+        .badge-avail    { background:#dbeafe; color:#1e40af; }
+        .badge-busy     { background:#fef3c7; color:#92400e; }
+        .badge-leave    { background:#ede9fe; color:#5b21b6; }
+        .role-technician { background:#e0e7ff; color:#3730a3; }
+        .role-staff      { background:#d1fae5; color:#065f46; }
+        .role-manager    { background:#f3e8ff; color:#6b21a8; }
+        .role-admin      { background:#fee2e2; color:#991b1b; }
+        .role-select {
+            border: 1.5px solid #e2e8f0; border-radius: 6px; padding: 5px 28px 5px 9px;
+            font-size: 12px; font-weight: 600; cursor: pointer; outline: none; appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394a3b8'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 8px center; background-color: #fff;
+            transition: border-color 0.2s, box-shadow 0.2s; min-width: 114px;
+        }
+        .role-select:focus { border-color: #2d8a47; box-shadow: 0 0 0 3px rgba(45,138,71,0.1); }
+        .role-select.changed { border-color: #f59e0b; background-color: #fffbeb; box-shadow: 0 0 0 3px rgba(245,158,11,0.12); }
+        .apply-btn {
+            display: none; align-items: center; gap: 3px; padding: 5px 10px;
+            background: #f59e0b; color: #fff; border: none; border-radius: 6px;
+            font-size: 11px; font-weight: 700; cursor: pointer; transition: background 0.2s;
+            white-space: nowrap; animation: fadeIn 0.15s ease;
+        }
+        .apply-btn:hover { background: #d97706; }
+        .apply-btn.show { display: inline-flex; }
+        @keyframes fadeIn { from{opacity:0;transform:scale(0.9)} to{opacity:1;transform:scale(1)} }
+        .modal-backdrop { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.52); z-index:300; align-items:center; justify-content:center; }
+        .modal-backdrop.open { display:flex; }
+        .modal-box { background:#fff; border-radius:14px; padding:28px; width:560px; max-width:94vw; max-height:90vh; overflow-y:auto; animation:popIn 0.2s ease; }
+        @keyframes popIn { from{opacity:0;transform:scale(0.93)} to{opacity:1;transform:scale(1)} }
+        .rc-card { background:linear-gradient(135deg,#f0fdf4,#fffbeb); border:1.5px solid #d1fae5; border-radius:10px; padding:16px; }
+        .role-chip { padding: 4px 12px; border-radius: 99px; font-size: 12px; font-weight: 700; }
+        .form-input { width:100%; padding:9px 12px; border:1.5px solid #e2e8f0; border-radius:7px; font-size:14px; outline:none; transition:border-color 0.2s; }
+        .form-input:focus { border-color:#2d8a47; box-shadow:0 0 0 3px rgba(45,138,71,0.1); }
+        .spinner { display:inline-block; width:14px; height:14px; border:2px solid rgba(255,255,255,0.35); border-top-color:#fff; border-radius:50%; animation:spin 0.55s linear infinite; margin-right:6px; vertical-align:middle; }
+        @keyframes spin { to{transform:rotate(360deg)} }
+        #toast { position:fixed; bottom:28px; right:28px; z-index:9999; transition:all 0.3s; transform:translateY(120px); opacity:0; }
+        #toast.show { transform:translateY(0); opacity:1; }
+        .stat-card { transition:transform 0.2s,box-shadow 0.2s; }
+        .stat-card:hover { transform:translateY(-3px); box-shadow:0 8px 24px -4px rgba(0,0,0,0.10); }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex overflow-hidden text-gray-800">
+
+<aside class="bg-sidebar text-white w-72 flex-shrink-0 flex flex-col h-screen hidden md:flex shadow-2xl z-20">
+    <div class="px-6 py-5 flex items-center space-x-3 border-b border-green-900 bg-white">
+        <i class="fas fa-print text-2xl text-brand"></i>
+        <h1 class="text-xl font-bold tracking-wide text-brand">PrintProTrack</h1>
+        <span class="ml-auto px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">MANAGER</span>
+    </div>
+    <nav class="flex-1 overflow-y-auto py-5 px-4 space-y-1">
+        <p class="text-xs font-semibold text-green-700 uppercase tracking-widest px-3 mb-3">Main Menu</p>
+        <a href='/manager-dashboard' class="sidebar-link flex items-center p-3 rounded-lg text-gray-300 hover:text-white group">
+            <i class="fa-solid fa-house w-5 text-center text-gray-400 group-hover:text-green-400"></i>
+            <span class="ml-3 font-medium text-sm">Dashboard</span>
+        </a>
+        <a href='/manager-dashboard#profile' class="sidebar-link flex items-center p-3 rounded-lg text-gray-300 hover:text-white group">
+            <i class="fa-solid fa-circle-user w-5 text-center text-gray-400 group-hover:text-green-400"></i>
+            <span class="ml-3 font-medium text-sm">My Profile</span>
+        </a>
+        <p class="text-xs font-semibold text-green-700 uppercase tracking-widest px-3 mt-5 mb-2">Operations</p>
+        <a href='/manager-maintenance' class="sidebar-link flex items-center p-3 rounded-lg text-gray-300 hover:text-white group">
+            <i class="fa-solid fa-screwdriver-wrench w-5 text-center text-gray-400 group-hover:text-green-400"></i>
+            <span class="ml-3 font-medium text-sm">Machine Maintenance</span>
+        </a>
+        <a href='/manager-staffmanagement' class="sidebar-link active flex items-center p-3 rounded-lg text-gray-300 hover:text-white group">
+            <i class="fa-solid fa-users-gear w-5 text-center text-gray-400 group-hover:text-green-400"></i>
+            <span class="ml-3 font-medium text-sm">Staff Management</span>
+        </a>
+    </nav>
+    <div class="p-4 border-t border-green-900">
+        <button onclick="logout()" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-900 hover:bg-red-800 text-red-200 rounded-lg text-sm font-semibold transition">
+            <i class="fas fa-sign-out-alt"></i> Sign Out
+        </button>
+    </div>
+</aside>
+
+<div class="flex-1 flex flex-col h-screen overflow-hidden">
+    <nav class="bg-white shadow-md w-full z-10">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex justify-between items-center py-3.5">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-print text-xl text-indigo-600"></i>
+                    <span class="text-lg font-bold text-gray-800">PrintProTrack</span>
+                    <span class="px-2.5 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">MANAGER</span>
+                </div>
+                <div class="flex items-center gap-5">
+                    <span class="text-gray-600 text-sm hidden sm:block">Welcome, <span id="topbarName" class="font-semibold text-gray-800">Manager</span></span>
+                    <a href='/manager-dashboard#profile' class="text-gray-500 hover:text-indigo-600 text-sm flex items-center gap-1 transition">
+                        <i class="fas fa-user"></i><span class="hidden sm:inline">Profile</span>
+                    </a>
+                    <button onclick="logout()" class="text-gray-500 hover:text-red-600 text-sm flex items-center gap-1 transition">
+                        <i class="fas fa-sign-out-alt"></i><span class="hidden sm:inline">Logout</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
+        <div class="max-w-7xl mx-auto space-y-6">
+
+            <div class="bg-brand-gradient rounded-2xl p-7 shadow-lg text-white flex items-center justify-between">
+                <div>
+                    <h2 class="text-2xl font-bold mb-1 flex items-center gap-3">
+                        <i class="fa-solid fa-users-gear text-green-200"></i> Staff & Technician Overview
+                    </h2>
+                    <p class="text-green-100 text-sm">View and manage technicians and staff operators under your supervision.</p>
+                </div>
+                <a href='/manager-dashboard' class="flex items-center gap-2 px-4 py-2 bg-white bg-opacity-15 hover:bg-opacity-25 rounded-xl text-sm font-semibold transition">
+                    <i class="fas fa-arrow-left text-xs"></i> Dashboard
+                </a>
+            </div>
+
+            <div class="bg-amber-50 border border-amber-200 rounded-xl px-5 py-3.5 flex items-start gap-3">
+                <i class="fas fa-info-circle text-amber-500 mt-0.5 flex-shrink-0"></i>
+                <p class="text-sm text-amber-800">
+                    <span class="font-bold">Manager permissions:</span>
+                    You can <strong>view, edit details, deactivate</strong> for technicians, admins, managers and staff.
+                    Creating new users or hard-deleting accounts is reserved for administrators.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white rounded-xl p-5 shadow-sm border-t-4 border-indigo-500 stat-card">
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Technicians</p>
+                    <p class="text-3xl font-bold text-gray-800" id="countTech">—</p>
+                    <p class="text-xs text-gray-400 mt-1">Registered</p>
+                </div>
+                <div class="bg-white rounded-xl p-5 shadow-sm border-t-4 border-emerald-500 stat-card">
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Staff Operators</p>
+                    <p class="text-3xl font-bold text-gray-800" id="countStaff">—</p>
+                    <p class="text-xs text-gray-400 mt-1">Registered</p>
+                </div>
+                <div class="bg-white rounded-xl p-5 shadow-sm border-t-4 border-purple-500 stat-card">
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Managers</p>
+                    <p class="text-3xl font-bold text-gray-800" id="countMgr">—</p>
+                    <p class="text-xs text-gray-400 mt-1">Registered</p>
+                </div>
+                <div class="bg-white rounded-xl p-5 shadow-sm border-t-4 border-red-500 stat-card">
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Admins</p>
+                    <p class="text-3xl font-bold text-gray-800" id="countTotal">—</p>
+                    <p class="text-xs text-gray-400 mt-1">All Admins</p>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+                <div class="flex items-center border-b border-gray-100 px-6 pt-4 gap-1 flex-wrap">
+                    <button onclick="switchTab('technicians')" id="tab-technicians" class="tab-btn active px-5 py-3 text-sm text-gray-500 hover:text-gray-800 flex items-center gap-2">
+                        <i class="fa-solid fa-wrench text-indigo-500"></i> Technicians
+                        <span id="badge-tech" class="ml-1 px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded-full text-xs font-bold"></span>
+                    </button>
+                    <button onclick="switchTab('staff')" id="tab-staff" class="tab-btn px-5 py-3 text-sm text-gray-500 hover:text-gray-800 flex items-center gap-2">
+                        <i class="fa-solid fa-user-gear text-emerald-600"></i> Staff Operators
+                        <span id="badge-staff" class="ml-1 px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold"></span>
+                    </button>
+                    <button onclick="switchTab('managers')" id="tab-managers" class="tab-btn px-5 py-3 text-sm text-gray-500 hover:text-gray-800 flex items-center gap-2">
+                        <i class="fa-solid fa-user-tie text-purple-600"></i> Managers
+                        <span id="badge-mgr" class="ml-1 px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded-full text-xs font-bold"></span>
+                    </button>
+                    <button onclick="switchTab('admins')" id="tab-admins" class="tab-btn px-5 py-3 text-sm text-gray-500 hover:text-gray-800 flex items-center gap-2">
+                        <i class="fa-solid fa-user-shield text-red-600"></i> Admins
+                        <span id="badge-admin" class="ml-1 px-1.5 py-0.5 bg-red-100 text-red-700 rounded-full text-xs font-bold"></span>
+                    </button>
+                    <div class="ml-auto flex items-center gap-2 pb-1">
+                        <div class="relative">
+                            <input id="searchInput" type="text" placeholder="Search name, email, username…" oninput="onSearch()"
+                                   class="border border-gray-200 rounded-lg px-4 py-2 text-sm pl-9 focus:outline-none focus:border-green-400 w-56"/>
+                            <i class="fas fa-search absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+                        </div>
+                        <button onclick="loadAll()" class="flex items-center gap-2 bg-gray-100 text-gray-600 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-gray-200 transition" title="Refresh">
+                            <i class="fas fa-sync-alt text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="px-6 py-2 bg-gray-50 border-b border-gray-100 flex items-center gap-3 text-xs flex-wrap">
+                    <span class="text-gray-500 font-semibold">Role legend:</span>
+                    <span class="role-chip role-technician">Technician</span>
+                    <span class="role-chip role-staff">Staff Operator</span>
+                    <span class="role-chip role-manager">Manager</span>
+                    <span class="role-chip role-admin">Admin</span>
+                    <span class="ml-auto text-gray-400 italic flex items-center gap-1">
+                        <i class="fas fa-exchange-alt text-amber-400"></i>
+                        Use the Role dropdown → Apply to reassign
+                    </span>
+                </div>
+
+                <div id="pane-technicians" class="tab-pane active p-6">
+                    <div id="tech-loading" class="flex items-center justify-center py-16 text-gray-400"><i class="fas fa-circle-notch fa-spin mr-2"></i> Loading…</div>
+                    <div id="tech-empty" class="hidden flex-col items-center justify-center py-16 text-gray-400">
+                        <i class="fas fa-user-slash text-4xl mb-3 text-gray-300"></i><p class="font-medium">No technicians found.</p>
+                    </div>
+                    <div class="overflow-x-auto hidden" id="tech-table-wrap">
+                        <table class="w-full text-sm">
+                            <thead>
+                            <tr class="border-b border-gray-100 text-xs uppercase tracking-widest text-gray-400">
+                                <th class="text-left py-3 px-3 font-semibold">Name</th>
+                                <th class="text-left py-3 px-3 font-semibold hidden md:table-cell">Emp ID</th>
+                                <th class="text-left py-3 px-3 font-semibold hidden lg:table-cell">Specialization</th>
+                                <th class="text-left py-3 px-3 font-semibold hidden md:table-cell">Availability</th>
+                                <th class="text-left py-3 px-3 font-semibold">Status</th>
+                                <th class="text-left py-3 px-3 font-semibold text-amber-600">Role ↕</th>
+                                <th class="text-right py-3 px-3 font-semibold">Actions</th>
+                            </tr>
+                            </thead>
+                            <tbody id="tech-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="pane-staff" class="tab-pane p-6">
+                    <div id="staff-loading" class="flex items-center justify-center py-16 text-gray-400"><i class="fas fa-circle-notch fa-spin mr-2"></i> Loading…</div>
+                    <div id="staff-empty" class="hidden flex-col items-center justify-center py-16 text-gray-400">
+                        <i class="fas fa-user-slash text-4xl mb-3 text-gray-300"></i><p class="font-medium">No staff operators found.</p>
+                    </div>
+                    <div class="overflow-x-auto hidden" id="staff-table-wrap">
+                        <table class="w-full text-sm">
+                            <thead>
+                            <tr class="border-b border-gray-100 text-xs uppercase tracking-widest text-gray-400">
+                                <th class="text-left py-3 px-3 font-semibold">Name</th>
+                                <th class="text-left py-3 px-3 font-semibold hidden md:table-cell">Emp ID</th>
+                                <th class="text-left py-3 px-3 font-semibold hidden lg:table-cell">Department</th>
+                                <th class="text-left py-3 px-3 font-semibold hidden lg:table-cell">Shift</th>
+                                <th class="text-left py-3 px-3 font-semibold hidden md:table-cell">Availability</th>
+                                <th class="text-left py-3 px-3 font-semibold">Status</th>
+                                <th class="text-left py-3 px-3 font-semibold text-amber-600">Role ↕</th>
+                                <th class="text-right py-3 px-3 font-semibold">Actions</th>
+                            </tr>
+                            </thead>
+                            <tbody id="staff-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="pane-managers" class="tab-pane p-6">
+                    <div id="mgr-loading" class="flex items-center justify-center py-16 text-gray-400"><i class="fas fa-circle-notch fa-spin mr-2"></i> Loading…</div>
+                    <div id="mgr-empty" class="hidden flex-col items-center justify-center py-16 text-gray-400">
+                        <i class="fas fa-user-slash text-4xl mb-3 text-gray-300"></i><p class="font-medium">No managers found.</p>
+                    </div>
+                    <div class="overflow-x-auto hidden" id="mgr-table-wrap">
+                        <table class="w-full text-sm">
+                            <thead>
+                            <tr class="border-b border-gray-100 text-xs uppercase tracking-widest text-gray-400">
+                                <th class="text-left py-3 px-3 font-semibold">Name</th>
+                                <th class="text-left py-3 px-3 font-semibold hidden md:table-cell">Emp ID</th>
+                                <th class="text-left py-3 px-3 font-semibold hidden lg:table-cell">Department</th>
+                                <th class="text-left py-3 px-3 font-semibold hidden lg:table-cell">Job Title</th>
+                                <th class="text-left py-3 px-3 font-semibold">Status</th>
+                                <th class="text-left py-3 px-3 font-semibold text-amber-600">Role ↕</th>
+                                <th class="text-right py-3 px-3 font-semibold">Actions</th>
+                            </tr>
+                            </thead>
+                            <tbody id="mgr-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="pane-admins" class="tab-pane p-6">
+                    <div id="admin-loading" class="flex items-center justify-center py-16 text-gray-400"><i class="fas fa-circle-notch fa-spin mr-2"></i> Loading…</div>
+                    <div id="admin-empty" class="hidden flex-col items-center justify-center py-16 text-gray-400">
+                        <i class="fas fa-user-shield text-4xl mb-3 text-gray-300"></i><p class="font-medium">No admins found.</p>
+                    </div>
+                    <div class="overflow-x-auto hidden" id="admin-table-wrap">
+                        <table class="w-full text-sm">
+                            <thead>
+                            <tr class="border-b border-gray-100 text-xs uppercase tracking-widest text-gray-400">
+                                <th class="text-left py-3 px-3 font-semibold">Name</th>
+                                <th class="text-left py-3 px-3 font-semibold hidden md:table-cell">Emp ID</th>
+                                <th class="text-left py-3 px-3 font-semibold hidden lg:table-cell">Email</th>
+                                <th class="text-left py-3 px-3 font-semibold">Status</th>
+                                <th class="text-left py-3 px-3 font-semibold text-amber-600">Role ↕</th>
+                                <th class="text-right py-3 px-3 font-semibold">Actions</th>
+                            </tr>
+                            </thead>
+                            <tbody id="admin-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- ROLE CHANGE MODAL -->
+<div id="roleModal" class="modal-backdrop">
+    <div class="modal-box" style="max-width:440px">
+        <div class="flex items-center justify-between mb-5">
+            <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                <i class="fas fa-exchange-alt text-amber-500"></i> Confirm Role Change
+            </h3>
+            <button onclick="closeModal('roleModal')" class="text-gray-400 hover:text-gray-600 text-xl"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="rc-card mb-5">
+            <div class="flex items-center gap-3 mb-4">
+                <div id="rc-avatar" class="w-12 h-12 rounded-full flex items-center justify-center text-white text-base font-bold flex-shrink-0 bg-gray-400">?</div>
+                <div>
+                    <p id="rc-name" class="font-bold text-gray-800 text-base">—</p>
+                    <p id="rc-meta" class="text-xs text-gray-500 mt-0.5">—</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <span id="rc-from-chip" class="role-chip">—</span>
+                <div class="flex-1 flex items-center gap-1 text-amber-400">
+                    <div class="flex-1 h-0.5 bg-amber-200 rounded"></div>
+                    <i class="fas fa-arrow-right"></i>
+                    <div class="flex-1 h-0.5 bg-amber-200 rounded"></div>
+                </div>
+                <span id="rc-to-chip" class="role-chip">—</span>
+            </div>
+        </div>
+        <div class="bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-5 text-xs text-red-700 leading-relaxed">
+            <i class="fas fa-exclamation-triangle mr-1"></i>
+            <strong>What happens:</strong>
+            <span id="rc-name-inline">This member</span>'s record will be
+            <strong>moved</strong> from the <span id="rc-from-warn" class="font-semibold underline"></span> table
+            to the <span id="rc-to-warn" class="font-semibold underline"></span> table.
+            Their username, password and personal details are preserved.
+        </div>
+        <div class="flex gap-3 justify-end">
+            <button onclick="closeModal('roleModal')" class="px-4 py-2.5 text-sm font-semibold text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 transition">Cancel</button>
+            <button onclick="confirmRoleChange()" id="rc-btn" class="px-5 py-2.5 text-sm font-semibold text-white bg-amber-500 hover:bg-amber-600 rounded-lg transition flex items-center gap-2">
+                <i class="fas fa-exchange-alt"></i> Apply Role Change
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- VIEW DETAIL MODAL -->
+<div id="viewModal" class="modal-backdrop">
+    <div class="modal-box">
+        <div class="flex items-start justify-between mb-5">
+            <div class="flex items-center gap-4">
+                <div id="vm-avatar" class="w-14 h-14 rounded-full flex items-center justify-center text-white text-xl font-bold flex-shrink-0 bg-gray-400">?</div>
+                <div>
+                    <h3 id="vm-name" class="text-xl font-bold text-gray-800">—</h3>
+                    <div id="vm-tags" class="flex gap-2 mt-1"></div>
+                </div>
+            </div>
+            <button onclick="closeModal('viewModal')" class="text-gray-400 hover:text-gray-600 text-xl"><i class="fas fa-times"></i></button>
+        </div>
+        <div id="vm-body" class="grid grid-cols-2 gap-3 text-sm"></div>
+        <div class="flex gap-3 mt-6 justify-end">
+            <button onclick="closeModal('viewModal')" class="px-4 py-2 text-sm font-semibold text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50">Close</button>
+            <button id="vm-edit-btn" class="px-5 py-2 text-sm font-semibold text-white bg-brand rounded-lg hover-brand transition"><i class="fas fa-pen mr-1"></i> Edit</button>
+        </div>
+    </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div id="editModal" class="modal-backdrop">
+    <div class="modal-box">
+        <div class="flex items-center justify-between mb-5">
+            <h3 id="em-title" class="text-lg font-bold text-gray-800">Edit Member</h3>
+            <button onclick="closeModal('editModal')" class="text-gray-400 hover:text-gray-600 text-xl"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="grid grid-cols-2 gap-3 mb-4" id="em-fields"></div>
+        <div class="mt-4 pt-4 border-t border-gray-100">
+            <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Password <span class="text-gray-300 normal-case font-normal">(optional — leave blank to keep)</span></p>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">New Password</label>
+                    <input type="password" id="em-newPw" class="form-input" placeholder="Min. 6 chars"/>
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Confirm Password</label>
+                    <input type="password" id="em-confirmPw" class="form-input" placeholder="Repeat"/>
+                </div>
+            </div>
+        </div>
+        <div class="flex gap-3 justify-end mt-6">
+            <button onclick="closeModal('editModal')" class="px-4 py-2 text-sm font-semibold text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
+            <button onclick="submitEdit()" id="em-save-btn" class="px-6 py-2 text-sm font-semibold text-white bg-brand rounded-lg hover-brand transition"><i class="fas fa-save"></i> Save Changes</button>
+        </div>
+    </div>
+</div>
+
+<!-- DEACTIVATE MODAL -->
+<div id="deactModal" class="modal-backdrop">
+    <div class="modal-box text-center" style="max-width:400px">
+        <div class="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-4"><i class="fas fa-user-slash text-amber-500 text-2xl"></i></div>
+        <h3 class="text-xl font-bold text-gray-800 mb-2">Deactivate Account?</h3>
+        <p id="deact-desc" class="text-gray-500 text-sm leading-relaxed">
+            Deactivating this account will immediately prevent the user from signing in and accessing the system.
+            You can restore access later by reactivating the account from <strong>Edit</strong>.
+        </p>
+        <div class="flex gap-3 justify-center mt-6">
+            <button onclick="closeModal('deactModal')" class="px-5 py-2.5 text-sm font-semibold text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
+            <button onclick="confirmDeactivate()" id="deact-btn" class="px-5 py-2.5 text-sm font-semibold text-white bg-amber-500 hover:bg-amber-600 rounded-lg transition"><i class="fas fa-user-slash mr-1"></i> Deactivate</button>
+        </div>
+    </div>
+</div>
+
+<!-- REACTIVATE MODAL -->
+<div id="reactModal" class="modal-backdrop">
+    <div class="modal-box text-center" style="max-width:400px">
+        <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4"><i class="fas fa-user-check text-green-600 text-2xl"></i></div>
+        <h3 class="text-xl font-bold text-gray-800 mb-2">Activate Account?</h3>
+        <p class="text-gray-500 text-sm">The user will be able to sign in again.</p>
+        <div class="flex gap-3 justify-center mt-6">
+            <button onclick="closeModal('reactModal')" class="px-5 py-2.5 text-sm font-semibold text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
+            <button onclick="confirmReactivate()" id="react-btn" class="px-5 py-2.5 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg transition flex items-center gap-2"><i class="fas fa-user-check"></i> Activate</button>
+        </div>
+    </div>
+</div>
+
+<!-- BLOCKED ACTION MODAL (used when technicians have active tasks) -->
+<div id="blockedModal" class="modal-backdrop">
+    <div class="modal-box" style="max-width:520px">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold text-gray-800">Action unavailable</h3>
+            <button onclick="closeModal('blockedModal')" class="text-gray-400 hover:text-gray-600 text-xl"><i class="fas fa-times"></i></button>
+        </div>
+        <p id="blk-sub" class="text-sm font-semibold text-gray-700"></p>
+        <p id="blk-body" class="text-sm text-gray-500 mt-2 leading-relaxed"></p>
+        <div class="flex justify-end mt-6">
+            <button onclick="closeModal('blockedModal')" class="px-5 py-2.5 text-sm font-semibold text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">OK</button>
+        </div>
+    </div>
+</div>
+
+<div id="toast" class="px-5 py-3 rounded-xl shadow-xl text-sm font-semibold flex items-center gap-2"></div>
+
+<script>
+    const API = 'http://localhost:8080/api/manager/staff-mgmt';
+    const token = localStorage.getItem('managerToken');
+    if (!token) window.location.href='/';
+
+    function authHeaders() {
+        return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+    }
+    function logout() { localStorage.clear(); window.location.href='/'; }
+
+    try {
+        const m = JSON.parse(localStorage.getItem('manager')||'{}');
+        if (m.firstName) document.getElementById('topbarName').textContent = `${m.firstName} ${m.lastName}`;
+    } catch(e) {}
+
+    let allTech = [], allStaff = [], allMgr = [], allAdmins = [];
+    let currentTab = 'technicians';
+    let deactTarget = null, editTarget = null, reactTarget = null;
+    let rcPending = null;
+
+    const ROLE_LABEL  = { technician:'Technician', staff:'Staff Operator', manager:'Manager', admin:'Admin' };
+    const ROLE_CLS    = { technician:'role-technician', staff:'role-staff', manager:'role-manager', admin:'role-admin' };
+    const ROLE_BG     = { technician:'#6366f1', staff:'#059669', manager:'#9333ea', admin:'#dc2626' };
+    const ROLE_EP     = { technician:'technicians', staff:'staff', manager:'managers', admin:'admins' };
+
+    function switchTab(tab) {
+        currentTab = tab;
+        ['technicians','staff','managers','admins'].forEach(t => {
+            document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
+            document.getElementById(`pane-${t}`).classList.toggle('active', t === tab);
+        });
+        document.getElementById('searchInput').value = '';
+        renderCurrent();
+    }
+
+    async function fetchJSON(url) {
+        const res = await fetch(url, { headers: authHeaders() });
+        if (res.status === 401) { logout(); throw new Error('Unauthorized'); }
+        return res.json();
+    }
+
+    async function loadAll() {
+        const [t, s, m, a] = await Promise.allSettled([
+            fetchJSON(`${API}/technicians`),
+            fetchJSON(`${API}/staff`),
+            fetchJSON(`${API}/managers`),
+            fetchJSON(`${API}/admins`)
+        ]);
+        allTech  = t.status==='fulfilled' && Array.isArray(t.value) ? t.value : [];
+        allStaff = s.status==='fulfilled' && Array.isArray(s.value) ? s.value : [];
+        allMgr   = m.status==='fulfilled' && Array.isArray(m.value) ? m.value : [];
+        allAdmins= a.status==='fulfilled' && Array.isArray(a.value) ? a.value : [];
+        renderTech(allTech); renderStaff(allStaff); renderMgr(allMgr); renderAdmins(allAdmins);
+        updateStats();
+    }
+
+    function updateStats() {
+        document.getElementById('countTech').textContent  = allTech.length;
+        document.getElementById('countStaff').textContent = allStaff.length;
+        document.getElementById('countMgr').textContent   = allMgr.length;
+        document.getElementById('countTotal').textContent = allAdmins.length;
+        document.getElementById('badge-tech').textContent  = allTech.length;
+        document.getElementById('badge-staff').textContent = allStaff.length;
+        document.getElementById('badge-mgr').textContent   = allMgr.length;
+        document.getElementById('badge-admin').textContent = allAdmins.length;
+    }
+
+    function showState(prefix, state) {
+        ['loading','empty','table-wrap'].forEach(s => {
+            const el = document.getElementById(`${prefix}-${s}`);
+            if (el) { el.classList.add('hidden'); el.classList.remove('flex'); }
+        });
+        const id = state==='table' ? `${prefix}-table-wrap` : `${prefix}-${state}`;
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.remove('hidden');
+        if (state !== 'table') el.classList.add('flex');
+    }
+
+    function availBadge(s) {
+        const m = {AVAILABLE:'badge-avail',BUSY:'badge-busy',ON_LEAVE:'badge-leave',INACTIVE:'badge-inactive'};
+        return `<span class="px-2 py-0.5 rounded-full text-xs font-semibold ${m[s]||'bg-gray-100 text-gray-500'}">${s||'—'}</span>`;
+    }
+    function activeBadge(a) {
+        return a ? '<span class="px-2 py-0.5 rounded-full text-xs font-semibold badge-active">Active</span>'
+            : '<span class="px-2 py-0.5 rounded-full text-xs font-semibold badge-inactive">Inactive</span>';
+    }
+    function fmtDate(s) {
+        if (!s) return '—';
+        try { return new Date(s).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}); }
+        catch { return s; }
+    }
+    function ini(f,l) { return ((f?.[0]||'')+(l?.[0]||'')).toUpperCase()||'?'; }
+
+    function roleCell(role, id) {
+        const others = ['technician','staff','manager','admin'].filter(r => r !== role);
+        const uid = `rs-${role}-${id}`, bid = `rb-${role}-${id}`;
+        const opts = others.map(r => `<option value="${r}">${ROLE_LABEL[r]}</option>`).join('');
+        return `<td class="py-2.5 px-3 whitespace-nowrap" onclick="event.stopPropagation()"><div class="flex items-center gap-2"><select id="${uid}" class="role-select" data-role="${role}" data-id="${id}" onchange="onRoleChange('${uid}','${bid}')"><option value="${role}" selected>${ROLE_LABEL[role]} (current)</option>${opts}</select><button id="${bid}" class="apply-btn" onclick="openRoleConfirm('${uid}')"><i class="fas fa-check text-xs"></i> Apply</button></div></td>`;
+    }
+
+    function onRoleChange(uid, bid) {
+        const sel = document.getElementById(uid), btn = document.getElementById(bid);
+        const changed = sel.value !== sel.dataset.role;
+        sel.classList.toggle('changed', changed);
+        btn.classList.toggle('show', changed);
+    }
+
+    function actionBtns(role, id, active) {
+        // For technicians only: show disclaimer if they have active tasks
+        if (role === 'technician') {
+            const p = findRecord(role, id);
+            const blocked = isTechBlocked(p);
+            const blockedTitle = blocked ? `Unavailable — ${techActiveTasksCount(p)} active assignment(s)` : (active ? 'Deactivate' : 'Activate');
+
+            const toggle = active
+                ? `<button title="${blockedTitle}" onclick="event.stopPropagation(); if(${blocked}){showBlockedDisclaimer(findRecord('technician',${id}));} else {openDeact('${role}',${id});}" class="p-1.5 rounded-lg hover:bg-amber-50 ${blocked ? 'text-amber-300 cursor-not-allowed' : 'text-amber-500'}"><i class="fas fa-user-slash text-xs"></i></button>`
+                : `<button title="Activate" onclick="event.stopPropagation(); openReact('${role}',${id});" class="p-1.5 rounded-lg hover:bg-green-50 text-green-600"><i class="fas fa-user-check text-xs"></i></button>`;
+
+            return `<td class="py-3 px-3 text-right" onclick="event.stopPropagation()">
+              <div class="flex gap-1 justify-end">
+                <button onclick="viewDetail('${role}',${id})" title="View" class="p-1.5 rounded-lg hover:bg-indigo-50 text-indigo-500"><i class="fas fa-eye text-xs"></i></button>
+                <button onclick="openEditModal('${role}',${id})" title="Edit" class="p-1.5 rounded-lg hover:bg-green-50 text-green-600"><i class="fas fa-pen text-xs"></i></button>
+                ${toggle}
+              </div>
+            </td>`;
+        }
+
+        const toggle = active
+            ? `<button onclick="openDeact('${role}',${id})" title="Deactivate" class="p-1.5 rounded-lg hover:bg-amber-50 text-amber-500"><i class="fas fa-user-slash text-xs"></i></button>`
+            : `<button onclick="openReact('${role}',${id})" title="Activate" class="p-1.5 rounded-lg hover:bg-green-50 text-green-600"><i class="fas fa-user-check text-xs"></i></button>`;
+
+        // Default buttons for other roles
+        return `<td class="py-3 px-3 text-right" onclick="event.stopPropagation()"><div class="flex gap-1 justify-end"><button onclick="viewDetail('${role}',${id})" title="View" class="p-1.5 rounded-lg hover:bg-indigo-50 text-indigo-500"><i class="fas fa-eye text-xs"></i></button><button onclick="openEditModal('${role}',${id})" title="Edit" class="p-1.5 rounded-lg hover:bg-green-50 text-green-600"><i class="fas fa-pen text-xs"></i></button>${toggle}</div></td>`;
+    }
+
+    function openReact(role, id) {
+        reactTarget = { role, id: parseInt(id) };
+        openModal('reactModal');
+    }
+
+    async function confirmReactivate() {
+        if (!reactTarget) return;
+        const btn = document.getElementById('react-btn');
+        btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Activating…';
+        try {
+            const { role, id } = reactTarget;
+            const res = await fetch(`${API}/${ROLE_EP[role]}/${id}/reactivate`, { method:'PATCH', headers: authHeaders() });
+            if (res.ok) { showToast('Account activated.','success'); closeModal('reactModal'); reactTarget = null; await loadAll(); }
+            else { const d=await res.json(); showToast(d.error||'Failed.','error'); }
+        } catch { showToast('Connection error.','error'); }
+        finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-user-check"></i> Activate'; }
+    }
+
+    function techActiveTasksCount(p) {
+        const total = p?.totalAssignedSchedules || 0;
+        const done = p?.completedSchedules || 0;
+        const pendingSchedules = Math.max(0, total - done);
+        const openRepairs = p?.openRepairs || 0;
+        return pendingSchedules + openRepairs;
+    }
+
+    function isTechBlocked(p) {
+        return techActiveTasksCount(p) > 0;
+    }
+
+    function showBlockedDisclaimer(p) {
+        document.getElementById('blk-sub').textContent = `${p.firstName} ${p.lastName} cannot be modified right now.`;
+        document.getElementById('blk-body').textContent = `They currently have active assignments. These tasks must be completed or reassigned before modifying this account.`;
+        openModal('blockedModal');
+    }
+
+    function renderTech(list) {
+        const tbody = document.getElementById('tech-tbody');
+        if (!list.length) { showState('tech','empty'); tbody.innerHTML=''; return; }
+        showState('tech','table');
+        tbody.innerHTML = list.map(t => {
+            const activeTasks = techActiveTasksCount(t);
+            const blocked = activeTasks > 0;
+            const blockedTitle = blocked ? `Unavailable — ${activeTasks} active assignment(s)` : '';
+
+            const toggleBtn = t.active
+                ? `
+            <button ${blocked ? `title=\"${blockedTitle}\"` : 'title=\"Deactivate\"'}
+              onclick=\"event.stopPropagation(); if(${blocked}){showBlockedDisclaimer(findRecord('technician', ${t.id}));} else {openDeact('technician',${t.id});}\"
+              class=\"p-1.5 rounded-lg hover:bg-amber-50 ${blocked ? 'text-amber-300 cursor-not-allowed' : 'text-amber-500'}\">
+              <i class=\"fas fa-user-slash text-xs\"></i>
+            </button>`
+                : `
+            <button title=\"Activate\" onclick=\"event.stopPropagation(); openReact('technician',${t.id});\" class=\"p-1.5 rounded-lg hover:bg-green-50 text-green-600\">
+              <i class=\"fas fa-user-check text-xs\"></i>
+            </button>`;
+
+            return `
+    <tr class="tbl-row border-b border-gray-50 cursor-pointer" onclick="viewDetail('technician',${t.id})">
+      <td class="py-3 px-3">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style="background:${ROLE_BG.technician}">${ini(t.firstName,t.lastName)}</div>
+          <div><p class="font-semibold text-gray-800">${t.firstName} ${t.lastName}</p><p class="text-gray-400 text-xs">@${t.username} · ${t.email}</p></div>
+        </div>
+      </td>
+      <td class="py-3 px-3 text-gray-500 hidden md:table-cell">${t.employeeId||'—'}</td>
+      <td class="py-3 px-3 text-gray-500 hidden lg:table-cell">${t.specialization||'—'}</td>
+      <td class="py-3 px-3 hidden md:table-cell">${availBadge(t.availabilityStatus)}</td>
+      <td class="py-3 px-3">${activeBadge(t.active)}</td>
+      ${roleCell('technician',t.id)}
+      <td class="py-3 px-3 text-right" onclick="event.stopPropagation()">
+        <div class="flex gap-1 justify-end">
+          <button onclick="viewDetail('technician',${t.id})" title="View" class="p-1.5 rounded-lg hover:bg-indigo-50 text-indigo-500"><i class="fas fa-eye text-xs"></i></button>
+          <button onclick="openEditModal('technician',${t.id})" title="Edit" class="p-1.5 rounded-lg hover:bg-green-50 text-green-600"><i class="fas fa-pen text-xs"></i></button>
+          ${toggleBtn}
+        </div>
+      </td>
+    </tr>`;
+        }).join('');
+    }
+
+    function renderStaff(list) {
+        const tbody = document.getElementById('staff-tbody');
+        if (!list.length) { showState('staff','empty'); tbody.innerHTML=''; return; }
+        showState('staff','table');
+        tbody.innerHTML = list.map(s=>`
+    <tr class="tbl-row border-b border-gray-50 cursor-pointer" onclick="viewDetail('staff',${s.id})">
+      <td class="py-3 px-3">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style="background:${ROLE_BG.staff}">${ini(s.firstName,s.lastName)}</div>
+          <div><p class="font-semibold text-gray-800">${s.firstName} ${s.lastName}</p><p class="text-gray-400 text-xs">@${s.username} · ${s.email}</p></div>
+        </div>
+      </td>
+      <td class="py-3 px-3 text-gray-500 hidden md:table-cell">${s.employeeId||'—'}</td>
+      <td class="py-3 px-3 text-gray-500 hidden lg:table-cell">${s.department||'—'}</td>
+      <td class="py-3 px-3 text-gray-500 hidden lg:table-cell">${s.shift||'—'}</td>
+      <td class="py-3 px-3 hidden md:table-cell">${availBadge(s.availabilityStatus)}</td>
+      <td class="py-3 px-3">${activeBadge(s.active)}</td>
+      ${roleCell('staff',s.id)}
+      <td class="py-3 px-3 text-right" onclick="event.stopPropagation()">${actionBtns('staff',s.id,s.active)}</td>
+    </tr>`).join('');
+    }
+
+    function renderMgr(list) {
+        const tbody = document.getElementById('mgr-tbody');
+        if (!list.length) { showState('mgr','empty'); tbody.innerHTML=''; return; }
+        showState('mgr','table');
+        tbody.innerHTML = list.map(m=>`
+    <tr class="tbl-row border-b border-gray-50 cursor-pointer" onclick="viewDetail('manager',${m.id})">
+      <td class="py-3 px-3">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style="background:${ROLE_BG.manager}">${ini(m.firstName,m.lastName)}</div>
+          <div><p class="font-semibold text-gray-800">${m.firstName} ${m.lastName}</p><p class="text-gray-400 text-xs">@${m.username} · ${m.email}</p></div>
+        </div>
+      </td>
+      <td class="py-3 px-3 text-gray-500 hidden md:table-cell">${m.employeeId||'—'}</td>
+      <td class="py-3 px-3 text-gray-500 hidden lg:table-cell">${m.managedDepartment||'—'}</td>
+      <td class="py-3 px-3 text-gray-500 hidden lg:table-cell">${m.jobTitle||'—'}</td>
+      <td class="py-3 px-3">${activeBadge(m.active)}</td>
+      ${roleCell('manager',m.id)}
+      <td class="py-3 px-3 text-right" onclick="event.stopPropagation()">${actionBtns('manager',m.id,m.active)}</td>
+    </tr>`).join('');
+    }
+
+    function renderAdmins(list) {
+        const tbody = document.getElementById('admin-tbody');
+        if (!list.length) { showState('admin','empty'); tbody.innerHTML=''; return; }
+        showState('admin','table');
+        tbody.innerHTML = list.map(a=>`
+    <tr class="tbl-row border-b border-gray-50 cursor-pointer" onclick="viewDetail('admin',${a.id})">
+      <td class="py-3 px-3">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style="background:${ROLE_BG.admin}">${ini(a.firstName,a.lastName)}</div>
+          <div><p class="font-semibold text-gray-800">${a.firstName} ${a.lastName}</p><p class="text-gray-400 text-xs">@${a.username} · ${a.email}</p></div>
+        </div>
+      </td>
+      <td class="py-3 px-3 text-gray-500 hidden md:table-cell">${a.employeeId||'—'}</td>
+      <td class="py-3 px-3 text-gray-500 hidden lg:table-cell">${a.email||'—'}</td>
+      <td class="py-3 px-3">${activeBadge(a.active)}</td>
+      ${roleCell('admin',a.id)}
+      <td class="py-3 px-3 text-right" onclick="event.stopPropagation()">${actionBtns('admin',a.id,a.active)}</td>
+    </tr>`).join('');
+    }
+
+    function onSearch() { renderCurrent(document.getElementById('searchInput').value.toLowerCase().trim()); }
+    function renderCurrent(q='') {
+        const match = p => [`${p.firstName} ${p.lastName}`,p.email,p.username,p.employeeId||'',
+            p.department||'',p.managedDepartment||'',p.specialization||'',p.jobTitle||'']
+            .some(v=>v.toLowerCase().includes(q));
+        if (currentTab==='technicians') renderTech(q?allTech.filter(match):allTech);
+        else if (currentTab==='staff')  renderStaff(q?allStaff.filter(match):allStaff);
+        else if (currentTab==='managers') renderMgr(q?allMgr.filter(match):allMgr);
+        else renderAdmins(q?allAdmins.filter(match):allAdmins);
+    }
+
+    // Modal helpers
+    function openModal(id) {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('open');
+    }
+    function closeModal(id) {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('open');
+        if (id === 'editModal') editTarget = null;
+        if (id === 'deactModal') deactTarget = null;
+        if (id === 'reactModal') reactTarget = null;
+    }
+
+    ['viewModal','editModal','deactModal','reactModal','roleModal','blockedModal'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('click', function(e) { if (e.target === this) closeModal(id); });
+    });
+
+    let toastTimer;
+
+    function showToast(msg, type='info', pos='bottom-right') {
+        const colors = {
+            success: 'bg-green-500 text-white',
+            error: 'bg-red-500 text-white',
+            info: 'bg-blue-500 text-white',
+            warning: 'bg-yellow-500 text-gray-800'
+        };
+        const icons = {
+            success: 'fas fa-check',
+            error: 'fas fa-exclamation-triangle',
+            info: 'fas fa-info-circle',
+            warning: 'fas fa-exclamation-circle'
+        };
+        const color = colors[type] || colors.info;
+        const icon = icons[type] || icons.info;
+        const t = document.getElementById('toast');
+        t.className = `px-5 py-3 rounded-xl shadow-xl text-sm font-semibold flex items-center gap-2 show text-white ${color}`;
+        t.innerHTML = `<i class="fas ${icon}"></i> ${msg}`;
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.remove('show'), 4000);
+    }
+
+    const TECH_FIELDS = [
+        {id:'firstName',label:'First Name',type:'text',req:true},{id:'lastName',label:'Last Name',type:'text',req:true},
+        {id:'email',label:'Email',type:'email',req:true},{id:'phone',label:'Phone (10-15 digits)',type:'tel',req:true},
+        {id:'username',label:'Username',type:'text',req:true,dis:true},{id:'employeeId',label:'Employee ID',type:'text'},
+        {id:'specialization',label:'Specialization',type:'text',w2:true},{id:'experienceYears',label:'Exp. Years',type:'number'},
+        {id:'certifications',label:'Certifications',type:'text',w2:true},{id:'notes',label:'Notes',type:'text',w2:true},
+        {id:'availabilityStatus',label:'Availability',type:'select',opts:['AVAILABLE','BUSY','ON_LEAVE','INACTIVE']},
+    ];
+    const STAFF_FIELDS = [
+        {id:'firstName',label:'First Name',type:'text',req:true},{id:'lastName',label:'Last Name',type:'text',req:true},
+        {id:'email',label:'Email',type:'email',req:true},{id:'phone',label:'Phone (10-15 digits)',type:'tel',req:true},
+        {id:'username',label:'Username',type:'text',req:true,dis:true},{id:'employeeId',label:'Employee ID',type:'text'},
+        {id:'department',label:'Department',type:'select',opts:['OPERATIONS','WAREHOUSE','LOGISTICS','PRODUCTION','GENERAL']},
+        {id:'jobTitle',label:'Job Title',type:'text'},{id:'shift',label:'Shift',type:'select',opts:['Morning','Evening','Night']},
+        {id:'experienceYears',label:'Exp. Years',type:'number'},{id:'certifications',label:'Certifications',type:'text',w2:true},
+        {id:'notes',label:'Notes',type:'text',w2:true},
+        {id:'availabilityStatus',label:'Availability',type:'select',opts:['AVAILABLE','BUSY','ON_LEAVE','INACTIVE']},
+    ];
+    const MGR_FIELDS = [
+        {id:'firstName',label:'First Name',type:'text',req:true},{id:'lastName',label:'Last Name',type:'text',req:true},
+        {id:'email',label:'Email',type:'email',req:true},{id:'phone',label:'Phone (10-15 digits)',type:'tel',req:true},
+        {id:'username',label:'Username',type:'text',req:true,dis:true},{id:'employeeId',label:'Employee ID',type:'text'},
+        {id:'managedDepartment',label:'Managed Dept.',type:'select',opts:['OPERATIONS','WAREHOUSE','LOGISTICS','PRODUCTION','GENERAL','HR','FINANCE','SALES']},
+        {id:'jobTitle',label:'Job Title',type:'text'},{id:'experienceYears',label:'Exp. Years',type:'number'},
+        {id:'certifications',label:'Certifications',type:'text',w2:true},{id:'notes',label:'Notes',type:'text',w2:true},
+    ];
+    const ADM_FIELDS = [
+        {id:'firstName',label:'First Name',type:'text',req:true},{id:'lastName',label:'Last Name',type:'text',req:true},
+        {id:'email',label:'Email',type:'email',req:true},{id:'phone',label:'Phone (10-15 digits)',type:'tel',req:true},
+        {id:'username',label:'Username',type:'text',req:true,dis:true},{id:'employeeId',label:'Employee ID',type:'text'},
+        {id:'notes',label:'Notes',type:'text',w2:true},
+    ];
+    const FIELDS_MAP = { technician: TECH_FIELDS, staff: STAFF_FIELDS, manager: MGR_FIELDS, admin: ADM_FIELDS };
+
+    function viewDetail(role, id) {
+        const p = findRecord(role, parseInt(id));
+        if (!p) return;
+        const av = document.getElementById('vm-avatar');
+        av.textContent = ini(p.firstName, p.lastName); av.style.background = ROLE_BG[role]||'#6b7280';
+        document.getElementById('vm-name').textContent = `${p.firstName} ${p.lastName}`;
+        document.getElementById('vm-tags').innerHTML = `
+    <span class="role-chip ${ROLE_CLS[role]} text-xs">${ROLE_LABEL[role]}</span>${activeBadge(p.active)}`;
+        const rows = [
+            ['Username',`@${p.username}`],['Email',p.email],['Phone',p.phone||'—'],
+            ['Employee ID',p.employeeId||'—'],
+            role==='technician'?['Specialization',p.specialization||'—']:null,
+            role==='staff'?['Department',p.department||'—']:null,
+            role==='staff'?['Shift',p.shift||'—']:null,
+            role==='manager'?['Department',p.managedDepartment||'—']:null,
+            role==='manager'?['Job Title',p.jobTitle||'—']:null,
+            ['Exp. Years',p.experienceYears!=null?p.experienceYears+'y':'—'],
+            p.availabilityStatus?['Availability',availBadge(p.availabilityStatus)]:null,
+            ['Status',activeBadge(p.active)],['Joined',fmtDate(p.createdAt)],['Updated',fmtDate(p.updatedAt)],
+            p.notes?['Notes',p.notes]:null,
+        ].filter(Boolean);
+        document.getElementById('vm-body').innerHTML = rows.map(([k,v])=>`
+    <div class="bg-gray-50 rounded-lg px-3 py-2">
+      <p class="text-xs text-gray-400 font-semibold uppercase tracking-wide">${k}</p>
+      <p class="text-gray-700 font-medium mt-0.5 text-sm break-words">${v}</p>
+    </div>`).join('');
+        document.getElementById('vm-edit-btn').onclick = () => { closeModal('viewModal'); openEditModal(role, id); };
+        openModal('viewModal');
+    }
+
+    function openEditModal(role, id) {
+        const p = findRecord(role, parseInt(id));
+        if (!p) return;
+        editTarget = { role, id: parseInt(id) };
+        document.getElementById('em-title').textContent = `Edit ${ROLE_LABEL[role]}`;
+        document.getElementById('em-newPw').value = '';
+        document.getElementById('em-confirmPw').value = '';
+        document.getElementById('em-fields').innerHTML = (FIELDS_MAP[role]||[]).map(f => {
+            const val = p[f.id]!=null ? p[f.id] : '';
+            const dis = f.dis ? 'disabled' : '';
+            if (f.type==='select') {
+                const opts = (f.opts||[]).map(o=>`<option value="${o}" ${val===o?'selected':''}>${o}</option>`).join('');
+                return `<div class="${f.w2?'col-span-2':''}">
+        <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">${f.label}${f.req?' *':''}</label>
+        <select id="ef-${f.id}" class="form-input" ${dis}><option value="">— Select —</option>${opts}</select></div>`;
+            }
+            return `<div class="${f.w2?'col-span-2':''}">
+      <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">${f.label}${f.req?' *':''}</label>
+      <input type="${f.type}" id="ef-${f.id}" class="form-input" value="${val}" ${dis}/></div>`;
+        }).join('');
+        openModal('editModal');
+    }
+
+    function openDeact(role, id) {
+        const p = findRecord(role, parseInt(id));
+        if (role === 'technician' && isTechBlocked(p)) {
+            showBlockedDisclaimer(p);
+            return;
+        }
+        deactTarget = { role, id: parseInt(id) };
+        openModal('deactModal');
+    }
+
+    function openRoleConfirm(uid) {
+        const sel = document.getElementById(uid);
+        const fromRole = sel.dataset.role, fromId = parseInt(sel.dataset.id), toRole = sel.value;
+        if (toRole === fromRole) return;
+        const p = findRecord(fromRole, fromId);
+        rcPending = { fromRole, fromId, toRole, name: `${p?.firstName||''} ${p?.lastName||''}`.trim() };
+        const av = document.getElementById('rc-avatar');
+        av.textContent = ini(p?.firstName, p?.lastName);
+        av.style.background = ROLE_BG[fromRole]||'#6b7280';
+        document.getElementById('rc-name').textContent = rcPending.name;
+        document.getElementById('rc-meta').textContent = `@${p?.username||'?'} · ${p?.email||'?'}`;
+        document.getElementById('rc-name-inline').textContent = rcPending.name;
+        const fc = document.getElementById('rc-from-chip');
+        fc.textContent = ROLE_LABEL[fromRole]; fc.className = `role-chip ${ROLE_CLS[fromRole]}`;
+        const tc = document.getElementById('rc-to-chip');
+        tc.textContent = ROLE_LABEL[toRole]; tc.className = `role-chip ${ROLE_CLS[toRole]}`;
+        document.getElementById('rc-from-warn').textContent = `${ROLE_LABEL[fromRole]}s`;
+        document.getElementById('rc-to-warn').textContent   = `${ROLE_LABEL[toRole]}s`;
+        openModal('roleModal');
+    }
+
+    async function confirmRoleChange() {
+        if (!rcPending) return;
+        const btn = document.getElementById('rc-btn');
+        btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Applying…';
+        try {
+            const res = await fetch(`${API}/role-change`, {
+                method: 'POST', headers: authHeaders(),
+                body: JSON.stringify({ fromRole: rcPending.fromRole, fromId: rcPending.fromId, toRole: rcPending.toRole })
+            });
+            if (res.ok) {
+                closeModal('roleModal');
+                showToast(`✓ ${rcPending.name} is now a ${ROLE_LABEL[rcPending.toRole]}`, 'success');
+                rcPending = null; await loadAll();
+            } else { const data = await res.json(); showToast(data.error || 'Role change failed.', 'error'); }
+        } catch { showToast('Connection error.', 'error'); }
+        finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-exchange-alt"></i> Apply Role Change'; }
+    }
+
+    async function submitEdit() {
+        if (!editTarget) return;
+        const btn = document.getElementById('em-save-btn');
+        const role = editTarget.role;
+        const payload = {};
+        for (const f of (FIELDS_MAP[role]||[])) {
+            const el = document.getElementById(`ef-${f.id}`);
+            if (!el||el.disabled) continue;
+            const val = el.value.trim();
+            if (val!=='') payload[f.id] = f.type==='number' ? parseInt(val) : val;
+        }
+        const newPw = document.getElementById('em-newPw').value;
+        const cnfPw = document.getElementById('em-confirmPw').value;
+        if (newPw||cnfPw) {
+            if (newPw!==cnfPw) { showToast('Passwords do not match.','error'); return; }
+            if (newPw.length<6) { showToast('Password must be 6+ characters.','error'); return; }
+            payload.newPassword = newPw;
+        }
+        btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Saving…';
+        try {
+            const ep = ROLE_EP[role];
+            const url = `${API}/${ep}/${editTarget.id}`;
+            const res = await fetch(url, { method: 'PUT', headers: authHeaders(), body: JSON.stringify(payload) });
+            if (res.ok) { showToast('Member updated!','success'); closeModal('editModal'); await loadAll(); }
+            else { const data = await res.json(); showToast(data.error||'Save failed.','error'); }
+        } catch { showToast('Connection error.','error'); }
+        finally { btn.disabled=false; btn.innerHTML='<i class="fas fa-save"></i> Save Changes'; }
+    }
+
+    async function confirmDeactivate() {
+        if (!deactTarget) return;
+        const btn = document.getElementById('deact-btn');
+        btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Deactivating…';
+        try {
+            const { role, id } = deactTarget;
+            const res = await fetch(`${API}/${ROLE_EP[role]}/${id}/deactivate`, { method:'PATCH', headers: authHeaders() });
+            if (res.ok) { showToast('Account deactivated.','success'); closeModal('deactModal'); await loadAll(); }
+            else { const d=await res.json(); showToast(d.error||'Failed.','error'); }
+        } catch { showToast('Connection error.','error'); }
+        finally { btn.disabled=false; btn.innerHTML='<i class="fas fa-user-slash mr-1"></i> Deactivate'; }
+    }
+
+    async function confirmReactivate() {
+        if (!reactTarget) return;
+        const btn = document.getElementById('react-btn');
+        btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Activating…';
+        try {
+            const { role, id } = reactTarget;
+            const res = await fetch(`${API}/${ROLE_EP[role]}/${id}/reactivate`, { method:'PATCH', headers: authHeaders() });
+            if (res.ok) { showToast('Account activated.','success'); closeModal('reactModal'); reactTarget = null; await loadAll(); }
+            else { const d=await res.json(); showToast(d.error||'Failed.','error'); }
+        } catch { showToast('Connection error.','error'); }
+        finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-user-check"></i> Activate'; }
+    }
+
+    function findRecord(role, id) {
+        const n = parseInt(id);
+        if (role==='technician') return allTech.find(t=>t.id===n);
+        if (role==='staff')      return allStaff.find(s=>s.id===n);
+        if (role==='manager')    return allMgr.find(m=>m.id===n);
+        return allAdmins.find(a=>a.id===n);
+    }
+
+    loadAll();
+</script>
+</body>
+</html>

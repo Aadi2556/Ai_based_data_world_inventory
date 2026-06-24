@@ -1,0 +1,1445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Materials Management — PrintProTrack</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --forest:   #1a3a2a;
+            --pine:     #1e5c2f;
+            --sage:     #2d8a47;
+            --mint:     #3daa5a;
+            --mist:     #e8f5ec;
+            --ink:      #0f1a14;
+            --slate:    #4a5568;
+            --bone:     #f7f9f8;
+        }
+        *, *::before, *::after { box-sizing: border-box; }
+        body { font-family: 'DM Sans', sans-serif; background: var(--bone); color: var(--ink); margin: 0; }
+        code, .mono { font-family: 'DM Mono', monospace; }
+
+        /* Sidebar */
+        .sidebar { background: var(--forest); width: 260px; height: 100vh; flex-shrink: 0; display: flex; flex-direction: column; position: sticky; top: 0; }
+        .sidebar-logo { background: #fff; padding: 18px 22px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #0d2018; }
+        .sidebar-logo .brand-text { font-weight: 700; font-size: 17px; color: var(--pine); letter-spacing: .3px; }
+        .sidebar-badge { font-size: 10px; font-weight: 700; background: #d1fae5; color: #065f46; padding: 2px 7px; border-radius: 99px; letter-spacing: .5px; margin-left: auto; }
+        .sidebar-nav { flex: 1; overflow-y: auto; padding: 16px 12px; display: flex; flex-direction: column; gap: 2px; }
+        .nav-label { font-size: 10px; font-weight: 700; letter-spacing: 2px; color: #3d6b4e; text-transform: uppercase; padding: 10px 10px 4px; }
+        .nav-link { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; color: #9dbea8; font-size: 13.5px; font-weight: 500; text-decoration: none; transition: all .2s; border-left: 3px solid transparent; cursor: pointer; }
+        .nav-link:hover { background: rgba(255,255,255,.07); color: #fff; }
+        .nav-link.active { background: rgba(255,255,255,.12); color: #fff; border-left-color: var(--mint); }
+        .nav-link.disabled { opacity: .35; cursor: not-allowed; pointer-events: none; }
+        .nav-link i { width: 16px; text-align: center; font-size: 13px; }
+        .sidebar-footer { padding: 14px 12px; border-top: 1px solid #0d2018; }
+        .logout-btn { width: 100%; background: rgba(239,68,68,.15); color: #fca5a5; border: none; padding: 9px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; font-family: inherit; transition: background .2s; }
+        .logout-btn:hover { background: rgba(239,68,68,.28); }
+
+        /* Top nav */
+        .topnav { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 0 28px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 30; }
+        .topnav-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; }
+        .topnav-right { display: flex; align-items: center; gap: 18px; font-size: 13px; color: #64748b; }
+        .topnav-right a, .topnav-right button { color: #64748b; background: none; border: none; cursor: pointer; font-size: 13px; font-family: inherit; display: flex; align-items: center; gap: 5px; transition: color .15s; text-decoration: none; }
+        .topnav-right a:hover { color: #3b82f6; }
+        .topnav-right button:hover { color: #ef4444; }
+
+        /* Layout */
+        .page-wrap { display: flex; height: 100vh; overflow: hidden; }
+        .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .scroll-area { flex: 1; overflow-y: auto; padding: 28px; }
+        .content { max-width: 1280px; margin: 0 auto; }
+
+        /* Banner */
+        .banner { background: linear-gradient(135deg, var(--forest) 0%, var(--pine) 55%, var(--sage) 100%); border-radius: 16px; padding: 24px 28px; color: #fff; display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+        .banner h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px; }
+        .banner p { font-size: 13px; color: rgba(255,255,255,.7); margin: 0; }
+
+        /* Buttons */
+        .btn-primary { background: #fff; color: var(--pine); font-weight: 700; font-size: 13px; border: none; padding: 10px 18px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; gap: 7px; transition: all .15s; font-family: inherit; }
+        .btn-primary:hover { background: #e8f5ec; }
+        .btn-ghost { background: #f1f5f9; color: #475569; border: none; padding: 9px 14px; border-radius: 9px; font-weight: 600; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all .15s; font-family: inherit; }
+        .btn-ghost:hover { background: #e2e8f0; }
+        .btn-green { background: var(--sage); color: #fff; font-weight: 700; font-size: 13px; border: none; padding: 10px 18px; border-radius: 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; transition: all .15s; font-family: inherit; }
+        .btn-green:hover { background: var(--pine); }
+        .btn-danger { background: #fee2e2; color: #b91c1c; font-weight: 600; font-size: 12px; border: none; padding: 7px 13px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: all .15s; font-family: inherit; }
+        .btn-danger:hover { background: #fca5a5; }
+
+        /* Stat cards */
+        .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px; }
+        .stat-card { background: #fff; border-radius: 14px; padding: 18px 20px; border-top: 3px solid transparent; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+        .stat-card .label { font-size: 10px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #94a3b8; margin-bottom: 6px; }
+        .stat-card .value { font-size: 30px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+
+        /* Tabs */
+        .page-tabs { display: flex; gap: 4px; background: #fff; border-radius: 12px; padding: 5px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+        .page-tab { flex: 1; padding: 10px; border-radius: 9px; border: none; background: transparent; font-family: inherit; font-size: 13.5px; font-weight: 500; color: #64748b; cursor: pointer; transition: all .2s; display: flex; align-items: center; justify-content: center; gap: 7px; }
+        .page-tab.active { background: var(--pine); color: #fff; font-weight: 600; }
+        .page-tab:not(.active):hover { background: var(--mist); color: var(--pine); }
+        .tab-count { background: #f1f5f9; color: #64748b; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 99px; margin-left: 5px; }
+        .page-tab.active .tab-count { background: rgba(255,255,255,.2); color: #fff; }
+
+        /* Panels */
+        .panel { background: #fff; border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.06); overflow: hidden; }
+        .panel-header { padding: 16px 22px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+        .panel-title { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+
+        /* Toolbar */
+        .toolbar-left { display: flex; gap: 10px; align-items: center; flex: 1; }
+        .search-box { background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 9px; padding: 9px 14px 9px 36px; color: var(--ink); font-size: 13.5px; width: 240px; transition: border-color .2s; }
+        .search-box:focus { outline: none; border-color: var(--sage); }
+        .search-wrap { position: relative; }
+        .search-wrap i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 13px; pointer-events: none; }
+        .select-filter { background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 9px; padding: 9px 14px; color: var(--ink); font-size: 13.5px; cursor: pointer; font-family: inherit; }
+        .select-filter:focus { outline: none; border-color: var(--sage); }
+
+        /* Table */
+        .data-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+        .data-table thead th { padding: 12px 16px; text-align: left; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #94a3b8; background: #f8fafc; white-space: nowrap; }
+        .data-table tbody tr { border-bottom: 1px solid #f1f5f9; transition: background .15s; }
+        .data-table tbody tr:last-child { border-bottom: none; }
+        .data-table tbody tr:hover { background: #f8fafc; }
+        .data-table td { padding: 14px 16px; vertical-align: middle; }
+
+        /* Stock bar */
+        .stock-bar { width: 100px; background: #f1f5f9; border-radius: 99px; height: 6px; overflow: hidden; }
+        .stock-fill { height: 100%; border-radius: 99px; transition: width .3s; }
+
+        /* Badges */
+        .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; letter-spacing: .3px; white-space: nowrap; }
+        .b-NORMAL     { background: #d1fae5; color: #065f46; }
+        .b-LOW        { background: #fef3c7; color: #92400e; }
+        .b-CRITICAL   { background: #fee2e2; color: #b91c1c; }
+        .b-OVERSTOCKED{ background: #dbeafe; color: #1d4ed8; }
+        .b-USAGE      { background: #dbeafe; color: #1d4ed8; }
+        .b-WASTAGE    { background: #fee2e2; color: #b91c1c; }
+        .b-RESTOCK    { background: #d1fae5; color: #065f46; }
+        .b-ADJUSTMENT { background: #fef3c7; color: #92400e; }
+        .sev-CRITICAL { background: #fee2e2; color: #b91c1c; padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+        .sev-WARNING  { background: #fef3c7; color: #92400e; padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+        .sev-INFO     { background: #dbeafe; color: #1d4ed8; padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+
+        /* Material request urgency & status badges */
+        .mr-u-LOW      { background:#f1f5f9; color:#475569; }
+        .mr-u-MEDIUM   { background:#dbeafe; color:#1d4ed8; }
+        .mr-u-HIGH     { background:#fef3c7; color:#92400e; }
+        .mr-u-CRITICAL { background:#fee2e2; color:#b91c1c; }
+        .mr-s-PENDING  { background:#fef3c7; color:#92400e; }
+        .mr-s-REVIEWED { background:#dbeafe; color:#1d4ed8; }
+        .mr-s-ORDERED  { background:#d1fae5; color:#065f46; }
+        .mr-s-REJECTED { background:#fee2e2; color:#b91c1c; }
+
+        /* Action buttons */
+        .action-btn { width: 30px; height: 30px; border-radius: 8px; border: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all .15s; font-size: 12px; }
+        .action-btn.edit  { background: #f0fdf4; color: #16a34a; }
+        .action-btn.log   { background: #eff6ff; color: #3b82f6; }
+        .action-btn.del   { background: #fef2f2; color: #dc2626; }
+        .action-btn.order { background: #fff7ed; color: #ea580c; }
+        .action-btn:hover { filter: brightness(.93); transform: scale(1.06); }
+
+        /* Alert strip */
+        .alert-strip { background: #fee2e2; border: 1px solid #fecaca; border-radius: 10px; padding: 14px 18px; display: flex; align-items: center; gap: 12px; margin-bottom: 20px; color: #b91c1c; }
+        .alert-strip strong { font-weight: 700; }
+
+        /* Page alert */
+        .page-alert { display: none; padding: 10px 16px; border-radius: 9px; font-size: 13px; font-weight: 600; margin-bottom: 16px; }
+        .page-alert.show { display: block; }
+        .page-alert.success { background: #d1fae5; color: #065f46; }
+        .page-alert.error   { background: #fee2e2; color: #991b1b; }
+        .page-alert.warning { background: #fef3c7; color: #92400e; }
+
+        /* Modal */
+        .overlay { display: none; position: fixed; inset: 0; background: rgba(15,26,20,.5); z-index: 100; align-items: flex-start; justify-content: center; overflow-y: auto; padding: 40px 20px; backdrop-filter: blur(2px); }
+        .overlay.open { display: flex; }
+        .modal { background: #fff; border-radius: 18px; width: 640px; max-width: 96vw; margin: auto; animation: pop .2s ease; }
+        .modal.sm { max-width: 440px; }
+        @keyframes pop { from { opacity: 0; transform: translateY(12px) scale(.97); } to { opacity: 1; transform: none; } }
+        .modal-head { padding: 22px 26px 18px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between; }
+        .modal-head h3 { font-size: 17px; font-weight: 700; margin: 0; }
+        .modal-close { background: #f1f5f9; border: none; width: 30px; height: 30px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #64748b; font-size: 13px; transition: background .15s; }
+        .modal-close:hover { background: #e2e8f0; }
+        .modal-body { padding: 22px 26px; }
+        .modal-foot { padding: 16px 26px 22px; display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #f1f5f9; }
+
+        /* Form */
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .form-grid .full { grid-column: 1 / -1; }
+        .f-label { font-size: 11px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: #64748b; display: block; margin-bottom: 5px; }
+        .f-input { width: 100%; padding: 9px 12px; border: 1.5px solid #e2e8f0; border-radius: 9px; font-size: 13.5px; font-family: inherit; outline: none; transition: border-color .2s, box-shadow .2s; background: #fff; color: var(--ink); }
+        .f-input:focus { border-color: var(--sage); box-shadow: 0 0 0 3px rgba(45,138,71,.12); }
+        textarea.f-input { resize: vertical; min-height: 72px; }
+        .form-error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 10px 14px; border-radius: 9px; font-size: 13px; margin-top: 12px; display: none; }
+        .form-error.show { display: block; }
+
+        /* Reports */
+        .rpt-type-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 20px; }
+        .rpt-type-btn { border: 2px solid #e2e8f0; border-radius: 12px; padding: 18px 12px; text-align: center; cursor: pointer; background: #fff; transition: all .2s; }
+        .rpt-type-btn:hover { border-color: var(--sage); background: var(--mist); }
+        .rpt-type-btn.selected { border-color: var(--pine); background: rgba(30,92,47,.08); }
+        .rpt-type-btn .ricon { font-size: 1.6rem; display: block; margin-bottom: 8px; }
+        .rpt-type-btn strong { font-size: 0.82rem; color: var(--ink); display: block; }
+        .rpt-type-btn span { font-size: 0.7rem; color: #94a3b8; margin-top: 3px; display: block; }
+        .rpt-opts { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px 18px; margin-bottom: 18px; }
+        .chart-preview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 18px; }
+        .chart-box { background: #f8fafc; border-radius: 10px; padding: 16px; border: 1px solid #e2e8f0; }
+        .chart-box h6 { font-size: .72rem; font-weight: 700; color: #64748b; margin-bottom: 12px; text-transform: uppercase; letter-spacing: .5px; }
+        .chart-canvas-wrap { position: relative; height: 195px; }
+
+        /* Report overlay */
+        #reportOverlay { display: none; position: fixed; inset: 0; background: rgba(15,26,20,.7); backdrop-filter: blur(5px); z-index: 200; align-items: flex-start; justify-content: center; overflow-y: auto; padding: 24px; }
+        #reportOverlay.open { display: flex; }
+        #reportDoc { background: white; width: 100%; max-width: 960px; border-radius: 14px; overflow: hidden; box-shadow: 0 28px 90px rgba(0,0,0,.6); animation: pop .25s ease; margin: auto; }
+        .rpt-toolbar { background: var(--forest); color: white; padding: 14px 22px; display: flex; align-items: center; justify-content: space-between; }
+        .rpt-toolbar h6 { margin: 0; font-weight: 700; font-size: .95rem; }
+        .rpt-body { padding: 36px 40px; background: white; color: #1e293b; }
+
+        /* Empty state */
+        .empty-state { padding: 56px 20px; text-align: center; color: #94a3b8; }
+        .empty-state i { font-size: 40px; display: block; margin-bottom: 12px; }
+
+        /* Toast */
+        .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+        .toast-item { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 18px; font-size: .875rem; display: flex; align-items: center; gap: 10px; animation: pop .3s ease; min-width: 260px; box-shadow: 0 8px 24px rgba(0,0,0,.1); }
+        .toast-item.success { border-left: 3px solid #10b981; }
+        .toast-item.danger  { border-left: 3px solid #ef4444; }
+        .toast-item.warning { border-left: 3px solid #f59e0b; }
+
+        @media (max-width: 900px) { .sidebar { display: none; } .stat-grid { grid-template-columns: 1fr 1fr; } }
+        @media (max-width: 600px) { .stat-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+<div class="page-wrap">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <i class="fas fa-print" style="color:var(--pine);font-size:18px"></i>
+            <span class="brand-text">PrintProTrack</span>
+            <span class="sidebar-badge">ADMIN</span>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-label">Main</div>
+            <a href='/dashboard' class="nav-link"><i class="fas fa-house"></i> Dashboard</a>
+            <a href='/dashboard#profile' class="nav-link"><i class="fas fa-circle-user"></i> My Profile</a>
+            <div class="nav-label">Operations</div>
+            <a href='/maintenance' class="nav-link"><i class="fas fa-screwdriver-wrench"></i> Machine Maintenance</a>
+            <a href='/materials' class="nav-link active"><i class="fas fa-layer-group"></i> Materials Management</a>
+            <a href='/suppliers' class="nav-link"><i class="fas fa-truck"></i> Suppliers</a>
+            <a href='/staffmanagement' class="nav-link"><i class="fas fa-users-gear"></i> Staff Management</a>
+            <a class="nav-link disabled"><i class="fas fa-cogs"></i> Spare Parts</a>
+            <a class="nav-link disabled"><i class="fas fa-bolt"></i> Energy Consumption</a>
+        </nav>
+        <div class="sidebar-footer">
+            <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Sign Out</button>
+        </div>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="main">
+        <nav class="topnav">
+            <div class="topnav-brand">
+                <i class="fas fa-print" style="color:#6366f1;font-size:18px"></i>
+                PrintProTrack
+                <span style="font-size:11px;background:#e0e7ff;color:#4338ca;padding:2px 8px;border-radius:99px;font-weight:700;letter-spacing:.5px">ADMIN</span>
+            </div>
+            <div class="topnav-right">
+                <span>Welcome, <strong id="topbarName">Admin</strong></span>
+                <a href='/dashboard'><i class="fas fa-home"></i> Dashboard</a>
+                <button onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+            </div>
+        </nav>
+
+        <div class="scroll-area">
+            <div class="content">
+
+                <div id="pageAlert" class="page-alert"></div>
+
+                <!-- Banner -->
+                <div class="banner">
+                    <div>
+                        <h1><i class="fas fa-layer-group" style="margin-right:8px;opacity:.85"></i>Materials Management</h1>
+                        <p>Track inventory, usage, wastage, stock alerts, and staff requests for all printing materials.</p>
+                    </div>
+                    <button class="btn-primary" onclick="openMaterialModal()">
+                        <i class="fas fa-plus"></i> Add Material
+                    </button>
+                </div>
+
+                <!-- Critical alert strip -->
+                <div class="alert-strip" id="criticalStrip" style="display:none">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div><strong>Critical Stock Alert</strong> <span id="criticalStripText"></span></div>
+                    <button class="btn-ghost" onclick="switchTab('alerts')" style="font-size:.8rem;margin-left:auto">View →</button>
+                </div>
+
+                <!-- Stats -->
+                <div class="stat-grid">
+                    <div class="stat-card" style="border-top-color:#3b82f6">
+                        <div class="label">Total Materials</div>
+                        <div class="value" style="color:#3b82f6" id="statTotal">0</div>
+                    </div>
+                    <div class="stat-card" style="border-top-color:#ef4444">
+                        <div class="label">Critical / Low</div>
+                        <div class="value" style="color:#ef4444" id="statAlert">0</div>
+                        <div class="label" style="font-size:9px;margin-top:0" id="statAlertSub">critical / low</div>
+                    </div>
+                    <div class="stat-card" style="border-top-color:#f59e0b">
+                        <div class="label">Monthly Usage</div>
+                        <div class="value" style="color:#f59e0b" id="statUsage">0</div>
+                    </div>
+                    <div class="stat-card" style="border-top-color:#10b981">
+                        <div class="label">Inventory Value</div>
+                        <div class="value" style="color:#10b981" id="statValue">$0</div>
+                    </div>
+                </div>
+
+                <!-- Tabs -->
+                <div class="page-tabs">
+                    <button class="page-tab active" id="tabInventory" onclick="switchTab('inventory')">
+                        <i class="fas fa-boxes"></i> Inventory <span class="tab-count" id="tabCountInv">0</span>
+                    </button>
+                    <button class="page-tab" id="tabUsage" onclick="switchTab('usage')">
+                        <i class="fas fa-chart-bar"></i> Usage & Wastage <span class="tab-count" id="tabCountLogs">0</span>
+                    </button>
+                    <button class="page-tab" id="tabAlerts" onclick="switchTab('alerts')">
+                        <i class="fas fa-bell"></i> Stock Alerts <span class="tab-count" id="tabCountAlerts">0</span>
+                    </button>
+                    <button class="page-tab" id="tabReports" onclick="switchTab('reports')">
+                        <i class="fas fa-file-chart-bar"></i> Reports
+                    </button>
+                    <button class="page-tab" id="tabMatrequests" onclick="switchTab('matrequests')">
+                        <i class="fas fa-paper-plane"></i> Staff Requests
+                        <span id="matReqBadge" class="tab-count">0</span>
+                    </button>
+                </div>
+
+                <!-- INVENTORY PANEL -->
+                <div id="panelInventory" class="panel" style="display:block">
+                    <div class="panel-header">
+                        <div class="panel-title"><i class="fas fa-boxes" style="color:var(--sage)"></i> Materials Inventory</div>
+                        <div class="toolbar-left" style="justify-content:flex-end">
+                            <div class="search-wrap">
+                                <i class="fas fa-search"></i>
+                                <input type="text" class="search-box" id="searchMaterial" placeholder="Search materials..." oninput="filterMaterials()">
+                            </div>
+                            <select class="select-filter" id="filterCategory" onchange="filterMaterials()">
+                                <option value="">All Categories</option>
+                                <option value="PRINTING_PAPER">Printing Paper</option>
+                                <option value="INK_TONER">Ink / Toner</option>
+                                <option value="VINYL">Vinyl</option>
+                                <option value="CARDSTOCK">Cardstock</option>
+                                <option value="LAMINATE">Laminate</option>
+                                <option value="BINDING_MATERIAL">Binding Material</option>
+                                <option value="CLEANING_SUPPLY">Cleaning Supply</option>
+                                <option value="OTHER">Other</option>
+                            </select>
+                            <select class="select-filter" id="filterStock" onchange="filterMaterials()">
+                                <option value="">All Stock Levels</option>
+                                <option value="CRITICAL">Critical</option>
+                                <option value="LOW">Low</option>
+                                <option value="NORMAL">Normal</option>
+                                <option value="OVERSTOCKED">Overstocked</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="overflow-x:auto">
+                        <table class="data-table">
+                            <thead><tr><th>Material</th><th>Category</th><th>Stock Level</th><th>Unit Cost</th><th>Status</th><th>Supplier</th><th style="text-align:center">Actions</th></tr></thead>
+                            <tbody id="materialsTbody"><tr><td colspan="7"><div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading…</p></div></td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- USAGE PANEL -->
+                <div id="panelUsage" class="panel" style="display:none">
+                    <div class="panel-header">
+                        <div class="panel-title"><i class="fas fa-chart-bar" style="color:#f59e0b"></i> Usage & Wastage Logs</div>
+                        <div class="toolbar-left" style="justify-content:flex-end">
+                            <select class="select-filter" id="filterLogType" onchange="filterLogs()">
+                                <option value="">All Types</option>
+                                <option value="USAGE">Usage</option>
+                                <option value="WASTAGE">Wastage</option>
+                                <option value="RESTOCK">Restock</option>
+                                <option value="ADJUSTMENT">Adjustment</option>
+                            </select>
+                            <button class="btn-primary" onclick="openLogModal()"><i class="fas fa-plus"></i> Log Entry</button>
+                        </div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin:16px 22px">
+                        <div class="stat-card" style="border-top-color:#3b82f6;padding:12px"><div class="label">Usage (Month)</div><div class="value" style="color:#3b82f6;font-size:22px" id="lgMonthUsage">0</div></div>
+                        <div class="stat-card" style="border-top-color:#ef4444;padding:12px"><div class="label">Wastage (Month)</div><div class="value" style="color:#ef4444;font-size:22px" id="lgMonthWaste">0</div></div>
+                        <div class="stat-card" style="border-top-color:#10b981;padding:12px"><div class="label">Efficiency</div><div class="value" style="color:#10b981;font-size:22px" id="lgEfficiency">—</div></div>
+                    </div>
+                    <div style="overflow-x:auto">
+                        <table class="data-table">
+                            <thead><tr><th>Date</th><th>Material</th><th>Type</th><th>Quantity</th><th>Before → After</th><th>Job Ref</th><th>Reason / Notes</th><th>Logged By</th></tr></thead>
+                            <tbody id="logsTbody"><tr><td colspan="8"><div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading…</p></div></td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ALERTS PANEL -->
+                <div id="panelAlerts" class="panel" style="display:none">
+                    <div class="panel-header">
+                        <div class="panel-title"><i class="fas fa-bell" style="color:#dc2626"></i> Stock Alerts</div>
+                        <div class="toolbar-left" style="justify-content:flex-end">
+                            <select class="select-filter" id="filterAlertSev" onchange="filterAlerts()">
+                                <option value="">All Severities</option>
+                                <option value="CRITICAL">Critical</option>
+                                <option value="WARNING">Warning</option>
+                                <option value="INFO">Info</option>
+                            </select>
+                            <button class="btn-ghost" onclick="runScan()"><i class="fas fa-sync-alt"></i> Refresh</button>
+                        </div>
+                    </div>
+                    <div style="overflow-x:auto">
+                        <table class="data-table">
+                            <thead><tr><th>Severity</th><th>Material</th><th>Alert Message</th><th>Stock at Alert</th><th>Date</th><th>Status</th><th style="text-align:center">Actions</th></tr></thead>
+                            <tbody id="alertsTbody"><tr><td colspan="7"><div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading…</p></div></td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- REPORTS PANEL -->
+                <div id="panelReports" class="panel" style="display:none">
+                    <div class="panel-header">
+                        <div class="panel-title"><i class="fas fa-file-chart-bar" style="color:var(--sage)"></i> Materials Reports</div>
+                    </div>
+                    <div style="padding:22px">
+                        <div class="rpt-type-grid">
+                            <div class="rpt-type-btn selected" id="mrt-inventory" onclick="selMRpt('inventory')">
+                                <span class="ricon">📦</span><strong>Inventory Status</strong><span>Full stock levels & values</span>
+                            </div>
+                            <div class="rpt-type-btn" id="mrt-usage" onclick="selMRpt('usage')">
+                                <span class="ricon">📊</span><strong>Usage & Wastage</strong><span>Consumption & efficiency</span>
+                            </div>
+                            <div class="rpt-type-btn" id="mrt-alerts" onclick="selMRpt('alerts')">
+                                <span class="ricon">🚨</span><strong>Stock Alerts</strong><span>Low & critical items</span>
+                            </div>
+                            <div class="rpt-type-btn" id="mrt-full" onclick="selMRpt('full')">
+                                <span class="ricon">📋</span><strong>Full Materials Report</strong><span>All sections combined</span>
+                            </div>
+                        </div>
+                        <div class="rpt-opts">
+                            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px">
+                                <div><label class="f-label">Category</label>
+                                    <select class="select-filter" style="width:100%" id="mrCatFilter">
+                                        <option value="">All</option>
+                                        <option value="PRINTING_PAPER">Printing Paper</option>
+                                        <option value="INK_TONER">Ink / Toner</option>
+                                        <option value="VINYL">Vinyl</option>
+                                        <option value="CARDSTOCK">Cardstock</option>
+                                        <option value="LAMINATE">Laminate</option>
+                                        <option value="BINDING_MATERIAL">Binding Material</option>
+                                        <option value="CLEANING_SUPPLY">Cleaning Supply</option>
+                                        <option value="OTHER">Other</option>
+                                    </select>
+                                </div>
+                                <div><label class="f-label">Stock Status</label>
+                                    <select class="select-filter" style="width:100%" id="mrStockFilter">
+                                        <option value="">All</option>
+                                        <option value="CRITICAL">Critical</option>
+                                        <option value="LOW">Low</option>
+                                        <option value="NORMAL">Normal</option>
+                                    </select>
+                                </div>
+                                <div><label class="f-label">Log Type</label>
+                                    <select class="select-filter" style="width:100%" id="mrLogFilter">
+                                        <option value="">All</option>
+                                        <option value="USAGE">Usage</option>
+                                        <option value="WASTAGE">Wastage</option>
+                                        <option value="RESTOCK">Restock</option>
+                                    </select>
+                                </div>
+                                <div><label class="f-label">Report Date</label>
+                                    <input type="date" class="f-input" id="mrDate">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="chart-preview-grid">
+                            <div class="chart-box"><h6>Stock by Category</h6><div class="chart-canvas-wrap"><canvas id="mCatChart"></canvas></div></div>
+                            <div class="chart-box"><h6>Stock Status Distribution</h6><div class="chart-canvas-wrap"><canvas id="mStatusChart"></canvas></div></div>
+                            <div class="chart-box"><h6>Top Items by Usage (Month)</h6><div class="chart-canvas-wrap"><canvas id="mUsageChart"></canvas></div></div>
+                            <div class="chart-box"><h6>Wastage vs Usage Ratio</h6><div class="chart-canvas-wrap"><canvas id="mWasteChart"></canvas></div></div>
+                        </div>
+                        <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
+                            <button class="btn-ghost" onclick="buildMCharts()"><i class="fas fa-sync-alt"></i> Refresh Charts</button>
+                            <button class="btn-primary" onclick="generateMaterialReport()"><i class="fas fa-file-pdf"></i> Generate Report</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STAFF MATERIAL REQUESTS PANEL -->
+                <div id="panelMatrequests" class="panel" style="display:none">
+                    <div class="panel-header">
+                        <div class="panel-title">
+                            <i class="fas fa-paper-plane" style="color:#f97316"></i>
+                            Staff Material Requests
+                        </div>
+                        <div style="display:flex;gap:8px;align-items:center">
+                            <select class="select-filter" id="matReqStatusFilter" onchange="filterMatRequests()">
+                                <option value="">All Statuses</option>
+                                <option value="PENDING">Pending</option>
+                                <option value="REVIEWED">Reviewed</option>
+                                <option value="ORDERED">Ordered</option>
+                                <option value="REJECTED">Rejected</option>
+                            </select>
+                            <select class="select-filter" id="matReqUrgencyFilter" onchange="filterMatRequests()">
+                                <option value="">All Urgency</option>
+                                <option value="CRITICAL">Critical</option>
+                                <option value="HIGH">High</option>
+                                <option value="MEDIUM">Medium</option>
+                                <option value="LOW">Low</option>
+                            </select>
+                            <button class="btn-primary" onclick="loadMatRequests()">
+                                <i class="fas fa-rotate-right"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- KPI row -->
+                    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;padding:16px 22px 0">
+                        <div class="stat-card" style="border-top-color:#f59e0b;padding:12px">
+                            <div class="label">Pending</div><div class="value" style="color:#f59e0b;font-size:22px" id="mrKpiPending">0</div>
+                        </div>
+                        <div class="stat-card" style="border-top-color:#3b82f6;padding:12px">
+                            <div class="label">Reviewed</div><div class="value" style="color:#3b82f6;font-size:22px" id="mrKpiReviewed">0</div>
+                        </div>
+                        <div class="stat-card" style="border-top-color:#10b981;padding:12px">
+                            <div class="label">Ordered</div><div class="value" style="color:#10b981;font-size:22px" id="mrKpiOrdered">0</div>
+                        </div>
+                        <div class="stat-card" style="border-top-color:#ef4444;padding:12px">
+                            <div class="label">Rejected</div><div class="value" style="color:#ef4444;font-size:22px" id="mrKpiRejected">0</div>
+                        </div>
+                    </div>
+
+                    <div style="overflow-x:auto;padding:16px 0 0">
+                        <table class="data-table">
+                            <thead>
+                            <tr>
+                                <th>Material Name</th>
+                                <th>SKU</th>
+                                <th>Qty</th>
+                                <th>Unit</th>
+                                <th>Urgency</th>
+                                <th>Staff</th>
+                                <th>Reason</th>
+                                <th>Submitted</th>
+                                <th>Status</th>
+                                <th style="text-align:center">Actions</th>
+                            </tr>
+                            </thead>
+                            <tbody id="matReqTbody">
+                            <tr><td colspan="10"><div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading…</p></div></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MATERIAL MODAL -->
+<div class="overlay" id="materialModal">
+    <div class="modal">
+        <div class="modal-head">
+            <h3 id="materialModalTitle">Add Material</h3>
+            <button class="modal-close" onclick="closeModal('materialModal')"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="matId">
+            <div class="form-grid">
+                <div class="full"><label class="f-label">Material Name *</label><input class="f-input" id="matName" placeholder="e.g. A4 Premium Bond Paper"></div>
+                <div><label class="f-label">SKU / Code</label><input class="f-input" id="matSku" placeholder="e.g. PAP-A4-80GSM"></div>
+                <div><label class="f-label">Category *</label>
+                    <select class="f-input" id="matCategory">
+                        <option value="">Select…</option>
+                        <option value="PRINTING_PAPER">Printing Paper</option>
+                        <option value="INK_TONER">Ink / Toner</option>
+                        <option value="VINYL">Vinyl</option>
+                        <option value="CARDSTOCK">Cardstock</option>
+                        <option value="LAMINATE">Laminate</option>
+                        <option value="BINDING_MATERIAL">Binding Material</option>
+                        <option value="CLEANING_SUPPLY">Cleaning Supply</option>
+                        <option value="OTHER">Other</option>
+                    </select>
+                </div>
+                <div><label class="f-label">Unit *</label>
+                    <select class="f-input" id="matUnit">
+                        <option value="">Select…</option>
+                        <option value="REAMS">Reams</option>
+                        <option value="SHEETS">Sheets</option>
+                        <option value="LITERS">Liters</option>
+                        <option value="MILLILITERS">Milliliters</option>
+                        <option value="KILOGRAMS">Kilograms</option>
+                        <option value="GRAMS">Grams</option>
+                        <option value="ROLLS">Rolls</option>
+                        <option value="UNITS">Units</option>
+                        <option value="BOXES">Boxes</option>
+                    </select>
+                </div>
+                <div><label class="f-label">Current Stock *</label><input class="f-input" id="matStock" type="number" min="0" step="0.1" placeholder="0"></div>
+                <div><label class="f-label">Unit Cost ($)</label><input class="f-input" id="matCost" type="number" min="0" step="0.01" placeholder="0.00"></div>
+                <div><label class="f-label">Brand</label><input class="f-input" id="matBrand" placeholder="Brand name"></div>
+                <div>
+                    <label class="f-label">Supplier</label>
+                    <select class="f-input" id="matSupplier">
+                        <option value="">— Select Supplier —</option>
+                    </select>
+                </div>
+                <div class="full"><label class="f-label">Description</label><textarea class="f-input" id="matDesc" placeholder="Additional details…"></textarea></div>
+                <div class="full" style="background:#f8fafc;padding:12px;border-radius:8px">
+                    <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#64748b;margin-bottom:8px">Alert Thresholds</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+                        <div><label class="f-label">Critical</label><input class="f-input" id="matCritical" type="number" min="0" step="0.1" placeholder="5"></div>
+                        <div><label class="f-label">Minimum</label><input class="f-input" id="matMin" type="number" min="0" step="0.1" placeholder="10"></div>
+                        <div><label class="f-label">Maximum</label><input class="f-input" id="matMax" type="number" min="0" step="0.1" placeholder="100"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="form-error" id="materialErr"></div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn-ghost" onclick="closeModal('materialModal')">Cancel</button>
+            <button class="btn-green" id="matSubmitBtn" onclick="saveMaterial()"><i class="fas fa-save"></i> Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- LOG MODAL -->
+<div class="overlay" id="logModal">
+    <div class="modal sm">
+        <div class="modal-head">
+            <h3>Log Stock Entry</h3>
+            <button class="modal-close" onclick="closeModal('logModal')"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-grid">
+                <div class="full"><label class="f-label">Material *</label><select class="f-input" id="logMaterialId"><option value="">Select material…</option></select></div>
+                <div><label class="f-label">Type *</label>
+                    <select class="f-input" id="logType" onchange="toggleLogFields()">
+                        <option value="USAGE">📉 Usage</option>
+                        <option value="WASTAGE">🗑 Wastage</option>
+                        <option value="RESTOCK">📦 Restock</option>
+                        <option value="ADJUSTMENT">⚙️ Adjustment</option>
+                    </select>
+                </div>
+                <div><label class="f-label">Quantity *</label><input class="f-input" id="logQty" type="number" min="0.01" step="0.1" placeholder="0"></div>
+                <div class="full" id="jobRefGroup"><label class="f-label">Job Reference</label><input class="f-input" id="logJobRef" placeholder="e.g. JOB-2026-0042"></div>
+                <div class="full" id="wastageReasonGroup" style="display:none"><label class="f-label">Wastage Reason</label><input class="f-input" id="logWastageReason" placeholder="e.g. Misprinted, Jammed"></div>
+                <div><label class="f-label">Date</label><input class="f-input" id="logDate" type="date"></div>
+                <div><label class="f-label">Logged By</label><input class="f-input" id="loggedBy" placeholder="Admin name"></div>
+                <div class="full"><label class="f-label">Notes</label><textarea class="f-input" id="logNotes" rows="2" placeholder="Optional…"></textarea></div>
+            </div>
+            <div class="form-error" id="logErr"></div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn-ghost" onclick="closeModal('logModal')">Cancel</button>
+            <button class="btn-green" id="logSubmitBtn" onclick="submitLog()"><i class="fas fa-check"></i> Submit</button>
+        </div>
+    </div>
+</div>
+
+<!-- REPORT OVERLAY -->
+<div id="reportOverlay">
+    <div id="reportDoc">
+        <div class="rpt-toolbar">
+            <h6><i class="fas fa-layer-group" style="margin-right:8px"></i><span id="rptDocTitle">Materials Report</span></h6>
+            <div style="display:flex;gap:8px">
+                <button class="btn-ghost" style="font-size:12px" onclick="window.print()"><i class="fas fa-print"></i> Print / PDF</button>
+                <button class="btn-ghost" style="font-size:12px" onclick="closeMReport()"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+        <div class="rpt-body" id="rptBody"></div>
+    </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+    // ==================== GLOBALS ====================
+    const API = 'http://localhost:8080';
+    const token = localStorage.getItem('token');
+    if (!token) location.href = '/login';
+
+    function H() {
+        return { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+    }
+
+    let allMaterials = [], allLogs = [], allAlerts = [];
+    let allMatRequests = [];
+    let currentTab = 'inventory';
+    let mRptCharts = {};
+    let selMRptType = 'inventory';
+
+    function hexToRgba(hex, alpha) {
+        const r = parseInt(hex.slice(1,3), 16);
+        const g = parseInt(hex.slice(3,5), 16);
+        const b = parseInt(hex.slice(5,7), 16);
+        return `rgba(${r},${g},${b},${alpha})`;
+    }
+
+    // ==================== INIT ====================
+    (async function init() {
+        const a = JSON.parse(localStorage.getItem('admin') || '{}');
+        document.getElementById('topbarName').textContent =
+            a.firstName ? `${a.firstName} ${a.lastName}` : 'Admin';
+        document.getElementById('mrDate').valueAsDate = new Date();
+        await loadAll();
+        await loadSupplierDropdown();
+        await loadMatRequests(); // load for badge count
+    })();
+
+    async function loadAll() {
+        await Promise.all([loadMaterials(), loadLogs(), loadAlerts(), loadStats()]);
+    }
+
+    // ==================== SUPPLIER DROPDOWN ====================
+    async function loadSupplierDropdown() {
+        try {
+            const r = await fetch(`${API}/admin/suppliers/api/all`, { headers: H() });
+            if (!r.ok) { console.warn('Could not load suppliers:', r.status); return; }
+            const suppliers = await r.json();
+            const sel = document.getElementById('matSupplier');
+            const current = sel.value;
+            sel.innerHTML = '<option value="">— Select Supplier —</option>' +
+                suppliers.map(s => `<option value="${x(s.name)}">${x(s.name)}</option>`).join('');
+            if (current) sel.value = current;
+        } catch(e) {
+            console.warn('loadSupplierDropdown error:', e);
+        }
+    }
+
+    // ==================== API CALLS ====================
+    async function loadMaterials() {
+        try {
+            const r = await fetch(`${API}/admin/materials/api/all`, { headers: H() });
+            if (!r.ok) throw new Error(r.status);
+            allMaterials = await r.json();
+            renderMaterials(allMaterials);
+            document.getElementById('tabCountInv').textContent = allMaterials.length;
+            populateMaterialDropdown();
+        } catch { renderEmpty('materialsTbody', 7, 'Could not load materials.'); }
+    }
+
+    async function loadLogs() {
+        try {
+            const r = await fetch(`${API}/admin/materials/api/logs`, { headers: H() });
+            if (!r.ok) throw new Error(r.status);
+            allLogs = await r.json();
+            renderLogs(allLogs);
+            document.getElementById('tabCountLogs').textContent = allLogs.length;
+        } catch { renderEmpty('logsTbody', 8, 'Could not load logs.'); }
+    }
+
+    async function loadAlerts() {
+        try {
+            const r = await fetch(`${API}/admin/materials/api/alerts`, { headers: H() });
+            if (!r.ok) throw new Error(r.status);
+            allAlerts = await r.json();
+            renderAlerts(allAlerts);
+            document.getElementById('tabCountAlerts').textContent = allAlerts.length;
+            const criticals = allAlerts.filter(a => a.severity === 'CRITICAL' && !a.isResolved);
+            const strip = document.getElementById('criticalStrip');
+            if (criticals.length > 0) {
+                strip.style.display = 'flex';
+                document.getElementById('criticalStripText').textContent =
+                    `${criticals.length} material(s) are critically low.`;
+            } else {
+                strip.style.display = 'none';
+            }
+        } catch { renderEmpty('alertsTbody', 7, 'Could not load alerts.'); }
+    }
+
+    async function loadStats() {
+        try {
+            const r = await fetch(`${API}/admin/materials/api/stats`, { headers: H() });
+            if (!r.ok) throw new Error(r.status);
+            const s = await r.json();
+            document.getElementById('statTotal').textContent = s.totalMaterials || 0;
+            const alertCnt = (s.criticalStockCount || 0) + (s.lowStockCount || 0);
+            document.getElementById('statAlert').textContent = alertCnt;
+            document.getElementById('statAlertSub').textContent =
+                `${s.criticalStockCount || 0} critical, ${s.lowStockCount || 0} low`;
+            document.getElementById('statUsage').textContent = (s.monthlyUsage || 0).toFixed(1);
+            document.getElementById('statValue').textContent = '$' + (s.totalInventoryValue || 0).toFixed(2);
+            document.getElementById('lgMonthUsage').textContent = (s.monthlyUsage || 0).toFixed(1);
+            document.getElementById('lgMonthWaste').textContent = (s.monthlyWastage || 0).toFixed(1);
+            const u = s.monthlyUsage || 0, w = s.monthlyWastage || 0;
+            document.getElementById('lgEfficiency').textContent =
+                (u + w) > 0 ? ((u / (u + w)) * 100).toFixed(1) + '%' : '—';
+        } catch { /* silently ignore stat errors */ }
+    }
+
+    // ==================== RENDER FUNCTIONS ====================
+    function getAlertStatus(m) {
+        if (m.currentStock <= m.criticalStockLevel) return 'CRITICAL';
+        if (m.currentStock <= m.minimumStockLevel)  return 'LOW';
+        if (m.currentStock >= m.maximumStockLevel * 0.9) return 'OVERSTOCKED';
+        return 'NORMAL';
+    }
+
+    function stockBarHTML(current, min, max) {
+        const pct = max > 0 ? Math.min(100, (current / max) * 100) : 0;
+        const color = current <= 5 ? '#ef4444' : current <= min ? '#f59e0b' : '#22c55e';
+        return `<div style="display:flex;align-items:center;gap:8px">
+            <div class="stock-bar"><div class="stock-fill" style="width:${pct}%;background:${color}"></div></div>
+            <span style="font-size:.8rem;font-family:'DM Mono',monospace">${current}</span>
+        </div>`;
+    }
+
+    function renderMaterials(list) {
+        const tb = document.getElementById('materialsTbody');
+        if (!list.length) { renderEmpty('materialsTbody', 7, 'No materials found.'); return; }
+        tb.innerHTML = list.map(m => {
+            const status = m.alertStatus || getAlertStatus(m);
+            return `<tr>
+                <td><div style="font-weight:600">${x(m.name)}</div>
+                    ${m.skuCode ? `<span style="font-size:10px;color:#94a3b8">${x(m.skuCode)}</span>` : ''}</td>
+                <td>${(m.category || '').replace(/_/g,' ')}</td>
+                <td>${stockBarHTML(m.currentStock, m.minimumStockLevel, m.maximumStockLevel)}
+                    <div style="font-size:10px;color:#94a3b8">Min:${m.minimumStockLevel} / Max:${m.maximumStockLevel}</div></td>
+                <td>$${(m.unitCost || 0).toFixed(2)}</td>
+                <td><span class="badge b-${status}">${status}</span></td>
+                <td>${x(m.supplierName) || '—'}</td>
+                <td style="text-align:center">
+                    <button class="action-btn log" onclick="openLogModalFor('${m.id}')" title="Log Entry"><i class="fas fa-pencil-alt"></i></button>
+                    <button class="action-btn edit" onclick="editMaterial('${m.id}')" title="Edit"><i class="fas fa-pen"></i></button>
+                    <button class="action-btn del" onclick="deleteMaterial('${m.id}','${x(m.name)}')" title="Delete"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    function renderLogs(list) {
+        const tb = document.getElementById('logsTbody');
+        if (!list.length) { renderEmpty('logsTbody', 8, 'No log entries yet.'); return; }
+        tb.innerHTML = list.map(l => `<tr>
+            <td>${fDateShort(l.logDate)}</td>
+            <td style="font-weight:600">${l.material ? x(l.material.name) : '—'}</td>
+            <td><span class="badge b-${l.logType}">${l.logType}</span></td>
+            <td>${l.quantity}</td>
+            <td>${l.stockBefore?.toFixed(1) ?? '—'} → ${l.stockAfter?.toFixed(1) ?? '—'}</td>
+            <td>${l.jobReference || '—'}</td>
+            <td>${l.wastageReason || l.notes || '—'}</td>
+            <td>${l.loggedBy || '—'}</td>
+        </tr>`).join('');
+    }
+
+    function renderAlerts(list) {
+        const tb = document.getElementById('alertsTbody');
+        if (!list.length) { renderEmpty('alertsTbody', 7, 'No active alerts.'); return; }
+        tb.innerHTML = list.map(a => `<tr>
+            <td><span class="sev-${a.severity}">${a.severity}</span></td>
+            <td>${a.material ? x(a.material.name) : '—'}</td>
+            <td>${x(a.message)}</td>
+            <td>${a.stockLevelAtAlert?.toFixed(1) ?? '—'}</td>
+            <td>${fDateShort(a.createdAt)}</td>
+            <td>${a.isAcknowledged
+            ? '<span style="color:#10b981">Acknowledged</span>'
+            : '<span style="color:#f59e0b">Pending</span>'}</td>
+            <td style="text-align:center">
+                ${!a.isAcknowledged
+            ? `<button class="btn-ghost" onclick="ackAlert('${a.id}')" style="padding:3px 8px;font-size:12px"><i class="fas fa-check"></i> Ack</button>`
+            : ''}
+                <button class="btn-danger" onclick="resolveAlert('${a.id}')" style="padding:3px 8px"><i class="fas fa-times"></i> Resolve</button>
+            </td>
+        </tr>`).join('');
+    }
+
+    // ==================== FILTERS ====================
+    function filterMaterials() {
+        const q   = document.getElementById('searchMaterial').value.toLowerCase();
+        const cat = document.getElementById('filterCategory').value;
+        const stk = document.getElementById('filterStock').value;
+        renderMaterials(allMaterials.filter(m =>
+            (!q   || m.name.toLowerCase().includes(q) || (m.skuCode || '').toLowerCase().includes(q)) &&
+            (!cat || m.category === cat) &&
+            (!stk || getAlertStatus(m) === stk)
+        ));
+    }
+
+    function filterLogs() {
+        const type = document.getElementById('filterLogType').value;
+        renderLogs(type ? allLogs.filter(l => l.logType === type) : allLogs);
+    }
+
+    function filterAlerts() {
+        const sev = document.getElementById('filterAlertSev').value;
+        renderAlerts(sev ? allAlerts.filter(a => a.severity === sev) : allAlerts);
+    }
+
+    // ==================== TAB SWITCHING ====================
+    const ALL_TABS = ['inventory','usage','alerts','reports','matrequests'];
+
+    function switchTab(tab) {
+        currentTab = tab;
+        ALL_TABS.forEach(t => {
+            const panel = document.getElementById(`panel${t.charAt(0).toUpperCase()+t.slice(1)}`);
+            const btn   = document.getElementById(`tab${t.charAt(0).toUpperCase()+t.slice(1)}`);
+            if (panel) panel.style.display = (t === tab) ? 'block' : 'none';
+            if (btn)   btn.classList.toggle('active', t === tab);
+        });
+        if (tab === 'reports')      setTimeout(buildMCharts, 120);
+        if (tab === 'matrequests')  loadMatRequests();
+    }
+
+    // ==================== MATERIAL MODAL ====================
+    function openMaterialModal() {
+        document.getElementById('materialModalTitle').textContent = 'Add Material';
+        document.getElementById('matId').value = '';
+        ['matName','matSku','matStock','matCost','matBrand','matDesc']
+            .forEach(id => document.getElementById(id).value = '');
+        document.getElementById('matCategory').value = '';
+        document.getElementById('matUnit').value = '';
+        document.getElementById('matCritical').value = '5';
+        document.getElementById('matMin').value = '10';
+        document.getElementById('matMax').value = '100';
+        document.getElementById('materialErr').className = 'form-error';
+        loadSupplierDropdown();
+        openModal('materialModal');
+    }
+
+    async function editMaterial(id) {
+        try {
+            const r = await fetch(`${API}/admin/materials/api/${id}`, { headers: H() });
+            if (!r.ok) throw new Error(r.status);
+            const m = await r.json();
+            document.getElementById('materialModalTitle').textContent = 'Edit Material';
+            document.getElementById('matId').value        = m.id;
+            document.getElementById('matName').value      = m.name || '';
+            document.getElementById('matSku').value       = m.skuCode || '';
+            document.getElementById('matCategory').value  = m.category || '';
+            document.getElementById('matUnit').value      = m.unit || '';
+            document.getElementById('matStock').value     = m.currentStock || 0;
+            document.getElementById('matCost').value      = m.unitCost || 0;
+            document.getElementById('matBrand').value     = m.brand || '';
+            document.getElementById('matDesc').value      = m.description || '';
+            document.getElementById('matCritical').value  = m.criticalStockLevel || 5;
+            document.getElementById('matMin').value       = m.minimumStockLevel || 10;
+            document.getElementById('matMax').value       = m.maximumStockLevel || 100;
+            document.getElementById('materialErr').className = 'form-error';
+            await loadSupplierDropdown();
+            document.getElementById('matSupplier').value = m.supplierName || '';
+            openModal('materialModal');
+        } catch { alert2('Error loading material.', 'error'); }
+    }
+
+    async function saveMaterial() {
+        const errEl = document.getElementById('materialErr');
+        errEl.className = 'form-error';
+        const id = document.getElementById('matId').value;
+        const data = {
+            name:               document.getElementById('matName').value.trim(),
+            skuCode:            document.getElementById('matSku').value.trim() || null,
+            category:           document.getElementById('matCategory').value,
+            unit:               document.getElementById('matUnit').value,
+            currentStock:       parseFloat(document.getElementById('matStock').value) || 0,
+            unitCost:           parseFloat(document.getElementById('matCost').value) || 0,
+            brand:              document.getElementById('matBrand').value.trim() || null,
+            supplierName:       document.getElementById('matSupplier').value || null,
+            description:        document.getElementById('matDesc').value.trim() || null,
+            criticalStockLevel: parseFloat(document.getElementById('matCritical').value) || 5,
+            minimumStockLevel:  parseFloat(document.getElementById('matMin').value) || 10,
+            maximumStockLevel:  parseFloat(document.getElementById('matMax').value) || 100
+        };
+        if (!data.name || !data.category || !data.unit) {
+            errEl.textContent = 'Name, Category, and Unit are required.';
+            errEl.className = 'form-error show';
+            return;
+        }
+        const btn = document.getElementById('matSubmitBtn');
+        btnLoad(btn, 'Saving…');
+        try {
+            const url = id
+                ? `${API}/admin/materials/api/update/${id}`
+                : `${API}/admin/materials/api/add`;
+            const r = await fetch(url, {
+                method: id ? 'PUT' : 'POST',
+                headers: H(),
+                body: JSON.stringify(data)
+            });
+            if (r.ok) {
+                closeModal('materialModal');
+                alert2(id ? 'Material updated!' : 'Material added!', 'success');
+                await loadAll();
+            } else {
+                const d = await r.json();
+                errEl.textContent = d.error || 'Save failed.';
+                errEl.className = 'form-error show';
+            }
+        } catch {
+            errEl.textContent = 'Connection error.';
+            errEl.className = 'form-error show';
+        } finally {
+            btnReset(btn, '<i class="fas fa-save"></i> Save');
+        }
+    }
+
+    async function deleteMaterial(id, name) {
+        if (!confirm(`Delete "${name}"?`)) return;
+        const r = await fetch(`${API}/admin/materials/api/delete/${id}`, { method: 'DELETE', headers: H() });
+        if (r.ok) { alert2('Material removed.', 'warning'); await loadAll(); }
+        else { const d = await r.json(); alert2(d.error || 'Failed.', 'error'); }
+    }
+
+    // ==================== LOG MODAL ====================
+    function populateMaterialDropdown() {
+        const sel = document.getElementById('logMaterialId');
+        sel.innerHTML = '<option value="">Select material…</option>' +
+            allMaterials.map(m => `<option value="${m.id}">${x(m.name)}</option>`).join('');
+    }
+
+    function openLogModal() {
+        document.getElementById('logMaterialId').value = '';
+        document.getElementById('logType').value = 'USAGE';
+        document.getElementById('logQty').value = '';
+        document.getElementById('logJobRef').value = '';
+        document.getElementById('logWastageReason').value = '';
+        document.getElementById('logNotes').value = '';
+        document.getElementById('loggedBy').value = 'Admin';
+        document.getElementById('logDate').valueAsDate = new Date();
+        toggleLogFields();
+        document.getElementById('logErr').className = 'form-error';
+        openModal('logModal');
+    }
+
+    function openLogModalFor(materialId) {
+        openLogModal();
+        document.getElementById('logMaterialId').value = materialId;
+    }
+
+    function toggleLogFields() {
+        const type = document.getElementById('logType').value;
+        document.getElementById('wastageReasonGroup').style.display = type === 'WASTAGE' ? 'block' : 'none';
+        document.getElementById('jobRefGroup').style.display =
+            (type === 'USAGE' || type === 'WASTAGE') ? 'block' : 'none';
+    }
+
+    async function submitLog() {
+        const errEl = document.getElementById('logErr');
+        errEl.className = 'form-error';
+        const data = {
+            materialId:    parseInt(document.getElementById('logMaterialId').value),
+            logType:       document.getElementById('logType').value,
+            quantity:      parseFloat(document.getElementById('logQty').value),
+            jobReference:  document.getElementById('logJobRef').value.trim() || null,
+            wastageReason: document.getElementById('logWastageReason').value.trim() || null,
+            notes:         document.getElementById('logNotes').value.trim() || null,
+            loggedBy:      document.getElementById('loggedBy').value.trim() || 'Admin',
+            logDate:       document.getElementById('logDate').value
+        };
+        if (!data.materialId || !data.quantity || data.quantity <= 0) {
+            errEl.textContent = 'Material and positive quantity are required.';
+            errEl.className = 'form-error show';
+            return;
+        }
+        const btn = document.getElementById('logSubmitBtn');
+        btnLoad(btn, 'Submitting…');
+        try {
+            const r = await fetch(`${API}/admin/materials/api/logs/add`, {
+                method: 'POST', headers: H(), body: JSON.stringify(data)
+            });
+            if (r.ok) {
+                closeModal('logModal');
+                alert2('Stock entry logged!', 'success');
+                await loadAll();
+            } else {
+                const d = await r.json();
+                errEl.textContent = d.error || 'Failed.';
+                errEl.className = 'form-error show';
+            }
+        } catch {
+            errEl.textContent = 'Connection error.';
+            errEl.className = 'form-error show';
+        } finally {
+            btnReset(btn, '<i class="fas fa-check"></i> Submit');
+        }
+    }
+
+    // ==================== ALERT ACTIONS ====================
+    async function ackAlert(id) {
+        const r = await fetch(`${API}/admin/materials/api/alerts/${id}/acknowledge`,
+            { method: 'PUT', headers: H(), body: JSON.stringify({ adminName: 'Admin' }) });
+        if (r.ok) { alert2('Alert acknowledged.', 'success'); await loadAlerts(); }
+        else alert2('Failed.', 'error');
+    }
+
+    async function resolveAlert(id) {
+        const r = await fetch(`${API}/admin/materials/api/alerts/${id}/resolve`,
+            { method: 'PUT', headers: H() });
+        if (r.ok) { alert2('Alert resolved.', 'warning'); await loadAll(); }
+        else alert2('Failed.', 'error');
+    }
+
+    async function runScan() {
+        await fetch(`${API}/admin/materials/api/alerts/scan`, { method: 'POST', headers: H() });
+        alert2('Stock scan complete.', 'success');
+        await loadAll();
+    }
+
+    // ==================== MATERIAL REQUESTS ====================
+    async function loadMatRequests() {
+        try {
+            const r = await fetch(`${API}/api/admin/material-requests`, { headers: H() });
+            allMatRequests = await r.json();
+            filterMatRequests();
+            updateMatReqKPIs();
+            updateMatReqBadge();
+        } catch {
+            document.getElementById('matReqTbody').innerHTML =
+                '<tr><td colspan="10"><div class="empty-state"><i class="fas fa-triangle-exclamation"></i><p>Could not load requests.</p></div></td></tr>';
+        }
+    }
+
+    function filterMatRequests() {
+        const status  = document.getElementById('matReqStatusFilter')?.value  || '';
+        const urgency = document.getElementById('matReqUrgencyFilter')?.value || '';
+        let list = allMatRequests;
+        if (status)  list = list.filter(r => r.status  === status);
+        if (urgency) list = list.filter(r => r.urgency === urgency);
+        renderMatRequests(list);
+    }
+
+    function renderMatRequests(list) {
+        const tb = document.getElementById('matReqTbody');
+        if (!list.length) {
+            tb.innerHTML = '<tr><td colspan="10"><div class="empty-state"><i class="fas fa-paper-plane"></i><p>No requests found.</p></div></td></tr>';
+            return;
+        }
+
+        const U_COLOR = { LOW:'#6b7280', MEDIUM:'#3b82f6', HIGH:'#f59e0b', CRITICAL:'#ef4444' };
+        const U_BG    = { LOW:'rgba(107,114,128,0.12)', MEDIUM:'rgba(59,130,246,0.12)', HIGH:'rgba(245,158,11,0.12)', CRITICAL:'rgba(239,68,68,0.12)' };
+        const S_STYLE = {
+            PENDING:  { bg:'#fef3c7', color:'#92400e' },
+            REVIEWED: { bg:'#dbeafe', color:'#1d4ed8' },
+            ORDERED:  { bg:'#d1fae5', color:'#065f46' },
+            REJECTED: { bg:'#fee2e2', color:'#b91c1c' }
+        };
+
+        tb.innerHTML = list.map(req => {
+            const urgency = req.urgency || 'MEDIUM';
+            const uColor  = U_COLOR[urgency]  || U_COLOR.MEDIUM;
+            const uBg     = U_BG[urgency]     || U_BG.MEDIUM;
+            const ss      = S_STYLE[req.status] || { bg:'#f3f4f6', color:'#374151' };
+            const date    = req.createdAt ? new Date(req.createdAt).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}) : '—';
+            const reason  = req.reason ? x(req.reason) : '—';
+
+            let actions = `<button class="action-btn del" title="Delete" onclick="deleteMatRequest(${req.id})"><i class="fas fa-trash"></i></button>`;
+
+            if (req.status === 'PENDING') {
+                actions = `
+                <button class="action-btn edit" title="Mark Reviewed" onclick="updateMatReqStatus(${req.id},'REVIEWED','')"><i class="fas fa-eye"></i></button>
+                <button class="action-btn order" title="Place Order" onclick="matReqToOrder(${req.id})"><i class="fas fa-cart-plus"></i></button>
+                <button class="action-btn del" title="Reject" onclick="rejectMatRequest(${req.id})"><i class="fas fa-times"></i></button>
+                ` + actions;
+            } else if (req.status === 'REVIEWED') {
+                actions = `<button class="action-btn order" title="Place Order" onclick="matReqToOrder(${req.id})"><i class="fas fa-cart-plus"></i></button>` + actions;
+            }
+
+            return `<tr>
+                <td><div style="font-weight:600">${x(req.materialName)}</div></td>
+                <td style="font-family:monospace;font-size:12px">${x(req.skuCode)||'—'}</td>
+                <td style="font-weight:700">${req.requestedQuantity ?? '—'}</td>
+                <td style="font-size:12px;color:#64748b">${req.unit || '—'}</td>
+                <td>
+                    <span class="badge" style="background:${uBg};color:${uColor}">
+                        ${urgency}
+                    </span>
+                </td>
+                <td style="font-size:13px;font-weight:500">${x(req.staffName||req.requestedBy)||'—'}</td>
+                <td style="max-width:180px;font-size:12px;color:#64748b" title="${reason}">${reason.length>55?reason.slice(0,55)+'…':reason}</td>
+                <td style="font-size:12px;color:#64748b">${date}</td>
+                <td>
+                    <span class="badge" style="background:${ss.bg};color:${ss.color}">
+                        ${req.status}
+                    </span>
+                </td>
+                <td style="text-align:center">
+                    <div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap">${actions}</div>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    function updateMatReqKPIs() {
+        document.getElementById('mrKpiPending').textContent  = allMatRequests.filter(r=>r.status==='PENDING').length;
+        document.getElementById('mrKpiReviewed').textContent = allMatRequests.filter(r=>r.status==='REVIEWED').length;
+        document.getElementById('mrKpiOrdered').textContent  = allMatRequests.filter(r=>r.status==='ORDERED').length;
+        document.getElementById('mrKpiRejected').textContent = allMatRequests.filter(r=>r.status==='REJECTED').length;
+    }
+
+    function updateMatReqBadge() {
+        const pending = allMatRequests.filter(r=>r.status==='PENDING').length;
+        const badge   = document.getElementById('matReqBadge');
+        if (!badge) return;
+        badge.textContent      = pending;
+        badge.style.background = pending > 0 ? '#ef4444' : '#f1f5f9';
+        badge.style.color      = pending > 0 ? '#fff'    : '#64748b';
+    }
+
+    async function updateMatReqStatus(id, status, adminNotes) {
+        const r = await fetch(`${API}/api/admin/material-requests/${id}/status`, {
+            method: 'PUT',
+            headers: H(),
+            body: JSON.stringify({ status, adminNotes })
+        });
+        if (r.ok) { toast('Status updated!', 'success'); await loadMatRequests(); }
+        else toast('Failed to update status.', 'danger');
+    }
+
+    async function rejectMatRequest(id) {
+        const notes = prompt('Reason for rejection (optional):') || '';
+        if (!confirm('Reject this request?')) return;
+        await updateMatReqStatus(id, 'REJECTED', notes);
+    }
+
+    async function deleteMatRequest(id) {
+        if (!confirm('Delete this material request?')) return;
+        const r = await fetch(`${API}/api/admin/material-requests/${id}`, { method: 'DELETE', headers: H() });
+        if (r.ok) { toast('Request deleted.', 'warning'); await loadMatRequests(); }
+        else toast('Failed to delete.', 'danger');
+    }
+
+    function matReqToOrder(reqId) {
+        const req = allMatRequests.find(r => r.id === reqId);
+        if (!req) return;
+        if (typeof openOrderModal === 'function') {
+            openOrderModal();
+            setTimeout(() => {
+                const itemEl = document.getElementById('orderItem');
+                const qtyEl  = document.getElementById('orderQty');
+                const notes  = document.getElementById('orderNotes');
+                if (itemEl) itemEl.value = req.materialName + (req.skuCode ? ` (${req.skuCode})` : '');
+                if (qtyEl)  qtyEl.value  = Math.round(req.requestedQuantity);
+                if (notes)  notes.value  = `Staff request — ${req.staffName || req.requestedBy || 'Unknown'}`
+                    + (req.reason ? `\nReason: ${req.reason}` : '');
+                window._pendingMatReqId = reqId;
+                toast('Pre-filled from staff request. Select a supplier and save.', 'warning');
+            }, 100);
+        } else {
+            if (confirm('Mark this request as ORDERED?')) {
+                updateMatReqStatus(reqId, 'ORDERED', 'Order placed by admin');
+            }
+        }
+    }
+
+    // ==================== REPORTS ====================
+    function selMRpt(type) {
+        selMRptType = type;
+        document.querySelectorAll('.rpt-type-btn').forEach(b => b.classList.remove('selected'));
+        document.getElementById('mrt-' + type).classList.add('selected');
+    }
+
+    function buildMCharts() {
+        Object.values(mRptCharts).forEach(c => { try { c.destroy(); } catch {} });
+        mRptCharts = {};
+        const COLORS = ['#4f8ef7','#22c55e','#f59e0b','#ef4444','#38bdf8','#a78bfa','#fb7185'];
+
+        // 1. Stock by Category
+        const catC = {};
+        allMaterials.forEach(m => { const c = m.category || 'OTHER'; catC[c] = (catC[c] || 0) + 1; });
+        mRptCharts.cat = new Chart(document.getElementById('mCatChart').getContext('2d'), {
+            type: 'doughnut',
+            data: { labels: Object.keys(catC).map(k => k.replace(/_/g,' ')), datasets: [{ data: Object.values(catC), backgroundColor: COLORS, borderWidth: 0 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#64748b', font: { size: 10 } } } } }
+        });
+
+        // 2. Stock Status Distribution
+        const stC = { CRITICAL: 0, LOW: 0, NORMAL: 0, OVERSTOCKED: 0 };
+        allMaterials.forEach(m => { stC[getAlertStatus(m)]++; });
+        mRptCharts.status = new Chart(document.getElementById('mStatusChart').getContext('2d'), {
+            type: 'bar',
+            data: { labels: Object.keys(stC), datasets: [{ data: Object.values(stC), backgroundColor: ['#ef4444','#f59e0b','#22c55e','#38bdf8'], borderRadius: 6 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { color: '#64748b', font: { size: 10 } } }, x: { ticks: { color: '#64748b', font: { size: 10 } } } } }
+        });
+
+        // 3. Top items by usage
+        const matUsage = {};
+        allLogs.filter(l => l.logType === 'USAGE' && l.material).forEach(l => { matUsage[l.material.name] = (matUsage[l.material.name] || 0) + l.quantity; });
+        const topU = Object.entries(matUsage).sort((a,b) => b[1]-a[1]).slice(0,7);
+        mRptCharts.usage = new Chart(document.getElementById('mUsageChart').getContext('2d'), {
+            type: 'bar',
+            data: { labels: topU.map(e => e[0].length > 14 ? e[0].slice(0,14)+'…' : e[0]), datasets: [{ data: topU.map(e => e[1]), backgroundColor: '#4f8ef7', borderRadius: 6 }] },
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { color: '#64748b', font: { size: 10 } } }, y: { ticks: { color: '#64748b', font: { size: 10 } } } } }
+        });
+
+        // 4. Wastage vs Usage
+        const matNames = [...new Set(allLogs.filter(l => l.material).map(l => l.material.name))].slice(0,6);
+        const usageData = matNames.map(n => allLogs.filter(l => l.logType==='USAGE' && l.material?.name===n).reduce((s,l) => s+l.quantity, 0));
+        const wasteData = matNames.map(n => allLogs.filter(l => l.logType==='WASTAGE' && l.material?.name===n).reduce((s,l) => s+l.quantity, 0));
+        mRptCharts.waste = new Chart(document.getElementById('mWasteChart').getContext('2d'), {
+            type: 'bar',
+            data: { labels: matNames.map(n => n.length>12?n.slice(0,12)+'…':n), datasets: [{ label:'Usage', data: usageData, backgroundColor:'#4f8ef7', borderRadius:4 }, { label:'Wastage', data: wasteData, backgroundColor:'#ef4444', borderRadius:4 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color:'#64748b', font:{ size:10 }, boxWidth:10 } } }, scales: { y: { beginAtZero: true, ticks: { color:'#64748b', font:{ size:10 } } }, x: { ticks: { color:'#64748b', font:{ size:10 } } } } }
+        });
+    }
+
+    function generateMaterialReport() {
+        const catF  = document.getElementById('mrCatFilter').value;
+        const stkF  = document.getElementById('mrStockFilter').value;
+        const logF  = document.getElementById('mrLogFilter').value;
+        const rdate = document.getElementById('mrDate').value || new Date().toISOString().slice(0,10);
+        const now   = new Date().toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' });
+
+        let mats = catF ? allMaterials.filter(m => m.category === catF) : allMaterials;
+        if (stkF) mats = mats.filter(m => getAlertStatus(m) === stkF);
+        let logs = logF ? allLogs.filter(l => l.logType === logF) : allLogs;
+
+        const totalValue    = mats.reduce((s,m) => s + (m.currentStock||0)*(m.unitCost||0), 0);
+        const criticalCount = mats.filter(m => getAlertStatus(m) === 'CRITICAL').length;
+        const lowCount      = mats.filter(m => getAlertStatus(m) === 'LOW').length;
+        const totalUsage    = allLogs.filter(l => l.logType==='USAGE').reduce((s,l) => s+l.quantity, 0);
+        const totalWastage  = allLogs.filter(l => l.logType==='WASTAGE').reduce((s,l) => s+l.quantity, 0);
+
+        const titles = { inventory:'Inventory Status Report', usage:'Usage & Wastage Report', alerts:'Stock Alerts Report', full:'Full Materials Report' };
+        document.getElementById('rptDocTitle').textContent = titles[selMRptType];
+
+        let h = `<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:26px;padding-bottom:16px;border-bottom:3px solid #0f1117">
+            <div><div style="font-size:.7rem;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;margin-bottom:4px">PrintProTrack Admin — Materials Management</div>
+            <h2 style="font-size:1.55rem;font-weight:800;color:#1e293b;margin:0">${titles[selMRptType]}</h2></div>
+            <div style="text-align:right"><div style="font-size:.72rem;color:#94a3b8">Generated</div>
+            <div style="font-weight:700;color:#1e293b;font-size:.88rem">${now}</div>
+            <div style="font-size:.72rem;color:#94a3b8;margin-top:2px">Report Date: ${rdate}</div></div></div>
+            <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:22px">
+                ${mkB('Total Materials', mats.length, '#4f8ef7')}
+                ${mkB('Critical', criticalCount, '#ef4444')}
+                ${mkB('Low Stock', lowCount, '#f59e0b')}
+                ${mkB('Inventory Value', '$'+totalValue.toFixed(2), '#22c55e')}
+                ${mkB('Efficiency', (totalUsage+totalWastage)>0 ? ((totalUsage/(totalUsage+totalWastage))*100).toFixed(1)+'%' : '—', '#38bdf8')}
+            </div>`;
+
+        if (selMRptType === 'inventory' || selMRptType === 'full') {
+            h += secH('Inventory Status', `${mats.length} materials`);
+            h += `<table style="width:100%;border-collapse:collapse;margin-bottom:28px;font-size:.8rem">
+                <thead><tr>${['#','Name','SKU','Category','Unit','Stock','Min','Max','Status','Unit Cost','Total Value','Supplier'].map(c=>`<th style="background:#f1f5f9;padding:8px 10px;text-align:left;font-size:.68rem;text-transform:uppercase;letter-spacing:.5px;color:#64748b;border-bottom:2px solid #e2e8f0">${c}</th>`).join('')}</tr></thead>
+                <tbody>${mats.map((m,i)=>{
+                const st=getAlertStatus(m),sc={CRITICAL:'#ef4444',LOW:'#f59e0b',NORMAL:'#22c55e',OVERSTOCKED:'#38bdf8'}[st],tv=(m.currentStock||0)*(m.unitCost||0);
+                return `<tr style="border-bottom:1px solid #f0f4f8${i%2===1?';background:#fafbfc':''}">
+                        <td style="padding:7px 10px;color:#94a3b8">${i+1}</td>
+                        <td style="padding:7px 10px;font-weight:700">${x(m.name)}</td>
+                        <td style="padding:7px 10px;font-family:monospace;font-size:.72rem;color:#64748b">${m.skuCode||'—'}</td>
+                        <td style="padding:7px 10px;font-size:.75rem">${(m.category||'').replace(/_/g,' ')}</td>
+                        <td style="padding:7px 10px;font-size:.75rem">${m.unit||'—'}</td>
+                        <td style="padding:7px 10px;font-weight:700">${m.currentStock}</td>
+                        <td style="padding:7px 10px;color:#94a3b8">${m.minimumStockLevel}</td>
+                        <td style="padding:7px 10px;color:#94a3b8">${m.maximumStockLevel}</td>
+                        <td style="padding:7px 10px"><span style="background:${hexToRgba(sc,0.13)};color:${sc};padding:2px 8px;border-radius:10px;font-size:.68rem;font-weight:700">${st}</span></td>
+                        <td style="padding:7px 10px;font-family:monospace">$${(m.unitCost||0).toFixed(2)}</td>
+                        <td style="padding:7px 10px;font-weight:700;font-family:monospace">$${tv.toFixed(2)}</td>
+                        <td style="padding:7px 10px;font-size:.75rem;color:#94a3b8">${m.supplierName||'—'}</td></tr>`;
+            }).join('')}</tbody>
+                <tfoot><tr><td colspan="9" style="padding:10px;font-weight:700;text-align:right;border-top:2px solid #e2e8f0">Total Inventory Value:</td>
+                <td colspan="3" style="padding:10px;font-weight:800;font-family:monospace;font-size:1rem;border-top:2px solid #e2e8f0;color:#22c55e">$${totalValue.toFixed(2)}</td></tr></tfoot></table>`;
+        }
+
+        if (selMRptType === 'usage' || selMRptType === 'full') {
+            h += secH('Usage & Wastage Logs', `${logs.length} entries`);
+            h += `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
+                ${mkB('Total Usage', totalUsage.toFixed(1)+' units', '#4f8ef7')}
+                ${mkB('Total Wastage', totalWastage.toFixed(1)+' units', '#ef4444')}
+                ${mkB('Efficiency', (totalUsage+totalWastage)>0?((totalUsage/(totalUsage+totalWastage))*100).toFixed(1)+'%':'—', '#22c55e')}</div>`;
+            h += `<table style="width:100%;border-collapse:collapse;margin-bottom:28px;font-size:.78rem">
+                <thead><tr>${['Date','Material','Type','Qty','Before→After','Job Ref','Reason','Logged By'].map(c=>`<th style="background:#f1f5f9;padding:8px 10px;text-align:left;font-size:.68rem;text-transform:uppercase;letter-spacing:.5px;color:#64748b;border-bottom:2px solid #e2e8f0">${c}</th>`).join('')}</tr></thead>
+                <tbody>${logs.map((l,i)=>{const tc={USAGE:'#4f8ef7',WASTAGE:'#ef4444',RESTOCK:'#22c55e',ADJUSTMENT:'#f59e0b'}[l.logType]||'#94a3b8';
+                return `<tr style="border-bottom:1px solid #f0f4f8${i%2===1?';background:#fafbfc':''}">
+                        <td style="padding:7px 10px;font-family:monospace;font-size:.72rem">${l.logDate||'—'}</td>
+                        <td style="padding:7px 10px;font-weight:600">${l.material?.name||'—'}</td>
+                        <td style="padding:7px 10px"><span style="background:${hexToRgba(tc,0.13)};color:${tc};padding:2px 8px;border-radius:10px;font-size:.68rem;font-weight:700">${l.logType}</span></td>
+                        <td style="padding:7px 10px;font-weight:700;font-family:monospace">${l.quantity}</td>
+                        <td style="padding:7px 10px;font-family:monospace;font-size:.72rem;color:#64748b">${l.stockBefore?.toFixed(1)??'—'} → ${l.stockAfter?.toFixed(1)??'—'}</td>
+                        <td style="padding:7px 10px;font-size:.75rem">${l.jobReference||'—'}</td>
+                        <td style="padding:7px 10px;font-size:.75rem;color:#64748b">${l.wastageReason||l.notes||'—'}</td>
+                        <td style="padding:7px 10px;font-size:.75rem;color:#64748b">${l.loggedBy||'—'}</td></tr>`;
+            }).join('')}</tbody></table>`;
+        }
+
+        if (selMRptType === 'alerts' || selMRptType === 'full') {
+            const activeAlerts = allAlerts.filter(a => !a.isResolved);
+            h += secH('Active Stock Alerts', `${activeAlerts.length} unresolved alert${activeAlerts.length!==1?'s':''}`);
+            if (!activeAlerts.length) {
+                h += `<div style="text-align:center;padding:24px;color:#94a3b8;background:#f8fafc;border-radius:8px;margin-bottom:24px">✅ No active alerts — all stock levels are healthy!</div>`;
+            } else {
+                h += `<table style="width:100%;border-collapse:collapse;margin-bottom:28px;font-size:.8rem">
+                    <thead><tr>${['Severity','Material','Message','Stock Level','Date','Acknowledged'].map(c=>`<th style="background:#f1f5f9;padding:8px 10px;text-align:left;font-size:.68rem;text-transform:uppercase;letter-spacing:.5px;color:#64748b;border-bottom:2px solid #e2e8f0">${c}</th>`).join('')}</tr></thead>
+                    <tbody>${activeAlerts.map((a,i)=>{const sc={CRITICAL:'#ef4444',WARNING:'#f59e0b',INFO:'#38bdf8'}[a.severity]||'#94a3b8';
+                    return `<tr style="border-bottom:1px solid #f0f4f8${i%2===1?';background:#fafbfc':''}">
+                            <td style="padding:8px 10px"><span style="background:${hexToRgba(sc,0.13)};color:${sc};padding:2px 8px;border-radius:10px;font-size:.7rem;font-weight:700">${a.severity}</span></td>
+                            <td style="padding:8px 10px;font-weight:600">${a.material?.name||'—'}</td>
+                            <td style="padding:8px 10px;font-size:.78rem">${x(a.message)}</td>
+                            <td style="padding:8px 10px;font-family:monospace">${a.stockLevelAtAlert?.toFixed(1)??'—'}</td>
+                            <td style="padding:8px 10px;font-family:monospace;font-size:.72rem">${(a.createdAt||'').slice(0,16).replace('T',' ')}</td>
+                            <td style="padding:8px 10px;font-size:.78rem">${a.isAcknowledged?'<span style="color:#22c55e">✓ Yes</span>':'<span style="color:#ef4444">✗ No</span>'}</td></tr>`;
+                }).join('')}</tbody></table>`;
+            }
+        }
+
+        h += `<div style="margin-top:30px;padding-top:14px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between">
+            <span style="font-size:.7rem;color:#94a3b8">PrintProTrack Admin · Materials Management · Confidential</span>
+            <span style="font-size:.7rem;color:#94a3b8">Generated by Admin · ${now}</span></div>`;
+
+        document.getElementById('rptBody').innerHTML = h;
+        document.getElementById('reportOverlay').classList.add('open');
+    }
+
+    function mkB(label, value, color) {
+        return `<div style="background:${hexToRgba(color,0.07)};border:1px solid ${hexToRgba(color,0.20)};border-radius:10px;padding:12px;text-align:center">
+            <div style="font-size:1.3rem;font-weight:800;color:${color}">${value}</div>
+            <div style="font-size:.7rem;color:#6b7280;margin-top:3px">${label}</div></div>`;
+    }
+    function secH(title, sub) {
+        return `<div style="margin-bottom:12px"><h3 style="font-size:1rem;font-weight:700;color:#1e293b;margin:0">${title}</h3>
+            <p style="font-size:.78rem;color:#94a3b8;margin:3px 0 0">${sub}</p></div>`;
+    }
+    function closeMReport() { document.getElementById('reportOverlay').classList.remove('open'); }
+    document.getElementById('reportOverlay').addEventListener('click', e => {
+        if (e.target === document.getElementById('reportOverlay')) closeMReport();
+    });
+
+    // ==================== MODAL HELPERS ====================
+    function openModal(id) { document.getElementById(id).classList.add('open'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+    document.querySelectorAll('.overlay').forEach(el => {
+        el.addEventListener('click', function(e) { if (e.target === this) this.classList.remove('open'); });
+    });
+
+    // ==================== TOAST ====================
+    function toast(msg, type = 'success') {
+        const icons = { success: 'fa-check-circle', danger: 'fa-times-circle', warning: 'fa-exclamation-triangle' };
+        const colors = { success: '#10b981', danger: '#ef4444', warning: '#f59e0b' };
+        const el = document.createElement('div');
+        el.className = `toast-item ${type}`;
+        el.innerHTML = `<i class="fas ${icons[type]||icons.success}" style="color:${colors[type]||colors.success}"></i> ${msg}`;
+        document.getElementById('toastContainer').appendChild(el);
+        setTimeout(() => el.remove(), 3500);
+    }
+
+    // ==================== UTILITIES ====================
+    function x(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function fDateShort(s) { if (!s) return '—'; try { return new Date(s).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}); } catch { return s; } }
+    function renderEmpty(tbodyId, cols, msg) { document.getElementById(tbodyId).innerHTML = `<tr><td colspan="${cols}"><div class="empty-state"><i class="fas fa-folder-open"></i><p>${msg}</p></div></td></tr>`; }
+    function btnLoad(btn, text) { btn.disabled = true; btn.innerHTML = text; }
+    function btnReset(btn, html) { btn.disabled = false; btn.innerHTML = html; }
+
+    function alert2(msg, type) {
+        const el = document.getElementById('pageAlert');
+        el.textContent = msg;
+        el.className = `page-alert show ${type === 'success' ? 'success' : type === 'error' ? 'error' : 'warning'}`;
+        setTimeout(() => { el.className = 'page-alert'; }, 4000);
+    }
+
+    function logout() { localStorage.clear(); location.href = '/'; }
+    window.alert2 = alert2;
+    window.toast  = toast;
+</script>
+</body>
+</html>
+
+
+

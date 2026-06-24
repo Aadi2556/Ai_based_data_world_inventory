@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Spare Parts — PrintProTrack Technician</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .bg-sidebar         { background-color: #1a3a2a; }
+        .bg-brand           { background-color: #1e5c2f; }
+        .text-brand         { color: #1e5c2f; }
+        .bg-teal-gradient   { background: linear-gradient(135deg, #0f4c3a 0%, #0d7a5e 55%, #14b88a 100%); }
+        .sidebar-link { transition: all 0.25s; }
+        .sidebar-link:hover { background-color: rgba(255,255,255,0.1); transform: translateX(4px); }
+        .sidebar-link.active { background-color: rgba(255,255,255,0.15); border-left: 3px solid #2dd4bf; }
+        .card-hover { transition: transform 0.2s, box-shadow 0.2s; }
+        .card-hover:hover { transform: translateY(-3px); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
+
+        /* Notification Panel */
+        .notif-panel { position: fixed; top: 0; right: 0; bottom: 0; width: 360px; max-width: 95vw; background: #fff; box-shadow: -4px 0 30px rgba(0,0,0,0.15); z-index: 400; display: flex; flex-direction: column; transform: translateX(100%); transition: transform 0.3s cubic-bezier(.4,0,.2,1); }
+        .notif-panel.open { transform: translateX(0); }
+        .notif-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 399; }
+        .notif-overlay.open { display: block; }
+
+        /* Modals */
+        .modal-backdrop { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:300; align-items:center; justify-content:center; }
+        .modal-backdrop.open { display:flex; }
+        .modal-box { background:#fff; border-radius:14px; width:680px; max-width:96vw; max-height:92vh; overflow-y:auto; animation:popIn .2s ease; }
+        .confirm-box { width:400px; max-width:95vw; }
+        @keyframes popIn { from{opacity:0;transform:scale(0.93)} to{opacity:1;transform:scale(1)} }
+
+        /* Form inputs */
+        .fi { width:100%; padding:9px 13px; border:1.5px solid #e2e8f0; border-radius:8px; font-size:14px; outline:none; transition:border-color .2s,box-shadow .2s; font-family:'Inter',sans-serif; background:#fff; }
+        .fi:focus { border-color:#0d9488; box-shadow:0 0 0 3px rgba(13,148,136,0.12); }
+        .fi-label { display:block; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:#64748b; margin-bottom:5px; }
+
+        /* Badges */
+        .badge { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; }
+        .badge-ok  { background:#dcfce7; color:#15803d; }
+        .badge-low { background:#fef3c7; color:#b45309; }
+        .badge-out { background:#fee2e2; color:#b91c1c; }
+
+        /* Stock bar */
+        .stock-bar-wrap { width: 64px; height: 6px; background: #e5e7eb; border-radius: 99px; overflow: hidden; }
+        .stock-bar      { height: 100%; border-radius: 99px; transition: width 0.3s; }
+
+        /* Notification badge */
+        .notif-count { position:absolute; top:-4px; right:-4px; min-width:18px; height:18px; background:#ef4444; color:#fff; border-radius:99px; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center; padding:0 4px; }
+
+        /* Spinner */
+        .spinner { display:inline-block; width:14px; height:14px; border:2px solid rgba(255,255,255,.3); border-top-color:#fff; border-radius:50%; animation:spin .55s linear infinite; margin-right:5px; vertical-align:middle; }
+        @keyframes spin { to{transform:rotate(360deg)} }
+
+        .alert { display:none; }
+        .alert.show { display:block; }
+
+        .qty-btn { width:26px; height:26px; border-radius:6px; font-size:13px; font-weight:700; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; transition:background .15s; border:1.5px solid; }
+
+        .view-tab { padding: 8px 14px; font-size:13px; font-weight:500; border-radius:8px; cursor:pointer; transition:all .2s; }
+        .view-tab.active { background:#0d9488; color:#fff; }
+        .view-tab:not(.active) { color:#64748b; }
+        .view-tab:not(.active):hover { background:#f1f5f9; }
+
+        tbody tr:hover { background: #f8fafc; }
+        ::-webkit-scrollbar { width:5px; height:5px; }
+        ::-webkit-scrollbar-thumb { background:#d1d5db; border-radius:10px; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex overflow-hidden text-gray-800">
+
+<!-- ════════════ SIDEBAR ════════════ -->
+<aside class="bg-sidebar text-white w-72 flex-shrink-0 flex flex-col h-screen hidden md:flex shadow-2xl z-20">
+    <div class="px-6 py-5 flex items-center gap-3 border-b border-green-900 bg-white">
+        <i class="fas fa-print text-2xl text-brand"></i>
+        <h1 class="text-xl font-bold tracking-wide text-brand">PrintProTrack</h1>
+        <span class="ml-auto px-2 py-0.5 bg-green-100 text-green-800 rounded-full text-xs font-semibold">TECHNICIAN</span>
+    </div>
+    <nav class="flex-1 overflow-y-auto py-5 px-4 space-y-1">
+        <p class="text-xs font-semibold text-green-700 uppercase tracking-widest px-3 mb-3">WORKSPACE</p>
+        <a href='/tech-dashboard' class="sidebar-link flex items-center p-3 rounded-lg text-gray-300 hover:text-white group">
+            <i class="fa-solid fa-gauge-high w-5 text-center text-gray-400 group-hover:text-green-400"></i>
+            <span class="ml-3 font-medium text-sm">Dashboard</span>
+        </a>
+        <a href="/tech-dashboard" class="sidebar-link flex items-center p-3 rounded-lg text-gray-300 hover:text-white group">
+            <i class="fa-solid fa-list-check w-5 text-center text-gray-400 group-hover:text-green-400"></i>
+            <span class="ml-3 font-medium text-sm">My Tasks</span>
+        </a>
+        <a href="/tech-dashboard" class="sidebar-link flex items-center p-3 rounded-lg text-gray-300 hover:text-white group">
+            <i class="fa-solid fa-wrench w-5 text-center text-gray-400 group-hover:text-green-400"></i>
+            <span class="ml-3 font-medium text-sm">Repair Logs</span>
+        </a>
+        <p class="text-xs font-semibold text-green-700 uppercase tracking-widest px-3 mt-5 mb-2">MONITORING</p>
+        <a href='/tech-energy' class="sidebar-link flex items-center p-3 rounded-lg text-gray-300 hover:text-white group">
+            <i class="fa-solid fa-bolt w-5 text-center text-gray-400 group-hover:text-yellow-400"></i>
+            <span class="ml-3 font-medium text-sm">Energy Consumption</span>
+        </a>
+        <a href='/tech-spareparts' class="sidebar-link active flex items-center p-3 rounded-lg text-gray-300 hover:text-white group">
+            <i class="fa-solid fa-cogs w-5 text-center text-gray-400 group-hover:text-teal-400"></i>
+            <span class="ml-3 font-medium text-sm">Spare Parts</span>
+        </a>
+        <a href="/tech-dashboard#profile" class="sidebar-link flex items-center p-3 rounded-lg text-gray-300 hover:text-white group">
+            <i class="fa-solid fa-circle-user w-5 text-center text-gray-400 group-hover:text-green-400"></i>
+            <span class="ml-3 font-medium text-sm">My Profile</span>
+        </a>
+    </nav>
+    <div class="p-4 border-t border-green-900">
+        <button onclick="logout()" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-900 hover:bg-red-800 text-red-200 rounded-lg text-sm font-semibold transition">
+            <i class="fas fa-sign-out-alt"></i> Sign Out
+        </button>
+    </div>
+</aside>
+
+<!-- ════════════ MAIN ════════════ -->
+<div class="flex-1 flex flex-col h-screen overflow-hidden">
+
+    <!-- TOP NAV -->
+    <nav class="bg-white shadow-md w-full z-10">
+        <div class="max-w-full px-6">
+            <div class="flex justify-between items-center py-3.5">
+                <div class="flex items-center gap-3">
+                    <button class="md:hidden text-gray-500 mr-2" id="mobileMenuBtn"><i class="fas fa-bars text-xl"></i></button>
+                    <i class="fas fa-cogs text-xl text-teal-600"></i>
+                    <span class="text-lg font-bold text-gray-800">Spare Parts Management</span>
+                    <span class="px-2.5 py-0.5 bg-teal-100 text-teal-700 rounded-full text-xs font-semibold">TECHNICIAN</span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <button onclick="openNotifPanel()" class="relative p-2 rounded-xl hover:bg-gray-100 transition" title="Low Stock Alerts">
+                        <i class="fas fa-bell text-gray-500 text-lg"></i>
+                        <span id="notifBadge" class="notif-count hidden">0</span>
+                    </button>
+                    <span class="text-gray-600 text-sm hidden sm:block">Welcome, <span id="topbarName" class="font-semibold">Technician</span></span>
+                    <button onclick="logout()" class="text-gray-500 hover:text-red-600 text-sm transition">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- SCROLLABLE CONTENT -->
+    <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
+        <div class="max-w-7xl mx-auto space-y-6">
+
+            <!-- Page alert -->
+            <div id="pageAlert" class="alert px-4 py-3 rounded-xl text-sm font-medium"></div>
+
+            <!-- ── Banner ── -->
+            <div class="bg-teal-gradient rounded-2xl p-7 shadow-lg text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold mb-1">Spare Parts Inventory</h2>
+                    <p class="text-teal-100 text-sm">Browse and monitor all spare parts with smart low-stock alerts.</p>
+                </div>
+                <div class="flex gap-3 flex-shrink-0">
+                    <button onclick="openNotifPanel()" class="relative flex items-center gap-2 bg-white bg-opacity-20 hover:bg-opacity-30 text-white font-semibold px-4 py-2.5 rounded-xl text-sm transition">
+                        <i class="fas fa-bell"></i> Alerts
+                        <span id="notifBadge2" class="hidden ml-1 bg-red-500 text-white rounded-full text-xs px-1.5 py-0.5 font-bold">0</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ── KPI STAT TILES ── -->
+            <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+                <div class="bg-white rounded-2xl p-5 shadow-sm border-l-4 border-teal-500 card-hover">
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Total Parts</p>
+                    <p class="text-3xl font-bold text-gray-800" id="statTotal">—</p>
+                    <p class="text-xs text-gray-400 mt-1">in inventory</p>
+                </div>
+                <div class="bg-white rounded-2xl p-5 shadow-sm border-l-4 border-green-500 card-hover">
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Active Parts</p>
+                    <p class="text-3xl font-bold text-green-600" id="statActive">—</p>
+                    <p class="text-xs text-gray-400 mt-1">currently active</p>
+                </div>
+                <div class="bg-white rounded-2xl p-5 shadow-sm border-l-4 border-amber-500 card-hover cursor-pointer" onclick="filterByStock('LOW')">
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Low Stock</p>
+                    <p class="text-3xl font-bold text-amber-500" id="statLow">—</p>
+                    <p class="text-xs text-gray-400 mt-1">need restocking</p>
+                </div>
+                <div class="bg-white rounded-2xl p-5 shadow-sm border-l-4 border-red-500 card-hover cursor-pointer" onclick="filterByStock('OUT')">
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Out of Stock</p>
+                    <p class="text-3xl font-bold text-red-500" id="statOut">—</p>
+                    <p class="text-xs text-gray-400 mt-1">zero quantity</p>
+                </div>
+                <div class="bg-white rounded-2xl p-5 shadow-sm border-l-4 border-purple-500 card-hover">
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Total Value</p>
+                    <p class="text-2xl font-bold text-purple-600 truncate" id="statValue">—</p>
+                    <p class="text-xs text-gray-400 mt-1">inventory worth</p>
+                </div>
+            </div>
+
+            <!-- ── SEARCH & FILTER BAR ── -->
+            <div class="bg-white rounded-2xl shadow-sm p-4">
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="relative flex-1 min-w-56">
+                        <i class="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                        <input id="searchInput" type="text" placeholder="Search by name, part number, brand, machine…"
+                               class="fi pl-10 border-gray-200 text-sm" oninput="handleSearch(this.value)"/>
+                        <button id="clearSearch" onclick="clearSearch()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500 hidden text-sm transition">
+                            <i class="fas fa-times-circle"></i>
+                        </button>
+                    </div>
+                    <select id="categoryFilter" onchange="handleCategoryFilter(this.value)" class="fi w-44 border-gray-200 text-sm">
+                        <option value="">All Categories</option>
+                    </select>
+                    <select id="stockFilter" onchange="handleStockFilter(this.value)" class="fi w-40 border-gray-200 text-sm">
+                        <option value="">All Stock</option>
+                        <option value="LOW">Low Stock</option>
+                        <option value="OUT">Out of Stock</option>
+                    </select>
+                    <div class="flex gap-1 bg-gray-100 p-1 rounded-xl ml-auto">
+                        <button onclick="setView('table')" id="viewTable" class="view-tab active" title="Table view"><i class="fas fa-table-list"></i></button>
+                        <button onclick="setView('grid')" id="viewGrid" class="view-tab" title="Card view"><i class="fas fa-grip"></i></button>
+                    </div>
+                    <span id="recordCount" class="text-xs text-gray-400 bg-gray-100 px-2.5 py-1.5 rounded-full font-semibold">0 parts</span>
+                </div>
+            </div>
+
+            <!-- ── INVENTORY (TABLE + GRID) ── -->
+            <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+
+                <!-- Loading -->
+                <div id="tableLoading" class="py-16 text-center text-gray-400">
+                    <i class="fas fa-circle-notch fa-spin text-3xl text-teal-400 mb-3"></i>
+                    <p class="text-sm">Loading inventory…</p>
+                </div>
+
+                <!-- Empty -->
+                <div id="tableEmpty" class="py-16 text-center hidden">
+                    <i class="fas fa-cogs text-6xl text-gray-200 mb-4"></i>
+                    <p class="font-semibold text-gray-500 text-lg">No spare parts found</p>
+                    <p class="text-sm text-gray-300 mt-1">Try adjusting your filters.</p>
+                </div>
+
+                <!-- TABLE VIEW -->
+                <div id="tableView" class="overflow-x-auto hidden">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50 border-b border-gray-100">
+                        <tr>
+                            <th class="px-5 py-3.5 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">#</th>
+                            <th class="px-5 py-3.5 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Part Name</th>
+                            <th class="px-5 py-3.5 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Category</th>
+                            <th class="px-5 py-3.5 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Stock</th>
+                            <th class="px-5 py-3.5 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
+                            <th class="px-5 py-3.5 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Unit Price</th>
+                            <th class="px-5 py-3.5 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Location</th>
+                            <th class="px-5 py-3.5 text-center text-xs font-bold text-gray-400 uppercase tracking-wider">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody id="tableBody" class="divide-y divide-gray-50"></tbody>
+                    </table>
+                </div>
+
+                <!-- GRID VIEW -->
+                <div id="gridView" class="hidden p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+            </div>
+
+        </div>
+    </main>
+</div>
+
+<!-- ════════════ NOTIFICATION PANEL ════════════ -->
+<div id="notifOverlay" class="notif-overlay" onclick="closeNotifPanel()"></div>
+<div id="notifPanel" class="notif-panel">
+    <div class="bg-teal-gradient px-5 py-5 flex items-center justify-between flex-shrink-0">
+        <div>
+            <h3 class="font-bold text-white text-lg flex items-center gap-2"><i class="fas fa-bell"></i> Stock Alerts</h3>
+            <p class="text-teal-100 text-xs mt-0.5">Parts that need attention</p>
+        </div>
+        <button onclick="closeNotifPanel()" class="text-white hover:text-teal-200 text-xl transition"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="flex border-b border-gray-100 flex-shrink-0">
+        <button onclick="switchNotifTab('low')" id="notifTabLow"
+                class="flex-1 py-3 text-xs font-bold text-amber-600 border-b-2 border-amber-400 uppercase tracking-wide">
+            <i class="fas fa-triangle-exclamation mr-1"></i> Low Stock (<span id="notifLowCount">0</span>)
+        </button>
+        <button onclick="switchNotifTab('out')" id="notifTabOut"
+                class="flex-1 py-3 text-xs font-bold text-gray-400 border-b-2 border-transparent uppercase tracking-wide hover:text-red-500 transition">
+            <i class="fas fa-circle-xmark mr-1"></i> Out of Stock (<span id="notifOutCount">0</span>)
+        </button>
+    </div>
+    <div class="flex-1 overflow-y-auto">
+        <div id="notifLowList" class="divide-y divide-gray-50"></div>
+        <div id="notifOutList" class="divide-y divide-gray-50 hidden"></div>
+    </div>
+    <div class="p-4 border-t border-gray-100 flex-shrink-0">
+        <button onclick="filterByStock('LOW'); closeNotifPanel();"
+                class="w-full py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-sm font-semibold transition">
+            View All Low Stock Parts
+        </button>
+    </div>
+</div>
+
+<!-- ════════════ VIEW MODAL ════════════ -->
+<div id="viewModal" class="modal-backdrop">
+    <div class="modal-box" style="width:600px;">
+        <div class="bg-teal-gradient px-6 py-5 rounded-t-2xl flex items-center justify-between">
+            <div>
+                <h2 id="viewModalTitle" class="text-xl font-bold text-white">Part Details</h2>
+                <p id="viewModalSub" class="text-teal-100 text-xs mt-0.5">—</p>
+            </div>
+            <button onclick="closeViewModal()" class="text-white hover:text-teal-200 text-xl"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="p-6" id="viewModalBody">Loading…</div>
+    </div>
+</div>
+
+<!-- ════════════ STOCK ADJUST MODAL ════════════ -->
+<div id="stockModal" class="modal-backdrop">
+    <div class="modal-box confirm-box p-8" style="width:380px;">
+        <h3 class="text-lg font-bold text-gray-800 mb-1">Adjust Stock</h3>
+        <p id="stockPartName" class="text-gray-500 text-sm mb-5">Current quantity: <strong id="stockCurrentQty">0</strong></p>
+        <div class="flex items-center gap-4 mb-6">
+            <button onclick="stockDelta(-5)" class="qty-btn border-red-300 text-red-600 hover:bg-red-50 w-10 h-10 text-base">-5</button>
+            <button onclick="stockDelta(-1)" class="qty-btn border-red-300 text-red-600 hover:bg-red-50">-1</button>
+            <div class="flex-1 text-center">
+                <input type="number" id="stockDeltaInput" class="fi text-center text-xl font-bold text-teal-600" placeholder="±0" min="-9999" step="1"/>
+                <p class="text-xs text-gray-400 mt-1">Enter amount (+ to add, − to remove)</p>
+            </div>
+            <button onclick="stockDelta(1)" class="qty-btn border-teal-300 text-teal-600 hover:bg-teal-50">+1</button>
+            <button onclick="stockDelta(5)" class="qty-btn border-teal-300 text-teal-600 hover:bg-teal-50 w-10 h-10 text-base">+5</button>
+        </div>
+        <div id="stockModalAlert" class="alert mb-4 px-4 py-3 rounded-xl text-sm font-medium"></div>
+        <div class="flex gap-3 justify-center">
+            <button onclick="closeStockModal()" class="px-5 py-2.5 text-sm font-semibold text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition">Cancel</button>
+            <button onclick="applyStockAdjust()" id="stockApplyBtn" class="px-6 py-2.5 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-xl transition flex items-center gap-2">
+                <i class="fas fa-check"></i> Apply
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ════════════ SCRIPT ════════════ -->
+<script>
+    const API   = 'http://localhost:8080/api/spareparts';
+    const token = localStorage.getItem('techToken') || localStorage.getItem('token');
+    if (!token) window.location.href='/';
+    function authHdr() { return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }; }
+
+    // Topbar name
+    try {
+        const stored = JSON.parse(localStorage.getItem('technician') || localStorage.getItem('admin') || '{}');
+        if (stored.firstName) document.getElementById('topbarName').textContent = `${stored.firstName} ${stored.lastName || ''}`.trim();
+    } catch(e) {}
+
+    // ── State ──
+    let currentView    = 'table';
+    let stockAdjustId  = null;
+    let currentFilters = { search: '', category: '', stock: '' };
+
+    // ── Helpers ──
+    function esc(s) { return s ? String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') : ''; }
+    function fmt(n, dec=2) { return n != null ? Number(n).toFixed(dec) : '—'; }
+    function fmtDate(s) { if (!s) return '—'; try { return new Date(s+'T00:00:00').toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}); } catch { return s; } }
+
+    function stockBadge(status) {
+        if (status === 'OUT') return `<span class="badge badge-out"><i class="fas fa-circle-xmark text-xs"></i> Out of Stock</span>`;
+        if (status === 'LOW') return `<span class="badge badge-low"><i class="fas fa-triangle-exclamation text-xs"></i> Low Stock</span>`;
+        return `<span class="badge badge-ok"><i class="fas fa-circle-check text-xs"></i> In Stock</span>`;
+    }
+
+    function stockBar(qty, threshold) {
+        if (qty == null || threshold == null) return '';
+        const maxDisplay = threshold * 4;
+        const pct = Math.min(100, (qty / maxDisplay) * 100);
+        const color = qty === 0 ? '#ef4444' : qty <= threshold ? '#f59e0b' : '#10b981';
+        return `<div class="flex items-center gap-2">
+            <div class="stock-bar-wrap"><div class="stock-bar" style="width:${pct}%;background:${color}"></div></div>
+            <span class="text-xs font-semibold ${qty===0?'text-red-500':qty<=threshold?'text-amber-500':'text-gray-700'}">${qty}</span>
+        </div>`;
+    }
+
+    function showAlert(id, msg, type) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = msg;
+        el.className = `alert show px-4 py-3 rounded-xl text-sm font-medium ${
+            type==='success' ? 'bg-green-50 text-green-800 border border-green-200'
+                : 'bg-red-50 text-red-800 border border-red-200'}`;
+        setTimeout(() => el.className = 'alert px-4 py-3 rounded-xl text-sm font-medium', 6000);
+    }
+
+    function showTableState(state) {
+        document.getElementById('tableLoading').classList.toggle('hidden', state !== 'loading');
+        document.getElementById('tableEmpty').classList.toggle('hidden',   state !== 'empty');
+        document.getElementById('tableView').classList.toggle('hidden',    !(state === 'data' && currentView === 'table'));
+        document.getElementById('gridView').classList.toggle('hidden',     !(state === 'data' && currentView === 'grid'));
+    }
+
+    // ── LOAD STATS ──
+    async function loadStats() {
+        try {
+            const res = await fetch(`${API}/stats`, { headers: authHdr() });
+            if (!res.ok) return;
+            const d = await res.json();
+
+            document.getElementById('statTotal').textContent  = d.totalParts  ?? 0;
+            document.getElementById('statActive').textContent = d.activeParts ?? 0;
+            document.getElementById('statLow').textContent    = d.lowStockCount ?? 0;
+            document.getElementById('statOut').textContent    = d.outOfStockCount ?? 0;
+            document.getElementById('statValue').textContent  = d.totalInventoryValue != null ? '$' + fmt(d.totalInventoryValue) : '$0.00';
+
+            const alertCount = (d.lowStockCount ?? 0) + (d.outOfStockCount ?? 0);
+            const badge  = document.getElementById('notifBadge');
+            const badge2 = document.getElementById('notifBadge2');
+            if (alertCount > 0) {
+                badge.textContent  = alertCount > 99 ? '99+' : alertCount;
+                badge2.textContent = alertCount > 99 ? '99+' : alertCount;
+                badge.classList.remove('hidden');
+                badge2.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+                badge2.classList.add('hidden');
+            }
+
+            // Category filter
+            if (d.categories && d.categories.length > 0) {
+                const sel = document.getElementById('categoryFilter');
+                const current = sel.value;
+                sel.innerHTML = '<option value="">All Categories</option>' +
+                    d.categories.map(c => `<option value="${esc(c)}" ${c===current?'selected':''}>${esc(c)}</option>`).join('');
+            }
+
+            // Notification panel lists
+            populateNotifPanel(d.lowStockParts || [], d.outOfStockParts || []);
+            document.getElementById('notifLowCount').textContent = d.lowStockCount ?? 0;
+            document.getElementById('notifOutCount').textContent = d.outOfStockCount ?? 0;
+
+        } catch(e) {}
+    }
+
+    // ── LOAD PARTS ──
+    async function loadParts(search, category, stock) {
+        showTableState('loading');
+        try {
+            const params = new URLSearchParams();
+            if (search)   params.set('search', search);
+            if (category) params.set('category', category);
+            if (stock)    params.set('stock', stock);
+            const url = `${API}${params.toString() ? '?' + params : ''}`;
+
+            const res = await fetch(url, { headers: authHdr() });
+            if (res.status === 401) { logout(); return; }
+            const data = await res.json();
+            if (!res.ok) { showTableState('empty'); return; }
+            renderParts(data);
+        } catch(e) {
+            showAlert('pageAlert', 'Cannot connect to server. Is the backend running?', 'error');
+            showTableState('empty');
+        }
+    }
+
+    function refreshAll() {
+        loadStats();
+        loadParts(currentFilters.search, currentFilters.category, currentFilters.stock);
+    }
+
+    // ── RENDER PARTS ──
+    function renderParts(items) {
+        document.getElementById('recordCount').textContent = `${items.length} part${items.length!==1?'s':''}`;
+        if (!items.length) { showTableState('empty'); return; }
+        showTableState('data');
+
+        // TABLE
+        document.getElementById('tableBody').innerHTML = items.map((p, i) => `
+            <tr class="transition group">
+                <td class="px-5 py-3.5 text-gray-400 text-xs font-mono">${i+1}</td>
+                <td class="px-5 py-3.5">
+                    <div class="font-semibold text-gray-800 text-sm">${esc(p.partName)}</div>
+                    <div class="text-xs text-gray-400 mt-0.5 flex gap-2">
+                        ${p.partNumber ? `<span class="font-mono">${esc(p.partNumber)}</span>` : ''}
+                        ${p.brand ? `<span>${esc(p.brand)}</span>` : ''}
+                    </div>
+                </td>
+                <td class="px-5 py-3.5">
+                    <span class="px-2 py-1 bg-teal-50 text-teal-700 rounded-lg text-xs font-semibold">${esc(p.category)}</span>
+                </td>
+                <td class="px-5 py-3.5">${stockBar(p.quantityInStock, p.lowStockThreshold)}</td>
+                <td class="px-5 py-3.5">${stockBadge(p.stockStatus)}</td>
+                <td class="px-5 py-3.5 text-gray-600 text-sm">${p.unitPrice != null ? '$'+fmt(p.unitPrice) : '—'}</td>
+                <td class="px-5 py-3.5 text-gray-500 text-xs">${p.storageLocation ? esc(p.storageLocation) : '—'}</td>
+                <td class="px-5 py-3.5">
+                    <div class="flex items-center justify-center gap-1.5">
+                        <button onclick="openStockModal(${p.id}, '${esc(p.partName)}', ${p.quantityInStock})" title="Adjust Stock"
+                            class="p-1.5 rounded-lg text-teal-600 hover:bg-teal-50 transition text-xs font-bold">
+                            <i class="fas fa-arrows-up-down"></i>
+                        </button>
+                        <button onclick="openViewModal(${p.id})" title="View"
+                            class="p-1.5 rounded-lg text-blue-500 hover:bg-blue-50 transition"><i class="fas fa-eye text-xs"></i></button>
+                    </div>
+                </td>
+            </tr>`).join('');
+
+        // GRID
+        document.getElementById('gridView').innerHTML = items.map(p => `
+            <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm card-hover relative overflow-hidden">
+                ${p.stockStatus!=='OK' ? `<div class="absolute top-0 right-0 w-0 h-0" style="border-top:40px solid ${p.stockStatus==='OUT'?'#ef4444':'#f59e0b'};border-left:40px solid transparent;"></div>` : ''}
+                <div class="flex items-start justify-between mb-3">
+                    <div class="flex-1 min-w-0">
+                        <p class="font-bold text-gray-800 text-sm leading-snug truncate">${esc(p.partName)}</p>
+                        <p class="text-xs text-gray-400 font-mono mt-0.5">${p.partNumber ? esc(p.partNumber) : '—'}</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="px-2 py-0.5 bg-teal-50 text-teal-700 rounded-lg text-xs font-semibold">${esc(p.category)}</span>
+                    ${stockBadge(p.stockStatus)}
+                </div>
+                <div class="grid grid-cols-2 gap-y-2 text-xs mb-4">
+                    <div><p class="text-gray-400">Qty in Stock</p><p class="font-bold ${p.quantityInStock===0?'text-red-500':p.quantityInStock<=p.lowStockThreshold?'text-amber-500':'text-gray-700'}">${p.quantityInStock} ${p.unit||''}</p></div>
+                    <div><p class="text-gray-400">Alert Level</p><p class="font-bold text-gray-600">${p.lowStockThreshold}</p></div>
+                    <div><p class="text-gray-400">Unit Price</p><p class="font-bold text-gray-700">${p.unitPrice!=null?'$'+fmt(p.unitPrice):'—'}</p></div>
+                    <div><p class="text-gray-400">Location</p><p class="font-bold text-gray-700 truncate">${p.storageLocation?esc(p.storageLocation):'—'}</p></div>
+                </div>
+                <div class="flex gap-2 border-t border-gray-50 pt-3">
+                    <button onclick="openStockModal(${p.id}, '${esc(p.partName)}', ${p.quantityInStock})"
+                        class="flex-1 py-1.5 bg-teal-50 text-teal-700 text-xs font-semibold rounded-lg hover:bg-teal-100 transition">
+                        <i class="fas fa-arrows-up-down mr-1"></i>Stock
+                    </button>
+                    <button onclick="openViewModal(${p.id})"
+                        class="flex-1 py-1.5 bg-blue-50 text-blue-700 text-xs font-semibold rounded-lg hover:bg-blue-100 transition">
+                        <i class="fas fa-eye mr-1"></i>View
+                    </button>
+                </div>
+            </div>`).join('');
+    }
+
+    // ── SEARCH & FILTER ──
+    let searchTimer;
+    function handleSearch(val) {
+        clearTimeout(searchTimer);
+        document.getElementById('clearSearch').classList.toggle('hidden', !val);
+        searchTimer = setTimeout(() => {
+            currentFilters.search = val.trim();
+            loadParts(currentFilters.search, currentFilters.category, currentFilters.stock);
+        }, 320);
+    }
+    function clearSearch() {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('clearSearch').classList.add('hidden');
+        currentFilters.search = '';
+        loadParts('', currentFilters.category, currentFilters.stock);
+    }
+    function handleCategoryFilter(val) { currentFilters.category = val; loadParts(currentFilters.search, val, currentFilters.stock); }
+    function handleStockFilter(val)    { currentFilters.stock = val; loadParts(currentFilters.search, currentFilters.category, val); }
+    function filterByStock(val) {
+        document.getElementById('stockFilter').value = val;
+        currentFilters.stock = val;
+        loadParts(currentFilters.search, currentFilters.category, val);
+    }
+
+    // ── VIEW TOGGLE ──
+    function setView(v) {
+        currentView = v;
+        document.getElementById('viewTable').classList.toggle('active', v === 'table');
+        document.getElementById('viewGrid').classList.toggle('active',  v === 'grid');
+        loadParts(currentFilters.search, currentFilters.category, currentFilters.stock);
+    }
+
+    // ── NOTIFICATION PANEL ──
+    function populateNotifPanel(lowParts, outParts) {
+        const renderList = (items, color, icon) => {
+            if (!items.length) return `<div class="py-12 text-center text-gray-300"><i class="fas fa-check-circle text-4xl mb-3 block text-green-200"></i><p class="text-sm">All good here!</p></div>`;
+            return items.map(p => `
+                <div class="flex items-start gap-3 px-5 py-4 hover:bg-gray-50 transition cursor-pointer" onclick="closeNotifPanel(); openViewModal(${p.id})">
+                    <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${color}">
+                        <i class="fas ${icon} text-sm"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="font-semibold text-sm text-gray-800 truncate">${esc(p.partName)}</p>
+                        <p class="text-xs text-gray-400">${p.partNumber ? esc(p.partNumber)+' · ' : ''}${esc(p.category)}</p>
+                        <div class="flex items-center gap-2 mt-1">
+                            ${stockBadge(p.stockStatus)}
+                            <span class="text-xs text-gray-400">Qty: <strong>${p.quantityInStock}</strong> / Alert: ${p.lowStockThreshold}</span>
+                        </div>
+                    </div>
+                    <button onclick="event.stopPropagation(); closeNotifPanel(); openStockModal(${p.id},'${esc(p.partName)}',${p.quantityInStock})"
+                        class="text-teal-500 hover:text-teal-700 transition text-xs font-semibold mt-1 flex-shrink-0">
+                        Restock
+                    </button>
+                </div>`).join('');
+        };
+        document.getElementById('notifLowList').innerHTML = renderList(lowParts, 'bg-amber-100 text-amber-600', 'fa-triangle-exclamation');
+        document.getElementById('notifOutList').innerHTML = renderList(outParts, 'bg-red-100 text-red-500', 'fa-circle-xmark');
+    }
+
+    function switchNotifTab(tab) {
+        const lowActive = tab === 'low';
+        document.getElementById('notifLowList').classList.toggle('hidden', !lowActive);
+        document.getElementById('notifOutList').classList.toggle('hidden', lowActive);
+        document.getElementById('notifTabLow').className = `flex-1 py-3 text-xs font-bold uppercase tracking-wide border-b-2 transition ${lowActive ? 'text-amber-600 border-amber-400' : 'text-gray-400 border-transparent hover:text-red-500'}`;
+        document.getElementById('notifTabOut').className = `flex-1 py-3 text-xs font-bold uppercase tracking-wide border-b-2 transition ${!lowActive ? 'text-red-500 border-red-400' : 'text-gray-400 border-transparent hover:text-amber-600'}`;
+    }
+    function openNotifPanel()  { document.getElementById('notifPanel').classList.add('open');    document.getElementById('notifOverlay').classList.add('open'); }
+    function closeNotifPanel() { document.getElementById('notifPanel').classList.remove('open'); document.getElementById('notifOverlay').classList.remove('open'); }
+
+    // ── VIEW MODAL ──
+    async function openViewModal(id) {
+        document.getElementById('viewModalBody').innerHTML = '<div class="py-10 text-center"><i class="fas fa-circle-notch fa-spin text-2xl text-teal-400"></i></div>';
+        document.getElementById('viewModal').classList.add('open');
+        try {
+            const res = await fetch(`${API}/${id}`, { headers: authHdr() });
+            const d   = await res.json();
+            if (!res.ok) { document.getElementById('viewModalBody').innerHTML = `<p class="text-red-500 text-sm">${d.error}</p>`; return; }
+            document.getElementById('viewModalTitle').textContent = d.partName;
+            document.getElementById('viewModalSub').textContent   = `${d.partNumber ? d.partNumber+' · ' : ''}${d.category}${d.brand ? ' · '+d.brand : ''}`;
+            document.getElementById('viewModalBody').innerHTML = `
+                <div class="flex items-center gap-3 mb-5 p-4 rounded-2xl ${d.outOfStock?'bg-red-50 border border-red-100':d.lowStock?'bg-amber-50 border border-amber-100':'bg-green-50 border border-green-100'}">
+                    <div class="text-3xl font-bold ${d.outOfStock?'text-red-500':d.lowStock?'text-amber-500':'text-green-600'}">${d.quantityInStock}</div>
+                    <div>
+                        <p class="text-sm font-semibold text-gray-700">Units in Stock</p>
+                        <p class="text-xs text-gray-400">Alert threshold: ${d.lowStockThreshold} · ${d.unit||'PIECE'}</p>
+                    </div>
+                    <div class="ml-auto">${stockBadge(d.stockStatus)}</div>
+                </div>
+                <div class="grid grid-cols-2 gap-x-8 gap-y-3 text-sm mb-5">
+                    ${vr('Part Number', d.partNumber||'—')}
+                    ${vr('Barcode',     d.barcode||'—')}
+                    ${vr('Category',    d.category)}
+                    ${vr('Brand',       d.brand||'—')}
+                    ${vr('Unit Price',  d.unitPrice!=null?'$'+fmt(d.unitPrice):'—')}
+                    ${vr('Total Value', d.totalValue!=null?'$'+fmt(d.totalValue):'—')}
+                    ${vr('Reorder Qty', d.reorderQuantity||'—')}
+                    ${vr('Location',    d.storageLocation||'—')}
+                    ${vr('Supplier',    d.supplierName||'—')}
+                    ${vr('Contact',     d.supplierContact||'—')}
+                    ${vr('Last Restock',fmtDate(d.lastRestockedDate))}
+                    ${vr('Expiry Date', fmtDate(d.expiryDate))}
+                    ${vr('Status',      d.isActive ? '<span class="text-green-600 font-semibold">Active</span>' : '<span class="text-gray-400">Inactive</span>')}
+                </div>
+                ${d.compatibleMachines ? `<div class="mb-4 p-3 bg-gray-50 rounded-xl"><p class="fi-label mb-1">Compatible Machines</p><p class="text-sm text-gray-600">${esc(d.compatibleMachines)}</p></div>` : ''}
+                ${d.description ? `<div class="mb-4 p-3 bg-gray-50 rounded-xl"><p class="fi-label mb-1">Description</p><p class="text-sm text-gray-600">${esc(d.description)}</p></div>` : ''}
+                <div class="flex gap-3 justify-end border-t border-gray-100 pt-4">
+                    <button onclick="closeViewModal(); openStockModal(${d.id},'${esc(d.partName)}',${d.quantityInStock})"
+                        class="px-4 py-2 text-sm font-semibold text-teal-700 border border-teal-200 rounded-xl hover:bg-teal-50 transition flex items-center gap-2">
+                        <i class="fas fa-arrows-up-down"></i> Adjust Stock
+                    </button>
+                    <button onclick="closeViewModal()" class="px-4 py-2 text-sm font-semibold text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition">Close</button>
+                </div>`;
+        } catch { document.getElementById('viewModalBody').innerHTML = '<p class="text-red-400 text-sm">Connection error.</p>'; }
+    }
+
+    function vr(label, value) { return `<div><p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">${label}</p><p class="text-gray-700">${value}</p></div>`; }
+    function closeViewModal() { document.getElementById('viewModal').classList.remove('open'); }
+
+    // ── STOCK ADJUST MODAL ──
+    function openStockModal(id, name, currentQty) {
+        stockAdjustId = id;
+        // Set name and current qty separately — don't overwrite innerHTML of the parent
+        document.getElementById('stockPartName').innerHTML =
+            `Adjusting stock for: <strong>${esc(name)}</strong> &nbsp;·&nbsp; Current quantity: <strong id="stockCurrentQty">${currentQty}</strong>`;
+        document.getElementById('stockDeltaInput').value = '';
+        document.getElementById('stockModalAlert').className = 'alert mb-4 px-4 py-3 rounded-xl text-sm font-medium';
+        document.getElementById('stockModal').classList.add('open');
+    }
+    function closeStockModal() { stockAdjustId = null; document.getElementById('stockModal').classList.remove('open'); }
+    function stockDelta(amount) {
+        const input = document.getElementById('stockDeltaInput');
+        input.value = (parseInt(input.value) || 0) + amount;
+    }
+
+    async function applyStockAdjust() {
+        const delta = parseInt(document.getElementById('stockDeltaInput').value);
+        if (isNaN(delta) || delta === 0) { showModalAlert('stockModalAlert', 'Enter a non-zero amount.', 'error'); return; }
+        const btn = document.getElementById('stockApplyBtn');
+        btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Applying…';
+        try {
+            const res  = await fetch(`${API}/${stockAdjustId}/stock?delta=${delta}`, { method:'PATCH', headers: authHdr() });
+            const data = await res.json();
+            if (res.ok) {
+                closeStockModal();
+                showAlert('pageAlert', `Stock updated successfully. New quantity: ${data.part.quantityInStock}`, 'success');
+                refreshAll();
+            } else {
+                showModalAlert('stockModalAlert', data.error || 'Failed to update stock.', 'error');
+            }
+        } catch { showModalAlert('stockModalAlert', 'Connection error.', 'error'); }
+        finally { btn.disabled=false; btn.innerHTML='<i class="fas fa-check"></i> Apply'; }
+    }
+
+    function showModalAlert(id, msg, type) {
+        const el = document.getElementById(id);
+        el.textContent = msg;
+        el.className = `alert show px-4 py-3 rounded-xl text-sm font-medium ${type==='success'
+            ? 'bg-green-50 text-green-800 border border-green-200'
+            : 'bg-red-50 text-red-800 border border-red-200'}`;
+    }
+
+    // ── Modal backdrop clicks ──
+    ['viewModal','stockModal'].forEach(id => {
+        document.getElementById(id).addEventListener('click', function(e) {
+            if (e.target !== this) return;
+            if (id === 'viewModal')  closeViewModal();
+            if (id === 'stockModal') closeStockModal();
+        });
+    });
+
+    // ── Mobile menu ──
+    document.getElementById('mobileMenuBtn')?.addEventListener('click', () => {
+        document.querySelector('aside').classList.toggle('hidden');
+    });
+
+    function logout() { localStorage.clear(); window.location.href='/'; }
+
+    // ── Init ──
+    loadStats();
+    loadParts('', '', '');
+</script>
+</body>
+</html>
+
+
+

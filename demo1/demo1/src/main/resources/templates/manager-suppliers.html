@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Manager - Suppliers</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <style>
+        :root { --forest: #1a3a2a; --pine: #1e5c2f; --sage: #2d8a47; }
+        body { font-family: 'DM Sans', sans-serif; background: #f1f5f9; margin: 0; overflow: hidden; }
+        .sidebar { background: var(--forest); width: 260px; height: 100vh; flex-shrink: 0; display: flex; flex-direction: column; position: sticky; top: 0; }
+        .sidebar-logo { background: #fff; padding: 18px 22px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #0d2018; }
+        .sidebar-logo .brand-text { font-weight: 700; font-size: 17px; color: var(--pine); }
+        .sidebar-badge { font-size: 10px; font-weight: 700; background: #d1fae5; color: #065f46; padding: 2px 7px; border-radius: 99px; margin-left: auto; }
+        .sidebar-nav { flex: 1; overflow-y: auto; padding: 16px 12px; display: flex; flex-direction: column; gap: 2px; }
+        .nav-label { font-size: 10px; font-weight: 700; letter-spacing: 2px; color: #3d6b4e; text-transform: uppercase; padding: 10px 10px 4px; }
+        .nav-link { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; color: #9dbea8; font-size: 13.5px; font-weight: 500; text-decoration: none; transition: all .2s; border-left: 3px solid transparent; cursor: pointer; }
+        .nav-link:hover { background: rgba(255,255,255,.07); color: #fff; }
+        .nav-link.active { background: rgba(255,255,255,.12); color: #fff; border-left-color: var(--sage); }
+        .sidebar-footer { padding: 14px 12px; border-top: 1px solid #0d2018; }
+        .logout-btn { width: 100%; background: rgba(220,38,38,.15); color: #fca5a5; border: none; padding: 10px; border-radius: 9px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background .15s; }
+        .page-wrap { display: flex; height: 100vh; overflow: hidden; }
+        .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .scroll-area { flex: 1; overflow-y: auto; padding: 28px; }
+        .topnav { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 0 28px; height: 56px; display: flex; align-items: center; justify-content: space-between; }
+        .banner { background: linear-gradient(135deg, var(--forest) 0%, var(--pine) 55%, var(--sage) 100%); border-radius: 16px; padding: 24px 28px; color: #fff; display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+        .stat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 22px; }
+        .stat-card { background: #fff; border-radius: 14px; padding: 18px 20px; border-top: 3px solid transparent; }
+        .page-tabs { display: flex; gap: 4px; background: #fff; border-radius: 12px; padding: 5px; margin-bottom: 20px; }
+        .page-tab { flex: 1; padding: 10px; border-radius: 9px; border: none; background: transparent; font-size: 13.5px; font-weight: 500; color: #64748b; cursor: pointer; }
+        .page-tab.active { background: var(--pine); color: #fff; }
+        .sub-tabs { display: flex; gap: 2px; background: #f1f5f9; border-radius: 8px; padding: 3px; margin-bottom: 16px; }
+        .sub-tab { padding: 6px 16px; border-radius: 6px; border: none; background: transparent; font-size: 13px; font-weight: 500; color: #64748b; cursor: pointer; }
+        .sub-tab.active { background: #fff; color: var(--pine); box-shadow: 0 1px 3px rgba(0,0,0,.05); }
+        .panel { background: #fff; border-radius: 16px; overflow: hidden; margin-bottom: 20px; }
+        .panel-header { padding: 16px 22px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
+        .data-table { width: 100%; border-collapse: collapse; }
+        .data-table th { padding: 12px 16px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #94a3b8; background: #f8fafc; }
+        .data-table td { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; }
+        .badge { display: inline-flex; padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+        .b-PENDING { background: #fef3c7; color: #92400e; }
+        .b-CONFIRMED { background: #dbeafe; color: #1d4ed8; }
+        .b-DELIVERED { background: #d1fae5; color: #065f46; }
+        .action-btn { width: 30px; height: 30px; border-radius: 8px; border: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; margin: 0 2px; }
+        .action-btn.edit { background: #f0fdf4; color: #16a34a; }
+        .action-btn.del { background: #fef2f2; color: #dc2626; }
+        .action-btn.view { background: #eff6ff; color: #3b82f6; }
+        .empty-state { padding: 56px 20px; text-align: center; color: #94a3b8; }
+    </style>
+</head>
+<body>
+<div class="page-wrap">
+    <aside class="sidebar">
+        <div class="sidebar-logo"><i class="fas fa-print"></i><span class="brand-text">PrintProTrack</span><span class="sidebar-badge">MANAGER</span></div>
+        <nav class="sidebar-nav">
+            <div class="nav-label">Main</div><a href='/manager-dashboard' class="nav-link"><i class="fas fa-house"></i> Dashboard</a><a href='/manager-dashboard#profile' class="nav-link"><i class="fas fa-circle-user"></i> My Profile</a>
+            <div class="nav-label">Operations</div><a href='/manager-maintenance' class="nav-link"><i class="fas fa-screwdriver-wrench"></i> Machine Maintenance</a><a href='/manager-energy' class="nav-link"><i class="fas fa-bolt"></i> Energy Monitoring</a><a href='/manager-spareparts' class="nav-link"><i class="fas fa-cogs"></i> Spare Parts</a><a href='/manager-suppliers' class="nav-link active"><i class="fas fa-truck"></i> Suppliers</a><a href='/manager-materials' class="nav-link"><i class="fas fa-scroll"></i> Material Management</a>
+        </nav>
+        <div class="sidebar-footer"><button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Sign Out</button></div>
+    </aside>
+    <div class="main">
+        <nav class="topnav"><div><i class="fas fa-truck"></i> Supplier Management</div><div><span>Welcome, <strong id="topbarName">Manager</strong></span><button onclick="logout()" style="margin-left:15px;">Logout</button></div></nav>
+        <div class="scroll-area">
+            <div class="banner"><div><h1>Suppliers & Orders</h1><p>View, edit, or delete suppliers and purchase orders.</p></div></div>
+            <div class="stat-grid"><div class="stat-card"><div class="label">Suppliers</div><div id="statSuppliers">0</div></div><div class="stat-card"><div class="label">Active Orders</div><div id="statOrders">0</div></div><div class="stat-card"><div class="label">Avg. Evaluation</div><div id="statAvgEval">0.0</div></div><div class="stat-card"><div class="label">At‑Risk</div><div id="statAtRisk">0</div></div></div>
+            <div class="page-tabs">
+                <button id="tabSuppliers" class="page-tab active" onclick="switchMainTab('suppliers')">Suppliers & Orders</button>
+                <button id="tabEvaluations" class="page-tab" onclick="switchMainTab('evaluations')">Performance Evaluations</button>
+            </div>
+
+            <div id="panelSuppliersMain">
+                <div class="sub-tabs">
+                    <button id="subTabSuppliers" class="sub-tab active" onclick="switchSubTab('suppliers')">Suppliers</button>
+                    <button id="subTabOrders" class="sub-tab" onclick="switchSubTab('orders')">Purchase Orders</button>
+                </div>
+                <div id="subPanelSuppliers" class="panel"><div class="panel-header"><div>Supplier Contacts</div><div><input id="searchSupplier" placeholder="Search..." class="border rounded px-3 py-1"></div></div><table class="data-table"><thead><tr><th>Name</th><th>Contact</th><th>Email</th><th>Phone</th><th>Category</th><th>Actions</th></tr></thead><tbody id="suppliersTbody"></tbody></table></div>
+                <div id="subPanelOrders" class="panel" style="display:none"><div class="panel-header"><div>Purchase Orders</div></div><table class="data-table"><thead><tr><th>Order #</th><th>Supplier</th><th>Item</th><th>Qty</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead><tbody id="ordersTbody"></tbody></table></div>
+            </div>
+            <div id="panelEvaluationsMain" style="display:none"><div class="panel"><div class="panel-header"><div>Supplier Evaluations</div></div><table class="data-table"><thead><tr><th>Supplier</th><th>Period</th><th>Overall</th><th>Grade</th><th>Recommend</th><th>Actions</th></tr></thead><tbody id="evalsTbody"></tbody></table></div></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API = 'http://localhost:8080';
+    const token = localStorage.getItem('token');
+    if (!token) location.href = '/login';
+    function H() { return { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }; }
+
+    let allSuppliers = [], allOrders = [], allEvals = [];
+    async function loadAll() {
+        allSuppliers = await (await fetch(`${API}/admin/suppliers/api/all`, { headers: H() })).json();
+        allOrders = await (await fetch(`${API}/admin/suppliers/api/orders`, { headers: H() })).json();
+        allEvals = await (await fetch(`${API}/admin/suppliers/evaluations/api/all`, { headers: H() })).json();
+        renderSuppliers(allSuppliers); renderOrders(allOrders); renderEvals(allEvals);
+        document.getElementById('statSuppliers').innerText = allSuppliers.length;
+        document.getElementById('statOrders').innerText = allOrders.filter(o=>o.status!=='CANCELLED' && o.status!=='DELIVERED').length;
+    }
+    function renderSuppliers(list) { const tb=document.getElementById('suppliersTbody'); if(!list.length) { tb.innerHTML='<tr><td colspan="6" class="empty-state">No suppliers</td></tr>'; return; } tb.innerHTML=list.map(s=>`<tr><td>${escapeHtml(s.name)}</td><td>${escapeHtml(s.contactPerson||'')}</td><td>${escapeHtml(s.email)}</td><td>${escapeHtml(s.phone||'')}</td><td>${s.category||''}</td><td><button class="action-btn view" onclick="viewSupplier(${s.id})"><i class="fas fa-eye"></i></button><button class="action-btn edit" onclick="editSupplier(${s.id})"><i class="fas fa-pen"></i></button><button class="action-btn del" onclick="deleteSupplier(${s.id})"><i class="fas fa-trash"></i></button></td></tr>`).join(''); }
+    function renderOrders(list) { const tb=document.getElementById('ordersTbody'); if(!list.length) { tb.innerHTML='<tr><td colspan="7" class="empty-state">No orders</td></tr>'; return; } tb.innerHTML=list.map(o=>`<tr><td>${o.orderNumber||'—'}</td><td>${o.supplier?.name||'—'}</td><td>${escapeHtml(o.itemDescription)}</td><td>${o.quantity||0}</td><td>$${(o.totalAmount||0).toFixed(2)}</td><td><span class="badge b-${o.status}">${o.status}</span></td><td><button class="action-btn edit" onclick="editOrder(${o.id})"><i class="fas fa-pen"></i></button><button class="action-btn del" onclick="deleteOrder(${o.id})"><i class="fas fa-trash"></i></button></td></tr>`).join(''); }
+    function renderEvals(list) { const tb=document.getElementById('evalsTbody'); if(!list.length) { tb.innerHTML='<tr><td colspan="6" class="empty-state">No evaluations</td></tr>'; return; } tb.innerHTML=list.map(e=>`<tr><td>${e.supplier?.name||'—'}</td><td>${e.evaluationPeriod||''}</td><td>${(e.overallScore||0).toFixed(2)}</td><td>${e.grade||''}</td><td>${e.recommendContinue?'Yes':'No'}</td><td><button class="action-btn edit" onclick="editEval(${e.id})"><i class="fas fa-pen"></i></button><button class="action-btn del" onclick="deleteEval(${e.id})"><i class="fas fa-trash"></i></button></td></tr>`).join(''); }
+
+    async function viewSupplier(id) {
+        const s = allSuppliers.find(x => x.id == id);
+        const modalHtml = `
+            <div id="viewModal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:1000;">
+                <div style="background:#fff; padding:20px; border-radius:8px; width:400px; max-width:90%;">
+                    <h3>Supplier Details</h3>
+                    <p><strong>Name:</strong> ${escapeHtml(s.name)}</p>
+                    <p><strong>Contact:</strong> ${escapeHtml(s.contactPerson)}</p>
+                    <p><strong>Email:</strong> ${escapeHtml(s.email)}</p>
+                    <p><strong>Phone:</strong> ${escapeHtml(s.phone)}</p>
+                    <p><strong>Category:</strong> ${escapeHtml(s.category)}</p>
+                    <button onclick="document.getElementById('viewModal').remove()" style="margin-top:15px; padding:5px 10px; cursor:pointer;">Close</button>
+                </div>
+            </div>`;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+
+    async function editSupplier(id) {
+        const s = allSuppliers.find(x => x.id == id);
+        const modalHtml = `
+            <div id="editModal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:1000;">
+                <div style="background:#fff; padding:20px; border-radius:8px; width:400px; max-width:90%;">
+                    <h3>Edit Supplier Name</h3>
+                    <input type="text" id="editNameInput" value="${escapeHtml(s.name)}" style="width:100%; padding:5px; margin:10px 0;">
+                    <button onclick="saveSupplierEdit(${id})" style="padding:5px 10px; cursor:pointer; background:var(--sage); color:white; border:none; border-radius:4px;">Save</button>
+                    <button onclick="document.getElementById('editModal').remove()" style="padding:5px 10px; cursor:pointer;">Cancel</button>
+                </div>
+            </div>`;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+
+    async function saveSupplierEdit(id) {
+        const s = allSuppliers.find(x => x.id == id);
+        const newName = document.getElementById('editNameInput').value;
+        if (newName) {
+            s.name = newName;
+            await fetch(`${API}/admin/suppliers/api/update/${id}`, { method: 'PUT', headers: H(), body: JSON.stringify(s) });
+            document.getElementById('editModal').remove();
+            loadAll();
+        }
+    }
+
+    async function deleteSupplier(id) {
+        const modalHtml = `
+            <div id="deleteModal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:1000;">
+                <div style="background:#fff; padding:20px; border-radius:8px; width:400px; max-width:90%; text-align:center;">
+                    <h3>Confirm Deletion</h3>
+                    <p>Are you sure you want to delete this supplier?</p>
+                    <button onclick="confirmDeleteSupplier(${id})" style="padding:5px 10px; cursor:pointer; background:red; color:white; border:none; border-radius:4px; margin-right:10px;">Delete</button>
+                    <button onclick="document.getElementById('deleteModal').remove()" style="padding:5px 10px; cursor:pointer;">Cancel</button>
+                </div>
+            </div>`;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+
+    async function confirmDeleteSupplier(id) {
+        await fetch(`${API}/admin/suppliers/api/delete/${id}`, { method: 'DELETE', headers: H() });
+        document.getElementById('deleteModal').remove();
+        loadAll();
+    }
+
+    async function editOrder(id) {
+        const o = allOrders.find(x => x.id == id);
+        const modalHtml = `
+            <div id="editOrderModal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:1000;">
+                <div style="background:#fff; padding:20px; border-radius:8px; width:400px; max-width:90%;">
+                    <h3>Change Order Status</h3>
+                    <select id="editOrderStatus" style="width:100%; padding:5px; margin:10px 0;">
+                        <option value="PENDING" ${o.status === 'PENDING' ? 'selected' : ''}>PENDING</option>
+                        <option value="CONFIRMED" ${o.status === 'CONFIRMED' ? 'selected' : ''}>CONFIRMED</option>
+                        <option value="SHIPPED" ${o.status === 'SHIPPED' ? 'selected' : ''}>SHIPPED</option>
+                        <option value="DELIVERED" ${o.status === 'DELIVERED' ? 'selected' : ''}>DELIVERED</option>
+                        <option value="CANCELLED" ${o.status === 'CANCELLED' ? 'selected' : ''}>CANCELLED</option>
+                    </select>
+                    <button onclick="saveOrderEdit(${id})" style="padding:5px 10px; cursor:pointer; background:var(--sage); color:white; border:none; border-radius:4px;">Save</button>
+                    <button onclick="document.getElementById('editOrderModal').remove()" style="padding:5px 10px; cursor:pointer;">Cancel</button>
+                </div>
+            </div>`;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+
+    async function saveOrderEdit(id) {
+        const newStatus = document.getElementById('editOrderStatus').value;
+        if (newStatus) {
+            await fetch(`${API}/admin/suppliers/api/orders/${id}/status`, { method: 'PUT', headers: H(), body: JSON.stringify({ status: newStatus }) });
+            document.getElementById('editOrderModal').remove();
+            loadAll();
+        }
+    }
+
+    async function deleteOrder(id) {
+        const modalHtml = `
+            <div id="deleteOrderModal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:1000;">
+                <div style="background:#fff; padding:20px; border-radius:8px; width:400px; max-width:90%; text-align:center;">
+                    <h3>Confirm Deletion</h3>
+                    <p>Are you sure you want to delete this order?</p>
+                    <button onclick="confirmDeleteOrder(${id})" style="padding:5px 10px; cursor:pointer; background:red; color:white; border:none; border-radius:4px; margin-right:10px;">Delete</button>
+                    <button onclick="document.getElementById('deleteOrderModal').remove()" style="padding:5px 10px; cursor:pointer;">Cancel</button>
+                </div>
+            </div>`;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+
+    async function confirmDeleteOrder(id) {
+        await fetch(`${API}/admin/suppliers/api/orders/${id}`, { method: 'DELETE', headers: H() });
+        document.getElementById('deleteOrderModal').remove();
+        loadAll();
+    }
+
+    async function editEval(id) {
+        const e = allEvals.find(x => x.id == id);
+        const modalHtml = `
+            <div id="editEvalModal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:1000;">
+                <div style="background:#fff; padding:20px; border-radius:8px; width:400px; max-width:90%;">
+                    <h3>Edit Evaluation Period</h3>
+                    <input type="text" id="editEvalInput" value="${escapeHtml(e.evaluationPeriod)}" style="width:100%; padding:5px; margin:10px 0;">
+                    <button onclick="saveEvalEdit(${id})" style="padding:5px 10px; cursor:pointer; background:var(--sage); color:white; border:none; border-radius:4px;">Save</button>
+                    <button onclick="document.getElementById('editEvalModal').remove()" style="padding:5px 10px; cursor:pointer;">Cancel</button>
+                </div>
+            </div>`;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+
+    async function saveEvalEdit(id) {
+        const e = allEvals.find(x => x.id == id);
+        const newPeriod = document.getElementById('editEvalInput').value;
+        if (newPeriod) {
+            e.evaluationPeriod = newPeriod;
+            await fetch(`${API}/admin/suppliers/evaluations/api/update/${id}`, { method: 'PUT', headers: H(), body: JSON.stringify(e) });
+            document.getElementById('editEvalModal').remove();
+            loadAll();
+        }
+    }
+
+    async function deleteEval(id) {
+        const modalHtml = `
+            <div id="deleteEvalModal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:1000;">
+                <div style="background:#fff; padding:20px; border-radius:8px; width:400px; max-width:90%; text-align:center;">
+                    <h3>Confirm Deletion</h3>
+                    <p>Are you sure you want to delete this evaluation?</p>
+                    <button onclick="confirmDeleteEval(${id})" style="padding:5px 10px; cursor:pointer; background:red; color:white; border:none; border-radius:4px; margin-right:10px;">Delete</button>
+                    <button onclick="document.getElementById('deleteEvalModal').remove()" style="padding:5px 10px; cursor:pointer;">Cancel</button>
+                </div>
+            </div>`;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+
+    async function confirmDeleteEval(id) {
+        await fetch(`${API}/admin/suppliers/evaluations/api/delete/${id}`, { method: 'DELETE', headers: H() });
+        document.getElementById('deleteEvalModal').remove();
+        loadAll();
+    }
+
+    function switchMainTab(tab) {
+        document.getElementById('panelSuppliersMain').style.display=tab==='suppliers'?'block':'none';
+        document.getElementById('panelEvaluationsMain').style.display=tab==='evaluations'?'block':'none';
+
+        document.getElementById('tabSuppliers').classList.remove('active');
+        document.getElementById('tabEvaluations').classList.remove('active');
+        if(tab === 'suppliers') {
+            document.getElementById('tabSuppliers').classList.add('active');
+        } else {
+            document.getElementById('tabEvaluations').classList.add('active');
+        }
+    }
+
+    function switchSubTab(tab) {
+        document.getElementById('subPanelSuppliers').style.display=tab==='suppliers'?'block':'none';
+        document.getElementById('subPanelOrders').style.display=tab==='orders'?'block':'none';
+
+        document.getElementById('subTabSuppliers').classList.remove('active');
+        document.getElementById('subTabOrders').classList.remove('active');
+        if(tab === 'suppliers') {
+            document.getElementById('subTabSuppliers').classList.add('active');
+        } else {
+            document.getElementById('subTabOrders').classList.add('active');
+        }
+    }
+    function escapeHtml(s){ return s?String(s).replace(/[&<>]/g,function(m){if(m==='&')return'&amp;';if(m==='<')return'&lt;';if(m==='>')return'&gt;';return m;}):''; }
+    function logout(){ localStorage.clear(); location.href='/'; }
+    loadAll();
+</script>
+</body>
+</html>

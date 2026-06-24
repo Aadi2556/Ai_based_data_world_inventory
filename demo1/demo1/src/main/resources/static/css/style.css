@@ -1,0 +1,133 @@
+/* src/main/resources/static/css/style.css */
+
+/* General Body Styling */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f0f2f5;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+/* Main Container Card */
+.container {
+    background-color: #ffffff;
+    padding: 40px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+}
+
+/* Headings */
+h2 {
+    color: #333;
+    margin-bottom: 25px;
+    font-weight: 600;
+}
+
+/* Form Layout */
+form {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Labels */
+label {
+    text-align: left;
+    margin-bottom: 5px;
+    font-size: 0.9em;
+    color: #555;
+    font-weight: 500;
+}
+
+/* Input Fields */
+input[type="text"],
+input[type="email"],
+input[type="password"] {
+    padding: 12px;
+    margin-bottom: 20px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 16px;
+    transition: border-color 0.3s ease;
+}
+
+input:focus {
+    border-color: #007bff;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+/* Primary Button */
+button {
+    padding: 12px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    width: 100%;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+/* Links (e.g., Register here) */
+a {
+    color: #007bff;
+    text-decoration: none;
+    margin-top: 15px;
+    display: inline-block;
+    font-size: 0.9em;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* Dashboard Specifics: Danger Buttons */
+.btn-delete {
+    background-color: #dc3545;
+    margin-top: 10px;
+}
+
+.btn-delete:hover {
+    background-color: #a71d2a;
+}
+
+.btn-logout {
+    background-color: #6c757d;
+    margin-top: 10px;
+}
+
+.btn-logout:hover {
+    background-color: #545b62;
+}
+
+/* Error Messages */
+.error-msg {
+    color: #721c24;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    padding: 10px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    font-size: 0.9em;
+}
+
+/* Separator Line */
+hr {
+    border: 0;
+    height: 1px;
+    background: #eee;
+    margin: 25px 0;
+}

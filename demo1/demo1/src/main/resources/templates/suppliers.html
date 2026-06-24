@@ -1,0 +1,1629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Supplier Management — PrintProTrack</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --forest:   #1a3a2a;
+            --pine:     #1e5c2f;
+            --sage:     #2d8a47;
+            --mint:     #3daa5a;
+            --mist:     #e8f5ec;
+            --ink:      #0f1a14;
+            --slate:    #4a5568;
+            --bone:     #f7f9f8;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+        body { font-family: 'DM Sans', sans-serif; background: var(--bone); color: var(--ink); margin: 0; }
+        code, .mono { font-family: 'DM Mono', monospace; }
+
+        /* ── Sidebar ── */
+        .sidebar { background: var(--forest); width: 260px; height: 100vh; flex-shrink: 0; display: flex; flex-direction: column; position: sticky; top: 0; }
+        .sidebar-logo { background: #fff; padding: 18px 22px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #0d2018; }
+        .sidebar-logo .brand-text { font-weight: 700; font-size: 17px; color: var(--pine); letter-spacing: .3px; }
+        .sidebar-badge { font-size: 10px; font-weight: 700; background: #d1fae5; color: #065f46; padding: 2px 7px; border-radius: 99px; letter-spacing: .5px; margin-left: auto; }
+        .sidebar-nav { flex: 1; overflow-y: auto; padding: 16px 12px; display: flex; flex-direction: column; gap: 2px; }
+        .nav-label { font-size: 10px; font-weight: 700; letter-spacing: 2px; color: #3d6b4e; text-transform: uppercase; padding: 10px 10px 4px; }
+        .nav-link { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; color: #9dbea8; font-size: 13.5px; font-weight: 500; text-decoration: none; transition: all .2s; border-left: 3px solid transparent; cursor: pointer; }
+        .nav-link:hover { background: rgba(255,255,255,.07); color: #fff; }
+        .nav-link.active { background: rgba(255,255,255,.12); color: #fff; border-left-color: var(--mint); }
+        .nav-link.disabled { opacity: .35; cursor: not-allowed; pointer-events: none; }
+        .nav-link i { width: 16px; text-align: center; font-size: 13px; }
+        .sidebar-footer { padding: 14px 12px; border-top: 1px solid #0d2018; }
+        .logout-btn { display: flex; align-items: center; gap: 8px; background: none; border: none; color: #9dbea8; font-size: 13px; font-family: inherit; cursor: pointer; padding: 8px 12px; border-radius: 8px; width: 100%; transition: all .2s; }
+        .logout-btn:hover { background: rgba(255,255,255,.07); color: #fff; }
+
+        /* ── Top nav ── */
+        .topnav { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 0 28px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 30; }
+        .topnav-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; }
+        .topnav-right { display: flex; align-items: center; gap: 18px; font-size: 13px; color: #64748b; }
+        .topnav-right a, .topnav-right button { color: #64748b; background: none; border: none; cursor: pointer; font-size: 13px; font-family: inherit; display: flex; align-items: center; gap: 5px; transition: color .15s; text-decoration: none; }
+        .topnav-right a:hover { color: #3b82f6; }
+        .topnav-right button:hover { color: #ef4444; }
+
+        /* ── Layout ── */
+        .page-wrap { display: flex; height: 100vh; overflow: hidden; }
+        .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .scroll-area { flex: 1; overflow-y: auto; padding: 28px; }
+        .content { max-width: 1280px; margin: 0 auto; }
+
+        /* ── Banner ── */
+        .banner { background: linear-gradient(135deg, var(--forest) 0%, var(--pine) 55%, var(--sage) 100%); border-radius: 16px; padding: 24px 28px; color: #fff; display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+        .banner h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px; }
+        .banner p { font-size: 13px; color: rgba(255,255,255,.7); margin: 0; }
+
+        /* ── Buttons ── */
+        .btn-primary { background: #fff; color: var(--pine); font-weight: 700; font-size: 13px; border: none; padding: 10px 18px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; gap: 7px; transition: all .15s; font-family: inherit; }
+        .btn-primary:hover { background: #e8f5ec; }
+        .btn-ghost { background: #f1f5f9; color: #475569; border: none; padding: 9px 14px; border-radius: 9px; font-weight: 600; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all .15s; font-family: inherit; }
+        .btn-ghost:hover { background: #e2e8f0; }
+        .btn-green { background: var(--pine); color: #fff; font-weight: 700; font-size: 13px; border: none; padding: 10px 18px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; gap: 7px; transition: all .15s; font-family: inherit; }
+        .btn-green:hover { background: var(--sage); }
+
+        /* ── Stat cards ── */
+        .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px; }
+        .stat-card { background: #fff; border-radius: 14px; padding: 18px 20px; border-top: 3px solid transparent; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+        .stat-card .label { font-size: 10px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #94a3b8; margin-bottom: 6px; }
+        .stat-card .value { font-size: 30px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+
+        /* ── Tabs (main) ── */
+        .page-tabs { display: flex; gap: 4px; background: #fff; border-radius: 12px; padding: 5px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+        .page-tab { flex: 1; padding: 10px; border-radius: 9px; border: none; background: transparent; font-family: inherit; font-size: 13.5px; font-weight: 500; color: #64748b; cursor: pointer; transition: all .2s; display: flex; align-items: center; justify-content: center; gap: 7px; }
+        .page-tab.active { background: var(--pine); color: #fff; font-weight: 600; }
+        .page-tab:not(.active):hover { background: var(--mist); color: var(--pine); }
+        .tab-count { background: #f1f5f9; color: #64748b; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 99px; margin-left: 5px; }
+        .page-tab.active .tab-count { background: rgba(255,255,255,.2); color: #fff; }
+
+        /* ── Sub-tabs ── */
+        .sub-tabs { display: flex; gap: 2px; background: #f1f5f9; border-radius: 8px; padding: 3px; margin-bottom: 16px; }
+        .sub-tab { padding: 6px 16px; border-radius: 6px; border: none; background: transparent; font-size: 13px; font-weight: 500; color: #64748b; cursor: pointer; transition: all .15s; font-family: inherit; }
+        .sub-tab.active { background: #fff; color: var(--pine); box-shadow: 0 1px 3px rgba(0,0,0,.05); }
+
+        /* ── Panels ── */
+        .panel { background: #fff; border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.06); overflow: hidden; }
+        .panel-header { padding: 16px 22px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+        .panel-title { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+
+        /* ── Search & filter ── */
+        .toolbar-left { display: flex; gap: 10px; align-items: center; flex: 1; }
+        .search-box { background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 9px; padding: 9px 14px 9px 36px; color: var(--ink); font-size: 13.5px; width: 240px; transition: border-color .2s; }
+        .search-box:focus { outline: none; border-color: var(--sage); }
+        .search-wrap { position: relative; }
+        .search-wrap i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 13px; pointer-events: none; }
+        .select-filter { background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 9px; padding: 9px 14px; color: var(--ink); font-size: 13.5px; cursor: pointer; font-family: inherit; }
+        .select-filter:focus { outline: none; border-color: var(--sage); }
+
+        /* ── Tables ── */
+        .data-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+        .data-table thead th { padding: 12px 16px; text-align: left; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #94a3b8; background: #f8fafc; white-space: nowrap; }
+        .data-table tbody tr { border-bottom: 1px solid #f1f5f9; transition: background .15s; }
+        .data-table tbody tr:last-child { border-bottom: none; }
+        .data-table tbody tr:hover { background: #f8fafc; }
+        .data-table td { padding: 14px 16px; vertical-align: middle; }
+
+        /* ── Status badges ── */
+        .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; letter-spacing: .3px; white-space: nowrap; }
+        .b-PENDING    { background: #fef3c7; color: #92400e; }
+        .b-CONFIRMED  { background: #dbeafe; color: #1d4ed8; }
+        .b-SHIPPED    { background: #ede9fe; color: #5b21b6; }
+        .b-DELIVERED  { background: #d1fae5; color: #065f46; }
+        .b-CANCELLED  { background: #fee2e2; color: #b91c1c; }
+
+        /* ── Action buttons ── */
+        .action-btn { width: 30px; height: 30px; border-radius: 8px; border: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all .15s; font-size: 12px; }
+        .action-btn.edit   { background: #f0fdf4; color: #16a34a; }
+        .action-btn.view   { background: #eff6ff; color: #3b82f6; }
+        .action-btn.del    { background: #fef2f2; color: #dc2626; }
+        .action-btn.order  { background: #d1fae5; color: #065f46; }
+        .action-btn:hover  { filter: brightness(.93); transform: scale(1.06); }
+
+        /* ── Leaderboard cards ── */
+        .lb-grid { display: flex; flex-direction: column; gap: 10px; }
+        .lb-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px 20px; display: grid; grid-template-columns: 42px 1fr auto; align-items: center; gap: 16px; transition: border-color .2s, box-shadow .2s; cursor: pointer; }
+        .lb-card:hover { border-color: var(--sage); box-shadow: 0 4px 8px rgba(0,0,0,.05); }
+        .lb-card.rank-1 { border-color: #fbbf24; background: #fffbeb; }
+        .lb-card.rank-2 { border-color: #94a3b8; background: #f8fafc; }
+        .lb-card.rank-3 { border-color: #cd7f3e; background: #fef3e2; }
+        .rank-badge { width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-family: 'DM Mono', monospace; }
+        .rank-1 .rank-badge { background: #fbbf24; color: #78350f; }
+        .rank-2 .rank-badge { background: #94a3b8; color: #1e293b; }
+        .rank-3 .rank-badge { background: #cd7f3e; color: #2c1a0a; }
+        .rank-badge.other { background: #e2e8f0; color: #475569; }
+        .lb-name { font-weight: 700; }
+        .lb-meta { display: flex; gap: 10px; font-size: 11px; color: #64748b; margin-top: 3px; }
+        .lb-trend { font-weight: 600; }
+        .lb-trend.UP     { color: #10b981; }
+        .lb-trend.DOWN   { color: #ef4444; }
+        .lb-trend.STABLE { color: #6b7280; }
+        .lb-trend.NEW    { color: #3b82f6; }
+        .lb-score { font-size: 22px; font-weight: 800; font-family: 'DM Mono', monospace; }
+
+        /* ── Grade badges ── */
+        .grade-badge { font-size: 11px; font-weight: 700; font-family: 'DM Mono', monospace; padding: 2px 10px; border-radius: 20px; display: inline-block; }
+        .grade-A_PLUS { background: #fbbf24; color: #78350f; }
+        .grade-A      { background: #34d399; color: #064e3b; }
+        .grade-B      { background: #60a5fa; color: #1e3a8a; }
+        .grade-C      { background: #fbbf24; color: #92400e; }
+        .grade-D      { background: #f87171; color: #7f1d1d; }
+        .grade-F      { background: #ef4444; color: #fff; }
+
+        /* ── Star rating ── */
+        .star-group { display: flex; gap: 2px; }
+        .star-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #cbd5e1; padding: 0 2px; transition: color .1s; }
+        .star-btn.active { color: #fbbf24; }
+        .star-note { font-size: 10px; color: #94a3b8; margin-top: 3px; height: 16px; }
+
+        /* ── Detail slide-out panel ── */
+        .detail-panel { display: none; position: fixed; top: 0; right: 0; width: 440px; height: 100vh; background: #fff; border-left: 1px solid #e2e8f0; box-shadow: -8px 0 20px rgba(0,0,0,.1); z-index: 200; overflow-y: auto; animation: slideIn .25s ease; }
+        .detail-panel.open { display: block; }
+        @keyframes slideIn { from { transform: translateX(100%); } to { transform: none; } }
+        .dp-head { padding: 20px 22px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: #fff; }
+        .dp-body { padding: 22px; }
+
+        /* ── Score bars ── */
+        .score-bars { display: flex; flex-direction: column; gap: 12px; }
+        .score-bar-row { display: flex; align-items: center; gap: 10px; }
+        .score-bar-label { font-size: 12px; color: #475569; width: 130px; flex-shrink: 0; }
+        .score-bar-track { flex: 1; background: #f1f5f9; border-radius: 4px; height: 6px; overflow: hidden; }
+        .score-bar-fill { height: 100%; border-radius: 4px; transition: width .3s; }
+        .score-bar-val { font-size: 12px; font-family: 'DM Mono', monospace; width: 28px; text-align: right; flex-shrink: 0; }
+
+        /* ── Modal ── */
+        .overlay { display: none; position: fixed; inset: 0; background: rgba(15,26,20,.5); z-index: 100; align-items: flex-start; justify-content: center; overflow-y: auto; padding: 40px 20px; backdrop-filter: blur(2px); }
+        .overlay.open { display: flex; }
+        .modal { background: #fff; border-radius: 18px; width: 640px; max-width: 96vw; margin: auto; animation: pop .2s ease; }
+        .modal.sm { max-width: 480px; }
+        @keyframes pop { from { opacity: 0; transform: translateY(12px) scale(.97); } to { opacity: 1; transform: none; } }
+        .modal-head { padding: 22px 26px 18px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between; }
+        .modal-head h3 { font-size: 17px; font-weight: 700; margin: 0; }
+        .modal-close { background: #f1f5f9; border: none; width: 30px; height: 30px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #64748b; font-size: 13px; transition: background .15s; }
+        .modal-close:hover { background: #e2e8f0; }
+        .modal-body { padding: 22px 26px; }
+        .modal-foot { padding: 16px 26px 22px; border-top: 1px solid #f1f5f9; display: flex; justify-content: flex-end; gap: 10px; }
+
+        /* ── Form ── */
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .form-grid .full { grid-column: 1 / -1; }
+        .form-section { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #94a3b8; grid-column: 1 / -1; padding-bottom: 4px; border-bottom: 1px solid #f1f5f9; margin-top: 4px; }
+        .f-label { font-size: 11px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: #64748b; display: block; margin-bottom: 5px; }
+        .f-input { width: 100%; padding: 9px 12px; border: 1.5px solid #e2e8f0; border-radius: 9px; font-size: 13.5px; font-family: inherit; outline: none; transition: border-color .2s, box-shadow .2s; background: #fff; color: var(--ink); }
+        .f-input:focus { border-color: var(--sage); box-shadow: 0 0 0 3px rgba(45,138,71,.12); }
+        textarea.f-input { resize: vertical; min-height: 72px; }
+        .form-error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 10px 14px; border-radius: 9px; font-size: 13px; margin-top: 12px; display: none; }
+        .form-error.show { display: block; }
+
+        /* ── Empty state ── */
+        .empty-state { padding: 40px; text-align: center; color: #94a3b8; }
+        .empty-state i { font-size: 2rem; margin-bottom: 10px; display: block; }
+        .empty-state p { margin: 0; font-size: 14px; }
+
+        /* ── Toast ── */
+        .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+        .toast-item { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 18px; font-size: .875rem; display: flex; align-items: center; gap: 10px; animation: pop .3s ease; min-width: 260px; box-shadow: 0 8px 24px rgba(0,0,0,.1); }
+        .toast-item.success { border-left: 3px solid #10b981; }
+        .toast-item.danger  { border-left: 3px solid #ef4444; }
+        .toast-item.warning { border-left: 3px solid #f59e0b; }
+
+        /* ── Score preview ── */
+        .score-preview { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; margin: 10px 0; display: flex; justify-content: space-between; align-items: center; }
+        .score-preview-label { font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+        .score-preview-val { font-size: 24px; font-weight: 700; font-family: 'DM Mono', monospace; }
+
+        /* ── Star dimension row ── */
+        .star-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .star-row-label { font-size: 13px; font-weight: 500; }
+        .star-row-right { display: flex; align-items: center; gap: 8px; }
+
+        @media (max-width: 900px) {
+            .sidebar { display: none; }
+            .stat-grid { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 600px) {
+            .stat-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+<div class="page-wrap">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <i class="fas fa-print" style="color:var(--pine);font-size:18px"></i>
+            <span class="brand-text">PrintProTrack</span>
+            <span class="sidebar-badge">ADMIN</span>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-label">Main</div>
+            <a href='/dashboard' class="nav-link"><i class="fas fa-house"></i> Dashboard</a>
+            <a href='/dashboard#profile'   class="nav-link"><i class="fas fa-circle-user"></i> My Profile</a>
+            <div class="nav-label">Operations</div>
+            <a href='/maintenance' class="nav-link"><i class="fas fa-screwdriver-wrench"></i> Machine Maintenance</a>
+            <a href='/materials'   class="nav-link"><i class="fas fa-layer-group"></i> Materials Management</a>
+            <a href='/suppliers'   class="nav-link active"><i class="fas fa-truck"></i> Suppliers</a>
+            <a href='/staffmanagement'       class="nav-link"><i class="fas fa-users-gear"></i> Staff Management</a>
+            <a class="nav-link disabled"><i class="fas fa-cogs"></i> Spare Parts</a>
+            <a class="nav-link disabled"><i class="fas fa-bolt"></i> Energy Consumption</a>
+        </nav>
+        <div class="sidebar-footer">
+            <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Sign Out</button>
+        </div>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="main">
+        <nav class="topnav">
+            <div class="topnav-brand">
+                <i class="fas fa-print" style="color:#6366f1;font-size:18px"></i>
+                PrintProTrack
+                <span style="font-size:11px;background:#e0e7ff;color:#4338ca;padding:2px 8px;border-radius:99px;font-weight:700;letter-spacing:.5px">ADMIN</span>
+            </div>
+            <div class="topnav-right">
+                <span>Welcome, <strong id="topbarName">Admin</strong></span>
+                <a href='/dashboard'><i class="fas fa-home"></i> Dashboard</a>
+                <button onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+            </div>
+        </nav>
+
+        <div class="scroll-area">
+            <div class="content">
+
+                <!-- Banner -->
+                <div class="banner">
+                    <div>
+                        <h1><i class="fas fa-truck" style="margin-right:8px;opacity:.85"></i>Supplier Management</h1>
+                        <p>Manage supplier contacts, purchase orders, and performance evaluations.</p>
+                    </div>
+                    <div style="display:flex;gap:8px">
+                        <button class="btn-primary" onclick="openSupplierModal()"><i class="fas fa-plus"></i> Add Supplier</button>
+                        <button class="btn-primary" onclick="openOrderModal()"><i class="fas fa-cart-plus"></i> New Order</button>
+                    </div>
+                </div>
+
+                <!-- Stats -->
+                <div class="stat-grid">
+                    <div class="stat-card" style="border-top-color:#3b82f6">
+                        <div class="label">Suppliers</div>
+                        <div class="value" style="color:#3b82f6" id="statSuppliers">0</div>
+                    </div>
+                    <div class="stat-card" style="border-top-color:#f59e0b">
+                        <div class="label">Active Orders</div>
+                        <div class="value" style="color:#f59e0b" id="statOrders">0</div>
+                    </div>
+                    <div class="stat-card" style="border-top-color:#10b981">
+                        <div class="label">Avg. Evaluation</div>
+                        <div class="value" style="color:#10b981" id="statAvgEval">0.0</div>
+                    </div>
+                    <div class="stat-card" style="border-top-color:#ef4444">
+                        <div class="label">At‑Risk Suppliers</div>
+                        <div class="value" style="color:#ef4444" id="statAtRisk">0</div>
+                    </div>
+                </div>
+
+                <!-- Main Tabs -->
+                <div class="page-tabs">
+                    <button class="page-tab active" id="tabSuppliersMain" onclick="switchMainTab('suppliers')">
+                        <i class="fas fa-truck"></i> Suppliers &amp; Orders
+                    </button>
+                    <button class="page-tab" id="tabEvaluationsMain" onclick="switchMainTab('evaluations')">
+                        <i class="fas fa-star"></i> Performance Evaluations
+                    </button>
+                    <button class="page-tab" id="tabRequestsMain" onclick="switchMainTab('requests')">
+                        <i class="fas fa-paper-plane"></i> Part Requests
+                        <span id="requestsBadge" class="tab-count">0</span>
+                    </button>
+                </div>
+
+                <!-- ── SUPPLIERS & ORDERS PANEL ── -->
+                <div id="panelSuppliersMain" class="panel" style="display:block">
+                    <div style="padding:16px 22px 0">
+                        <div class="sub-tabs">
+                            <button class="sub-tab active" id="subSuppliers" onclick="switchSubTab('suppliers')">Suppliers</button>
+                            <button class="sub-tab"        id="subOrders"    onclick="switchSubTab('orders')">Purchase Orders</button>
+                        </div>
+                    </div>
+
+                    <!-- Suppliers list -->
+                    <div id="subPanelSuppliers" style="display:block">
+                        <div class="panel-header">
+                            <div class="panel-title"><i class="fas fa-address-book" style="color:var(--sage)"></i> Supplier Contacts</div>
+                            <div class="toolbar-left" style="justify-content:flex-end">
+                                <div class="search-wrap">
+                                    <i class="fas fa-search"></i>
+                                    <input type="text" class="search-box" id="searchSupplier" placeholder="Search suppliers…" oninput="filterSuppliers()">
+                                </div>
+                                <select class="select-filter" id="filterSupplierCat" onchange="filterSuppliers()">
+                                    <option value="">All Categories</option>
+                                    <option value="SPARE_PARTS">Spare Parts</option>
+                                    <option value="PRINTING_MATERIALS">Printing Materials</option>
+                                    <option value="BOTH">Both</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="overflow-x:auto">
+                            <table class="data-table">
+                                <thead>
+                                <tr><th>Name</th><th>Contact</th><th>Email</th><th>Phone</th><th>Category</th><th style="text-align:center">Actions</th></tr>
+                                </thead>
+                                <tbody id="suppliersTbody">
+                                <tr><td colspan="6"><div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading…</p></div></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Orders list -->
+                    <div id="subPanelOrders" style="display:none">
+                        <div class="panel-header">
+                            <div class="panel-title"><i class="fas fa-clipboard-list" style="color:#f59e0b"></i> Purchase Orders</div>
+                            <div class="toolbar-left" style="justify-content:flex-end">
+                                <select class="select-filter" id="filterOrderSupplier" onchange="filterOrders()">
+                                    <option value="">All Suppliers</option>
+                                </select>
+                                <select class="select-filter" id="filterOrderStatus" onchange="filterOrders()">
+                                    <option value="">All Statuses</option>
+                                    <option value="PENDING">Pending</option>
+                                    <option value="CONFIRMED">Confirmed</option>
+                                    <option value="SHIPPED">Shipped</option>
+                                    <option value="DELIVERED">Delivered</option>
+                                    <option value="CANCELLED">Cancelled</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="overflow-x:auto">
+                            <table class="data-table">
+                                <thead>
+                                <tr><th>Order #</th><th>Supplier</th><th>Item</th><th>Qty</th><th>Unit Price</th><th>Total</th><th>Order Date</th><th>Expected</th><th>Status</th><th style="text-align:center">Actions</th></tr>
+                                </thead>
+                                <tbody id="ordersTbody">
+                                <tr><td colspan="10"><div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading…</p></div></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── PERFORMANCE EVALUATIONS PANEL ── -->
+                <div id="panelEvaluationsMain" class="panel" style="display:none">
+                    <div class="panel-header">
+                        <div class="panel-title"><i class="fas fa-star" style="color:var(--sage)"></i> Supplier Leaderboard &amp; History</div>
+                        <div class="toolbar-left" style="justify-content:flex-end">
+                            <select class="select-filter" id="filterLeaderboardCat" onchange="loadLeaderboard()">
+                                <option value="">All Categories</option>
+                                <option value="SPARE_PARTS">Spare Parts</option>
+                                <option value="PRINTING_MATERIALS">Printing Materials</option>
+                                <option value="BOTH">Both</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- Leaderboard -->
+                    <div style="padding:0 22px 22px">
+                        <div class="lb-grid" id="leaderboardList"></div>
+                    </div>
+                    <!-- Evaluation History -->
+                    <div style="padding:0 22px 22px">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                            <h4 style="font-size:15px;font-weight:700;margin:0">Evaluation History</h4>
+                            <button class="btn-primary" onclick="openEvalModal()"><i class="fas fa-plus"></i> New Evaluation</button>
+                        </div>
+                        <div style="overflow-x:auto">
+                            <table class="data-table">
+                                <thead>
+                                <tr><th>Supplier</th><th>Period</th><th>Delivery</th><th>Quality</th><th>Pricing</th><th>Comm.</th><th>Accuracy</th><th>Overall</th><th>Grade</th><th>Recommend</th><th>Actions</th></tr>
+                                </thead>
+                                <tbody id="evalsTbody">
+                                <tr><td colspan="11"><div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading…</p></div></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── SPARE PART REQUESTS PANEL ── -->
+                <div id="panelRequestsMain" class="panel" style="display:none">
+                    <div class="panel-header">
+                        <div class="panel-title">
+                            <i class="fas fa-paper-plane" style="color:#0d9488"></i>
+                            Technician Spare Part Requests
+                        </div>
+                        <div style="display:flex;gap:8px;align-items:center">
+                            <select class="select-filter" id="filterReqStatus" onchange="filterRequests()">
+                                <option value="">All Statuses</option>
+                                <option value="PENDING">Pending</option>
+                                <option value="REVIEWED">Reviewed</option>
+                                <option value="ORDERED">Ordered</option>
+                                <option value="REJECTED">Rejected</option>
+                            </select>
+                            <button class="btn-primary" onclick="loadRequests()">
+                                <i class="fas fa-rotate-right"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+                    <div style="overflow-x:auto">
+                        <table class="data-table">
+                            <thead>
+                            <tr>
+                                <th>Part Name</th><th>Part #</th><th>Qty</th><th>Urgency</th>
+                                <th>Technician</th><th>Reason</th><th>Submitted</th><th>Status</th>
+                                <th style="text-align:center">Actions</th>
+                            </tr>
+                            </thead>
+                            <tbody id="requestsTbody">
+                            <tr><td colspan="9"><div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading…</p></div></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div><!-- .content -->
+        </div><!-- .scroll-area -->
+    </div><!-- .main -->
+</div><!-- .page-wrap -->
+
+<!-- ── SUPPLIER MODAL ── -->
+<div class="overlay" id="supplierModal">
+    <div class="modal sm">
+        <div class="modal-head">
+            <h3 id="supplierModalTitle">Add Supplier</h3>
+            <button class="modal-close" onclick="closeModal('supplierModal')"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="supplierId">
+            <div class="form-grid">
+                <div class="full"><label class="f-label">Name *</label><input class="f-input" id="supplierName"></div>
+                <div class="full"><label class="f-label">Contact Person</label><input class="f-input" id="supplierContact"></div>
+                <div><label class="f-label">Email *</label><input class="f-input" id="supplierEmail" type="email"></div>
+                <div><label class="f-label">Phone</label><input class="f-input" id="supplierPhone"></div>
+                <div class="full"><label class="f-label">Address</label><input class="f-input" id="supplierAddress"></div>
+                <div>
+                    <label class="f-label">Category</label>
+                    <select class="f-input" id="supplierCategory">
+                        <option value="">Select…</option>
+                        <option value="SPARE_PARTS">Spare Parts</option>
+                        <option value="PRINTING_MATERIALS">Printing Materials</option>
+                        <option value="BOTH">Both</option>
+                    </select>
+                </div>
+                <div class="full"><label class="f-label">Notes</label><textarea class="f-input" id="supplierNotes" rows="2"></textarea></div>
+            </div>
+            <div class="form-error" id="supplierErr"></div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn-ghost" onclick="closeModal('supplierModal')">Cancel</button>
+            <button class="btn-green" onclick="saveSupplier()"><i class="fas fa-save"></i> Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── PURCHASE ORDER MODAL ── -->
+<div class="overlay" id="orderModal">
+    <div class="modal sm">
+        <div class="modal-head">
+            <h3 id="orderModalTitle">New Purchase Order</h3>
+            <button class="modal-close" onclick="closeModal('orderModal')"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="orderId">
+            <div class="form-grid">
+                <div class="full"><label class="f-label">Supplier *</label><select class="f-input" id="orderSupplier"></select></div>
+                <!-- FIX 2: Item Description is now a dropdown -->
+                <div class="full">
+                    <label class="f-label">Item Description *</label>
+                    <select class="f-input" id="orderItem">
+                        <option value="">Select a material…</option>
+                    </select>
+                </div>
+                <div><label class="f-label">Quantity</label><input class="f-input" id="orderQty" type="number" min="1"></div>
+                <div><label class="f-label">Unit Price ($)</label><input class="f-input" id="orderPrice" type="number" min="0" step="0.01"></div>
+                <div><label class="f-label">Order Date</label><input class="f-input" id="orderDate" type="date"></div>
+                <div><label class="f-label">Expected Delivery</label><input class="f-input" id="orderExpDate" type="date"></div>
+                <div class="full"><label class="f-label">Notes</label><textarea class="f-input" id="orderNotes" rows="2"></textarea></div>
+                <div id="orderStatusWrap" style="display:none" class="full">
+                    <label class="f-label">Status</label>
+                    <select class="f-input" id="orderStatus">
+                        <option value="PENDING">Pending</option>
+                        <option value="CONFIRMED">Confirmed</option>
+                        <option value="SHIPPED">Shipped</option>
+                        <option value="DELIVERED">Delivered</option>
+                        <option value="CANCELLED">Cancelled</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-error" id="orderErr"></div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn-ghost" onclick="closeModal('orderModal')">Cancel</button>
+            <button class="btn-green" onclick="saveOrder()"><i class="fas fa-save"></i> Save Order</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── EVALUATION MODAL ── -->
+<div class="overlay" id="evalModal">
+    <div class="modal">
+        <div class="modal-head">
+            <h3 id="evalModalTitle">New Evaluation</h3>
+            <button class="modal-close" onclick="closeModal('evalModal')"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="evalId">
+            <div class="form-grid">
+                <div class="full"><label class="f-label">Supplier *</label><select class="f-input" id="evalSupplier"></select></div>
+                <div><label class="f-label">Period *</label><input class="f-input" id="evalPeriod" placeholder="e.g. Q1 2026"></div>
+                <div><label class="f-label">Evaluation Date</label><input class="f-input" id="evalDate" type="date"></div>
+                <div class="full"><label class="f-label">Linked PO</label><input class="f-input" id="evalPO" placeholder="Order #"></div>
+            </div>
+
+            <div class="form-section" style="margin-top:12px">Performance Scores (1–5)</div>
+            <div style="margin:12px 0">
+                <div class="star-row"><span class="star-row-label">📦 Delivery <span style="color:#94a3b8;font-size:11px">(25%)</span></span><div class="star-row-right"><div class="star-group" id="stars-delivery"></div><span class="star-note" id="note-delivery"></span></div></div>
+                <div class="star-row"><span class="star-row-label">✨ Quality <span style="color:#94a3b8;font-size:11px">(30%)</span></span><div class="star-row-right"><div class="star-group" id="stars-quality"></div><span class="star-note" id="note-quality"></span></div></div>
+                <div class="star-row"><span class="star-row-label">💰 Pricing <span style="color:#94a3b8;font-size:11px">(15%)</span></span><div class="star-row-right"><div class="star-group" id="stars-pricing"></div><span class="star-note" id="note-pricing"></span></div></div>
+                <div class="star-row"><span class="star-row-label">📞 Communication <span style="color:#94a3b8;font-size:11px">(15%)</span></span><div class="star-row-right"><div class="star-group" id="stars-communication"></div><span class="star-note" id="note-communication"></span></div></div>
+                <div class="star-row"><span class="star-row-label">🎯 Accuracy <span style="color:#94a3b8;font-size:11px">(15%)</span></span><div class="star-row-right"><div class="star-group" id="stars-orderAccuracy"></div><span class="star-note" id="note-orderAccuracy"></span></div></div>
+            </div>
+
+            <div class="score-preview">
+                <div>
+                    <div class="score-preview-label">Calculated Overall</div>
+                    <div class="score-preview-val" id="previewScore">—</div>
+                </div>
+                <div id="previewGrade"></div>
+            </div>
+
+            <div class="form-grid">
+                <div class="full"><label class="f-label">Strengths</label><textarea class="f-input" id="evalStrengths" rows="2"></textarea></div>
+                <div class="full"><label class="f-label">Areas to Improve</label><textarea class="f-input" id="evalImprovements" rows="2"></textarea></div>
+                <div><label class="f-label">Evaluated By *</label><input class="f-input" id="evalBy" value="Admin"></div>
+                <div>
+                    <label class="f-label">Recommend Continue?</label>
+                    <div style="display:flex;gap:16px;margin-top:8px">
+                        <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="recommend" value="true" checked> Yes</label>
+                        <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="recommend" value="false"> No</label>
+                    </div>
+                </div>
+                <div class="full"><label class="f-label">Comments</label><textarea class="f-input" id="evalComments" rows="2"></textarea></div>
+            </div>
+            <div class="form-error" id="evalErr"></div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn-ghost" onclick="closeModal('evalModal')">Cancel</button>
+            <button class="btn-green" onclick="submitEval()"><i class="fas fa-save"></i> Save Evaluation</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── SUPPLIER DETAIL SLIDE-OUT ── -->
+<div class="detail-panel" id="detailPanel">
+    <div class="dp-head">
+        <div>
+            <div style="font-weight:700;font-size:1rem" id="dpSupplierName">—</div>
+            <div style="font-size:0.7rem;color:#64748b" id="dpMeta"></div>
+        </div>
+        <button class="modal-close" onclick="closeDetail()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="dp-body">
+        <div style="display:flex;gap:16px;align-items:center;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin-bottom:20px">
+            <div>
+                <div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Overall Score</div>
+                <div style="font-size:28px;font-weight:800;font-family:'DM Mono'" id="dpScore">—</div>
+            </div>
+            <div>
+                <div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Grade</div>
+                <div id="dpGrade">—</div>
+            </div>
+            <div style="margin-left:auto;text-align:right">
+                <div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Trend</div>
+                <div style="font-weight:700" id="dpTrend">—</div>
+            </div>
+        </div>
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:#64748b;margin:16px 0 8px">Dimension Averages</div>
+        <div class="score-bars" id="dpDimBars"></div>
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:#64748b;margin:20px 0 8px">Performance Trend</div>
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px">
+            <div style="height:180px"><canvas id="trendChart"></canvas></div>
+        </div>
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:#64748b;margin:20px 0 8px">Recent Evaluations</div>
+        <div id="dpRecentList" style="display:flex;flex-direction:column;gap:8px"></div>
+        <button class="btn-primary" style="width:100%;margin-top:20px;justify-content:center" onclick="openEvalModalForSupplier()">
+            <i class="fas fa-star"></i> Add Evaluation
+        </button>
+    </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+    // ═══════════════════════════════════════════════════════
+    //  GLOBALS
+    // ═══════════════════════════════════════════════════════
+    const API   = 'http://localhost:8080';
+    const token = localStorage.getItem('token');
+    if (!token) location.href = '/login';
+
+    function H() {
+        return { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+    }
+
+    let allSuppliers = [], allOrders = [], allEvals = [], allRequests = [], leaderboard = [];
+    let currentMainTab = 'suppliers', currentSubTab = 'suppliers';
+    let trendChart     = null;
+    let selectedSupplierId = null;
+
+    // Evaluation score weights & fields
+    const WEIGHTS = { delivery: 0.25, quality: 0.30, pricing: 0.15, communication: 0.15, orderAccuracy: 0.15 };
+    const FIELDS  = ['delivery', 'quality', 'pricing', 'communication', 'orderAccuracy'];
+    let scores    = { delivery: 0, quality: 0, pricing: 0, communication: 0, orderAccuracy: 0 };
+
+    // Urgency colour maps
+    const URGENCY_COLOR = {
+        LOW:      '#6b7280',
+        MEDIUM:   '#3b82f6',
+        HIGH:     '#f59e0b',
+        CRITICAL: '#ef4444'
+    };
+    const URGENCY_BG = {
+        LOW:      'rgba(107,114,128,0.13)',
+        MEDIUM:   'rgba(59,130,246,0.13)',
+        HIGH:     'rgba(245,158,11,0.13)',
+        CRITICAL: 'rgba(239,68,68,0.13)'
+    };
+
+    const STAR_LABELS = ['', 'Poor', 'Below Avg', 'Average', 'Good', 'Excellent'];
+
+    // ═══════════════════════════════════════════════════════
+    //  INIT
+    // ═══════════════════════════════════════════════════════
+    (async function init() {
+        const a = JSON.parse(localStorage.getItem('admin') || '{}');
+        document.getElementById('topbarName').textContent =
+            a.firstName ? `${a.firstName} ${a.lastName}` : 'Admin';
+        buildStarRatings();
+        await loadAll();
+        await loadRequests();
+        setTodayAsMinEvalDate();
+    })();
+
+    // FIX 2: loadAll now includes loadMaterialsForDropdown
+    async function loadAll() {
+        await Promise.all([loadSuppliers(), loadOrders(), loadEvaluations(), loadLeaderboard(), loadStats(), loadMaterialsForDropdown()]);
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  API CALLS
+    // ═══════════════════════════════════════════════════════
+    async function loadSuppliers() {
+        try {
+            const r = await fetch(`${API}/admin/suppliers/api/all`, { headers: H() });
+            allSuppliers = await r.json();
+            renderSuppliers(allSuppliers);
+            populateSupplierDropdowns();
+            document.getElementById('statSuppliers').textContent = allSuppliers.length;
+        } catch {
+            renderEmpty('suppliersTbody', 6, 'Could not load suppliers.');
+        }
+    }
+
+    async function loadOrders() {
+        try {
+            const r = await fetch(`${API}/admin/suppliers/api/orders`, { headers: H() });
+            allOrders = await r.json();
+            filterOrders();
+            document.getElementById('statOrders').textContent =
+                allOrders.filter(o => o.status !== 'CANCELLED' && o.status !== 'DELIVERED').length;
+        } catch {
+            renderEmpty('ordersTbody', 10, 'Could not load orders.');
+        }
+    }
+
+    async function loadEvaluations() {
+        try {
+            const r = await fetch(`${API}/admin/suppliers/evaluations/api/all`, { headers: H() });
+            allEvals = await r.json();
+            renderEvals(allEvals);
+        } catch {
+            renderEmpty('evalsTbody', 11, 'Could not load evaluations.');
+        }
+    }
+
+    async function loadLeaderboard() {
+        try {
+            const r = await fetch(`${API}/admin/suppliers/evaluations/api/leaderboard`, { headers: H() });
+            leaderboard = await r.json();
+            const cat      = document.getElementById('filterLeaderboardCat').value;
+            const filtered = cat ? leaderboard.filter(s => s.supplierCategory === cat) : leaderboard;
+            renderLeaderboard(filtered);
+        } catch {
+            document.getElementById('leaderboardList').innerHTML =
+                '<div class="empty-state"><i class="fas fa-triangle-exclamation"></i><p>Failed to load leaderboard.</p></div>';
+        }
+    }
+
+    async function loadStats() {
+        try {
+            const r = await fetch(`${API}/admin/suppliers/evaluations/api/stats`, { headers: H() });
+            const s = await r.json();
+            document.getElementById('statAvgEval').textContent = s.platformAvgScore?.toFixed(1) ?? '0.0';
+            document.getElementById('statAtRisk').textContent  = s.atRiskCount ?? 0;
+        } catch { /* silent */ }
+    }
+
+    // FIX 2: Load materials from API and populate the dropdown
+    let allMaterialNames = [];
+
+    async function loadMaterialsForDropdown() {
+        try {
+            const r = await fetch(`${API}/admin/materials/api/all`, { headers: H() });
+            if (!r.ok) return;
+            const materials = await r.json();
+            allMaterialNames = materials.map(m => m.name);
+            populateOrderItemDropdown();
+        } catch { /* silent */ }
+    }
+
+    function populateOrderItemDropdown() {
+        const sel = document.getElementById('orderItem');
+        if (!sel || sel.tagName !== 'SELECT') return;
+        const current = sel.value;
+        sel.innerHTML = '<option value="">Select a material…</option>' +
+            allMaterialNames.map(name => `<option value="${x(name)}">${x(name)}</option>`).join('');
+        if (current) sel.value = current;
+    }
+
+    async function loadRequests() {
+        try {
+            const r  = await fetch(`${API}/api/admin/spare-requests`, { headers: H() });
+            allRequests = await r.json();
+            filterRequests();
+            updateRequestsBadge();
+        } catch {
+            renderEmpty('requestsTbody', 9, 'Could not load requests.');
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  RENDER FUNCTIONS
+    // ═══════════════════════════════════════════════════════
+    function renderSuppliers(list) {
+        const tb = document.getElementById('suppliersTbody');
+        if (!list.length) { renderEmpty('suppliersTbody', 6, 'No suppliers found.'); return; }
+        tb.innerHTML = list.map(s => `
+        <tr>
+            <td><div style="font-weight:600">${x(s.name)}</div></td>
+            <td>${x(s.contactPerson) || '—'}</td>
+            <td>${x(s.email) || '—'}</td>
+            <td>${x(s.phone) || '—'}</td>
+            <td>${(s.category || '').replace('_', ' ')}</td>
+            <td style="text-align:center">
+                <button class="action-btn view" onclick="openDetail(${s.id})" title="View performance"><i class="fas fa-chart-line"></i></button>
+                <button class="action-btn edit" onclick="editSupplier(${s.id})" title="Edit"><i class="fas fa-pen"></i></button>
+                <button class="action-btn del"  onclick="deleteSupplier(${s.id},'${x(s.name)}')" title="Delete"><i class="fas fa-trash"></i></button>
+            </td>
+        </tr>`).join('');
+    }
+
+    function renderOrders(list) {
+        const tb = document.getElementById('ordersTbody');
+        if (!list.length) { renderEmpty('ordersTbody', 10, 'No orders found.'); return; }
+        tb.innerHTML = list.map(o => `
+        <tr>
+            <td><span class="mono">${x(o.orderNumber) || '—'}</span></td>
+            <td>${x(o.supplier?.name) || '—'}</td>
+            <td>${x(o.itemDescription)}</td>
+            <td>${o.quantity ?? 0}</td>
+            <td>$${(o.unitPrice   ?? 0).toFixed(2)}</td>
+            <td>$${(o.totalAmount ?? 0).toFixed(2)}</td>
+            <td>${x(o.orderDate) || '—'}</td>
+            <td>${x(o.expectedDeliveryDate) || '—'}</td>
+            <td><span class="badge b-${o.status || 'PENDING'}">${o.status || 'PENDING'}</span></td>
+            <td style="text-align:center">
+                <button class="action-btn edit" onclick="editOrder(${o.id})" title="Edit"><i class="fas fa-pen"></i></button>
+                <button class="action-btn del"  onclick="deleteOrder(${o.id})" title="Delete"><i class="fas fa-trash"></i></button>
+            </td>
+        </tr>`).join('');
+    }
+
+    function renderEvals(list) {
+        const tb = document.getElementById('evalsTbody');
+        if (!list.length) { renderEmpty('evalsTbody', 11, 'No evaluations yet.'); return; }
+        tb.innerHTML = list.map(e => {
+            const gradeKey  = (e.grade || '').replace('+', '_PLUS');
+            const gradeDisp = (e.grade || '').replace('_PLUS', '+');
+            return `<tr>
+            <td>${x(e.supplier?.name) || '—'}</td>
+            <td>${x(e.evaluationPeriod) || '—'}</td>
+            <td>${e.deliveryScore     ?? 0}</td>
+            <td>${e.qualityScore      ?? 0}</td>
+            <td>${e.pricingScore      ?? 0}</td>
+            <td>${e.communicationScore ?? 0}</td>
+            <td>${e.orderAccuracyScore ?? 0}</td>
+            <td style="font-weight:700">${(e.overallScore ?? 0).toFixed(2)}</td>
+            <td><span class="grade-badge grade-${gradeKey}">${gradeDisp}</span></td>
+            <td>${e.recommendContinue
+                ? '<span style="color:#10b981">✓ Yes</span>'
+                : '<span style="color:#ef4444">✗ No</span>'}</td>
+            <td style="text-align:center">
+                <button class="action-btn edit" onclick="editEval(${e.id})"><i class="fas fa-pen"></i></button>
+                <button class="action-btn del"  onclick="deleteEval(${e.id})"><i class="fas fa-trash"></i></button>
+            </td>
+        </tr>`;
+        }).join('');
+    }
+
+    function renderLeaderboard(list) {
+        const el = document.getElementById('leaderboardList');
+        if (!list.length) { el.innerHTML = '<div class="empty-state"><i class="fas fa-folder-open"></i><p>No evaluations yet.</p></div>'; return; }
+        el.innerHTML = list.map((s, idx) => {
+            const rank      = idx + 1;
+            const rankClass = rank <= 3 ? `rank-${rank}` : '';
+            const medal     = rank <= 3 ? ['🥇','🥈','🥉'][rank - 1] : rank;
+            const score     = s.avgOverallScore ?? s.latestOverallScore ?? 0;
+            const scoreColor = score >= 4 ? '#10b981' : score >= 3 ? '#3b82f6' : '#ef4444';
+            const trendIcon  = s.trend === 'UP' ? '▲' : s.trend === 'DOWN' ? '▼' : s.trend === 'NEW' ? '★' : '—';
+            const gradeKey   = (s.latestGrade || '').replace('+', '_PLUS');
+            return `<div class="lb-card ${rankClass}" onclick="openDetail(${s.supplierId})">
+            <div class="${rank <= 3 ? 'rank-badge' : 'rank-badge other'}">${medal}</div>
+            <div>
+                <div class="lb-name">${x(s.supplierName)}</div>
+                <div class="lb-meta">
+                    <span>${(s.supplierCategory || '').replace('_', ' ')}</span>
+                    <span class="lb-trend ${s.trend || 'STABLE'}">${trendIcon} ${s.trend || ''}</span>
+                    <span>${s.totalEvaluations ?? 0} eval</span>
+                </div>
+            </div>
+            <div style="text-align:right">
+                <div class="lb-score" style="color:${scoreColor}">${score.toFixed(2)}</div>
+                <div><span class="grade-badge grade-${gradeKey}">${(s.latestGrade || '—').replace('_PLUS', '+')}</span></div>
+            </div>
+        </div>`;
+        }).join('');
+    }
+
+    function renderRequests(list) {
+        const tb = document.getElementById('requestsTbody');
+        if (!list.length) { renderEmpty('requestsTbody', 9, 'No requests found.'); return; }
+
+        tb.innerHTML = list.map(req => {
+            const urgency   = req.urgency || 'MEDIUM';
+            const uColor    = URGENCY_COLOR[urgency] ?? URGENCY_COLOR.MEDIUM;
+            const uBg       = URGENCY_BG[urgency]    ?? URGENCY_BG.MEDIUM;
+
+            const STATUS_STYLES = {
+                PENDING:  { bg: '#fef3c7', color: '#92400e' },
+                REVIEWED: { bg: '#dbeafe', color: '#1d4ed8' },
+                ORDERED:  { bg: '#d1fae5', color: '#065f46' },
+                REJECTED: { bg: '#fee2e2', color: '#b91c1c' }
+            };
+            const ss = STATUS_STYLES[req.status] ?? { bg: '#f3f4f6', color: '#374151' };
+
+            let actions = `
+            <button class="action-btn del" title="Delete" onclick="deleteRequest(${req.id})">
+                <i class="fas fa-trash"></i>
+            </button>`;
+
+            if (req.status === 'PENDING') {
+                actions = `
+                <button class="action-btn edit" title="Mark Reviewed" onclick="updateReqStatus(${req.id},'REVIEWED','')">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <button class="action-btn order" title="Create Order" onclick="openOrderFromRequest(${req.id})">
+                    <i class="fas fa-cart-plus"></i>
+                </button>
+                <button class="action-btn del" title="Reject" onclick="rejectRequest(${req.id})">
+                    <i class="fas fa-times"></i>
+                </button>
+                ${actions}`;
+            } else if (req.status === 'REVIEWED') {
+                actions = `
+                <button class="action-btn order" title="Place Order" onclick="openOrderFromRequest(${req.id})">
+                    <i class="fas fa-cart-plus"></i>
+                </button>
+                ${actions}`;
+            }
+
+            const reason      = req.reason ? x(req.reason) : '—';
+            const reasonShort = reason.length > 60 ? reason.slice(0, 60) + '…' : reason;
+            const submitted   = req.createdAt ? new Date(req.createdAt).toLocaleDateString() : '—';
+
+            return `<tr>
+            <td><div style="font-weight:600">${x(req.sparePartName)}</div></td>
+            <td><span style="font-family:'DM Mono',monospace;font-size:12px">${x(req.partNumber) || '—'}</span></td>
+            <td style="font-weight:700">${req.requestedQuantity ?? '—'}</td>
+            <td>
+                <span class="badge" style="background:${uBg};color:${uColor};font-size:11px">
+                    ${urgency}
+                </span>
+            </td>
+            <td style="font-size:13px;font-weight:500">${x(req.technicianName || req.requestedBy) || '—'}</td>
+            <td style="max-width:180px;font-size:12px;color:#64748b">${reasonShort}</td>
+            <td style="font-size:12px;color:#64748b">${submitted}</td>
+            <td>
+                <span class="badge" style="background:${ss.bg};color:${ss.color}">${req.status}</span>
+            </td>
+            <td style="text-align:center">
+                <div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap">
+                    ${actions}
+                </div>
+            </td>
+        </tr>`;
+        }).join('');
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  FILTERS
+    // ═══════════════════════════════════════════════════════
+    function filterSuppliers() {
+        const q   = document.getElementById('searchSupplier').value.toLowerCase();
+        const cat = document.getElementById('filterSupplierCat').value;
+        renderSuppliers(allSuppliers.filter(s =>
+            (!q   || s.name.toLowerCase().includes(q)) &&
+            (!cat || s.category === cat)
+        ));
+    }
+
+    function filterOrders() {
+        const supId  = document.getElementById('filterOrderSupplier').value;
+        const status = document.getElementById('filterOrderStatus').value;
+        let filtered = allOrders;
+        if (supId)  filtered = filtered.filter(o => String(o.supplier?.id) === supId);
+        if (status) filtered = filtered.filter(o => o.status === status);
+        renderOrders(filtered);
+    }
+
+    function filterRequests() {
+        const status = document.getElementById('filterReqStatus').value;
+        const filtered = status ? allRequests.filter(r => r.status === status) : allRequests;
+        renderRequests(filtered);
+    }
+
+    function updateRequestsBadge() {
+        const pending = allRequests.filter(r => r.status === 'PENDING').length;
+        const badge   = document.getElementById('requestsBadge');
+        badge.textContent     = pending;
+        badge.style.background = pending > 0 ? '#ef4444' : '#f1f5f9';
+        badge.style.color      = pending > 0 ? '#fff'     : '#64748b';
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  TAB SWITCHING
+    // ═══════════════════════════════════════════════════════
+    function switchMainTab(tab) {
+        currentMainTab = tab;
+        document.getElementById('panelSuppliersMain').style.display   = tab === 'suppliers'   ? 'block' : 'none';
+        document.getElementById('panelEvaluationsMain').style.display = tab === 'evaluations' ? 'block' : 'none';
+        document.getElementById('panelRequestsMain').style.display    = tab === 'requests'    ? 'block' : 'none';
+        document.getElementById('tabSuppliersMain').classList.toggle('active',   tab === 'suppliers');
+        document.getElementById('tabEvaluationsMain').classList.toggle('active', tab === 'evaluations');
+        document.getElementById('tabRequestsMain').classList.toggle('active',    tab === 'requests');
+        if (tab === 'requests') loadRequests();
+    }
+
+    function switchSubTab(tab) {
+        currentSubTab = tab;
+        document.getElementById('subPanelSuppliers').style.display = tab === 'suppliers' ? 'block' : 'none';
+        document.getElementById('subPanelOrders').style.display    = tab === 'orders'    ? 'block' : 'none';
+        document.getElementById('subSuppliers').classList.toggle('active', tab === 'suppliers');
+        document.getElementById('subOrders').classList.toggle('active',    tab === 'orders');
+        if (tab === 'orders') loadOrders();
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  SUPPLIER MODAL
+    // ═══════════════════════════════════════════════════════
+    function openSupplierModal() {
+        document.getElementById('supplierModalTitle').textContent = 'Add Supplier';
+        document.getElementById('supplierId').value = '';
+        ['supplierName','supplierContact','supplierEmail','supplierPhone','supplierAddress','supplierNotes']
+            .forEach(id => document.getElementById(id).value = '');
+        document.getElementById('supplierCategory').value = '';
+        document.getElementById('supplierErr').className  = 'form-error';
+        openModal('supplierModal');
+    }
+
+    async function editSupplier(id) {
+        try {
+            const r = await fetch(`${API}/admin/suppliers/api/${id}`, { headers: H() });
+            const s = await r.json();
+            document.getElementById('supplierModalTitle').textContent = 'Edit Supplier';
+            document.getElementById('supplierId').value         = s.id;
+            document.getElementById('supplierName').value       = s.name        || '';
+            document.getElementById('supplierContact').value    = s.contactPerson || '';
+            document.getElementById('supplierEmail').value      = s.email       || '';
+            document.getElementById('supplierPhone').value      = s.phone       || '';
+            document.getElementById('supplierAddress').value    = s.address     || '';
+            document.getElementById('supplierCategory').value   = s.category    || '';
+            document.getElementById('supplierNotes').value      = s.notes       || '';
+            document.getElementById('supplierErr').className    = 'form-error';
+            openModal('supplierModal');
+        } catch { toast('Error loading supplier.', 'danger'); }
+    }
+
+    async function saveSupplier() {
+        const id   = document.getElementById('supplierId').value;
+        const data = {
+            name:          document.getElementById('supplierName').value.trim(),
+            contactPerson: document.getElementById('supplierContact').value.trim() || null,
+            email:         document.getElementById('supplierEmail').value.trim(),
+            phone:         document.getElementById('supplierPhone').value.trim() || null,
+            address:       document.getElementById('supplierAddress').value.trim() || null,
+            category:      document.getElementById('supplierCategory').value || null,
+            notes:         document.getElementById('supplierNotes').value.trim() || null
+        };
+        if (!data.name || !data.email) { toast('Name and email are required.', 'danger'); return; }
+        const url = id
+            ? `${API}/admin/suppliers/api/update/${id}`
+            : `${API}/admin/suppliers/api/add`;
+        const r = await fetch(url, { method: id ? 'PUT' : 'POST', headers: H(), body: JSON.stringify(data) });
+        if (r.ok) {
+            closeModal('supplierModal');
+            toast(id ? 'Supplier updated!' : 'Supplier added!', 'success');
+            await loadAll();
+        } else {
+            const d = await r.json().catch(() => ({}));
+            toast(d.error || 'Failed to save.', 'danger');
+        }
+    }
+
+    async function deleteSupplier(id, name) {
+        if (!confirm(`Delete supplier "${name}"?`)) return;
+        const r = await fetch(`${API}/admin/suppliers/api/delete/${id}`, { method: 'DELETE', headers: H() });
+        if (r.ok) { toast('Supplier deleted.', 'warning'); await loadAll(); }
+        else { const d = await r.json().catch(() => ({})); toast(d.error || 'Failed.', 'danger'); }
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  ORDER MODAL
+    // ═══════════════════════════════════════════════════════
+    function openOrderModal() {
+        document.getElementById('orderModalTitle').textContent = 'New Purchase Order';
+        document.getElementById('orderId').value = '';
+        document.getElementById('orderQty').value = '';
+        document.getElementById('orderPrice').value = '';
+        document.getElementById('orderNotes').value = '';
+        document.getElementById('orderStatusWrap').style.display = 'none';
+        document.getElementById('orderErr').className = 'form-error';
+
+        const todayMin = getTodayMin();
+
+        // ── FIX: Restrict both dates to today onwards ──
+        const orderDateEl = document.getElementById('orderDate');
+        orderDateEl.value = todayMin;
+        orderDateEl.min = todayMin;
+
+        const expDateEl = document.getElementById('orderExpDate');
+        expDateEl.value = '';
+        expDateEl.min = todayMin;
+
+        // Reset fields for new order
+        ['orderQty','orderPrice','orderNotes'].forEach(fid => {
+            const el = document.getElementById(fid);
+            el.readOnly = false;
+            el.style.background = '';
+            el.style.color = '';
+            el.style.cursor = '';
+        });
+
+        populateOrderItemDropdown();
+        const sup = document.getElementById('orderSupplier');
+        sup.disabled = false;
+        sup.style.background = '';
+        sup.style.color = '';
+        sup.innerHTML = '<option value="">Select supplier</option>' +
+            allSuppliers.map(s => `<option value="${s.id}">${x(s.name)}</option>`).join('');
+
+        document.getElementById('orderItem').disabled = false;
+        document.getElementById('orderItem').style.background = '';
+        document.getElementById('orderItem').style.color = '';
+
+        const note = document.getElementById('orderEditNote');
+        if (note) note.style.display = 'none';
+
+        openModal('orderModal');
+    }
+
+    async function editOrder(id) {
+        try {
+            const r = await fetch(`${API}/admin/suppliers/api/orders/${id}`, { headers: H() });
+            const o = await r.json();
+            document.getElementById('orderModalTitle').textContent = 'Update Order Status';
+            document.getElementById('orderId').value      = o.id;
+            document.getElementById('orderQty').value     = o.quantity        || '';
+            document.getElementById('orderPrice').value   = o.unitPrice       || '';
+            // FIX 1: Set min date in edit mode too
+            document.getElementById('orderDate').value    = o.orderDate       || '';
+            document.getElementById('orderDate').min      = new Date().toISOString().split('T')[0];
+            document.getElementById('orderExpDate').value = o.expectedDeliveryDate || '';
+            document.getElementById('orderNotes').value   = o.notes           || '';
+            document.getElementById('orderStatus').value  = o.status          || 'PENDING';
+
+            // FIX 2: Lock all fields except status — orderItem removed from this list
+            ['orderQty','orderPrice','orderDate','orderExpDate','orderNotes'].forEach(fid => {
+                const el = document.getElementById(fid);
+                el.readOnly = true;
+                el.style.background = '#f8fafc';
+                el.style.color      = '#94a3b8';
+                el.style.cursor     = 'not-allowed';
+            });
+            // FIX 2: Lock the item dropdown in edit mode and set its value
+            const itemSel = document.getElementById('orderItem');
+            populateOrderItemDropdown();
+            itemSel.value    = o.itemDescription || '';
+            itemSel.disabled = true;
+            itemSel.style.background = '#f8fafc';
+            itemSel.style.color      = '#94a3b8';
+
+            document.getElementById('orderSupplier').innerHTML =
+                '<option value="">Select supplier</option>' +
+                allSuppliers.map(s => `<option value="${s.id}" ${s.id === o.supplier?.id ? 'selected' : ''}>${x(s.name)}</option>`).join('');
+            document.getElementById('orderSupplier').disabled       = true;
+            document.getElementById('orderSupplier').style.background = '#f8fafc';
+            document.getElementById('orderSupplier').style.color      = '#94a3b8';
+            document.getElementById('orderStatusWrap').style.display  = 'block';
+
+            // Show info note
+            let note = document.getElementById('orderEditNote');
+            if (!note) {
+                note = document.createElement('div');
+                note.id = 'orderEditNote';
+                note.style.cssText = 'background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:9px;padding:10px 14px;font-size:12px;margin-bottom:12px;display:flex;align-items:center;gap:8px;';
+                note.innerHTML = '<i class="fas fa-info-circle"></i><span>Only the <strong>Status</strong> field can be changed when editing an order.</span>';
+                document.getElementById('orderModal').querySelector('.modal-body').prepend(note);
+            }
+            note.style.display = 'flex';
+            openModal('orderModal');
+        } catch { toast('Error loading order.', 'danger'); }
+    }
+
+    async function saveOrder() {
+        const id = document.getElementById('orderId').value;
+
+        if (id) {
+            // ── EDIT MODE: send only the new status ──
+            const status = document.getElementById('orderStatus').value;
+            if (!status) { toast('Please select a status.', 'danger'); return; }
+            const r = await fetch(`${API}/admin/suppliers/api/orders/${id}/status`, {
+                method: 'PUT',
+                headers: H(),
+                body: JSON.stringify({ status })
+            });
+            if (r.ok) {
+                closeModal('orderModal');
+                toast('Order status updated!', 'success');
+                await loadOrders();
+            } else {
+                const d = await r.json().catch(() => ({}));
+                toast(d.error || 'Failed to update order status.', 'danger');
+            }
+        } else {
+            // ── CREATE MODE: send full payload ──
+            const data = {
+                supplierId:           parseInt(document.getElementById('orderSupplier').value),
+                itemDescription:      document.getElementById('orderItem').value.trim(),
+                quantity:             parseInt(document.getElementById('orderQty').value) || null,
+                unitPrice:            parseFloat(document.getElementById('orderPrice').value) || null,
+                orderDate:            document.getElementById('orderDate').value,
+                expectedDeliveryDate: document.getElementById('orderExpDate').value || null,
+                notes:                document.getElementById('orderNotes').value.trim() || null
+            };
+            if (!data.supplierId || !data.itemDescription) {
+                toast('Supplier and item description are required.', 'danger'); return;
+            }
+            const r = await fetch(`${API}/admin/suppliers/api/orders/place`, {
+                method: 'POST', headers: H(), body: JSON.stringify(data)
+            });
+            if (r.ok) {
+                closeModal('orderModal');
+                toast('Order placed!', 'success');
+                if (window._pendingRequestId) {
+                    await updateReqStatus(window._pendingRequestId, 'ORDERED', '');
+                    window._pendingRequestId = null;
+                }
+                await loadOrders();
+            } else {
+                const d = await r.json().catch(() => ({}));
+                toast(d.error || 'Failed to place order.', 'danger');
+            }
+        }
+    }
+
+    async function deleteOrder(id) {
+        if (!confirm('Delete this order?')) return;
+        const r = await fetch(`${API}/admin/suppliers/api/orders/${id}`, { method: 'DELETE', headers: H() });
+        if (r.ok) { toast('Order deleted.', 'warning'); await loadOrders(); }
+        else toast('Failed to delete order.', 'danger');
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  EVALUATION MODAL
+    // ═══════════════════════════════════════════════════════
+    function buildStarRatings() {
+        FIELDS.forEach(field => {
+            const group = document.getElementById(`stars-${field}`);
+            if (!group) return;
+            group.innerHTML = '';
+            for (let i = 1; i <= 5; i++) {
+                const btn = document.createElement('button');
+                btn.type      = 'button';
+                btn.className = 'star-btn';
+                btn.innerHTML = '★';
+                btn.dataset.val = i;
+                btn.addEventListener('click',       () => setScore(field, i));
+                btn.addEventListener('mouseenter',  () => highlightStars(field, i));
+                btn.addEventListener('mouseleave',  () => highlightStars(field, scores[field]));
+                group.appendChild(btn);
+            }
+        });
+    }
+
+    function setScore(field, val) {
+        scores[field] = val;
+        highlightStars(field, val);
+        document.getElementById(`note-${field}`).textContent = STAR_LABELS[val];
+        updatePreview();
+    }
+
+    function highlightStars(field, val) {
+        document.getElementById(`stars-${field}`)
+            .querySelectorAll('.star-btn')
+            .forEach(b => b.classList.toggle('active', parseInt(b.dataset.val) <= val));
+    }
+
+    function resetScores() {
+        FIELDS.forEach(f => {
+            scores[f] = 0;
+            highlightStars(f, 0);
+            document.getElementById(`note-${f}`).textContent = '';
+        });
+        document.getElementById('previewScore').textContent = '—';
+        document.getElementById('previewScore').style.color = '';
+        document.getElementById('previewGrade').innerHTML   = '';
+    }
+
+    function updatePreview() {
+        if (FIELDS.some(f => !scores[f])) {
+            document.getElementById('previewScore').textContent = '—';
+            document.getElementById('previewScore').style.color = '';
+            document.getElementById('previewGrade').innerHTML   = '';
+            return;
+        }
+        const overall = FIELDS.reduce((sum, f) => sum + scores[f] * WEIGHTS[f], 0);
+        const grade   = calcGrade(overall);
+        document.getElementById('previewScore').textContent = overall.toFixed(2);
+        document.getElementById('previewScore').style.color = grade.color;
+        document.getElementById('previewGrade').innerHTML   =
+            `<span class="grade-badge grade-${grade.key}">${grade.label}</span>`;
+    }
+
+    function calcGrade(s) {
+        if (s >= 4.7) return { key: 'A_PLUS', label: 'A+', color: '#fbbf24' };
+        if (s >= 4.0) return { key: 'A',      label: 'A',  color: '#10b981' };
+        if (s >= 3.0) return { key: 'B',      label: 'B',  color: '#3b82f6' };
+        if (s >= 2.0) return { key: 'C',      label: 'C',  color: '#f59e0b' };
+        if (s >= 1.0) return { key: 'D',      label: 'D',  color: '#ef4444' };
+        return              { key: 'F',      label: 'F',  color: '#b91c1c' };
+    }
+
+    function setTodayAsMinEvalDate() {
+        const today = new Date().toISOString().split('T')[0];
+        const el    = document.getElementById('evalDate');
+        if (el) el.min = today;
+    }
+
+    function openEvalModal() {
+        document.getElementById('evalModalTitle').textContent = 'New Evaluation';
+        document.getElementById('evalId').value              = '';
+        document.getElementById('evalPeriod').value          = '';
+        document.getElementById('evalDate').valueAsDate      = new Date();
+        document.getElementById('evalPO').value              = '';
+        document.getElementById('evalStrengths').value       = '';
+        document.getElementById('evalImprovements').value    = '';
+        document.getElementById('evalComments').value        = '';
+        document.getElementById('evalBy').value              = 'Admin';
+        document.getElementById('evalErr').className         = 'form-error';
+        document.getElementById('evalSupplier').innerHTML    =
+            '<option value="">Select supplier</option>' +
+            allSuppliers.map(s => `<option value="${s.id}">${x(s.name)}</option>`).join('');
+        document.querySelector('input[name="recommend"][value="true"]').checked = true;
+        resetScores();
+        setTodayAsMinEvalDate();
+        openModal('evalModal');
+    }
+
+    function openEvalModalForSupplier() {
+        openEvalModal();
+        if (selectedSupplierId) {
+            document.getElementById('evalSupplier').value = selectedSupplierId;
+        }
+    }
+
+    async function editEval(id) {
+        try {
+            const r = await fetch(`${API}/admin/suppliers/evaluations/api/${id}`, { headers: H() });
+            const e = await r.json();
+            document.getElementById('evalModalTitle').textContent = 'Edit Evaluation';
+            document.getElementById('evalId').value              = e.id;
+            document.getElementById('evalPeriod').value          = e.evaluationPeriod  || '';
+            document.getElementById('evalDate').value            = e.evaluationDate    || '';
+            document.getElementById('evalPO').value              = e.linkedOrderNumber || '';
+            document.getElementById('evalStrengths').value       = e.strengths         || '';
+            document.getElementById('evalImprovements').value    = e.improvements      || '';
+            document.getElementById('evalComments').value        = e.comments          || '';
+            document.getElementById('evalBy').value              = e.evaluatedBy       || '';
+            document.getElementById('evalErr').className         = 'form-error';
+            document.getElementById('evalSupplier').innerHTML    =
+                '<option value="">Select supplier</option>' +
+                allSuppliers.map(s => `<option value="${s.id}" ${s.id === e.supplier?.id ? 'selected' : ''}>${x(s.name)}</option>`).join('');
+            const recVal = String(e.recommendContinue);
+            const recEl  = document.querySelector(`input[name="recommend"][value="${recVal}"]`);
+            if (recEl) recEl.checked = true;
+            scores = {
+                delivery:      e.deliveryScore      || 0,
+                quality:       e.qualityScore       || 0,
+                pricing:       e.pricingScore       || 0,
+                communication: e.communicationScore || 0,
+                orderAccuracy: e.orderAccuracyScore || 0
+            };
+            FIELDS.forEach(f => {
+                highlightStars(f, scores[f]);
+                document.getElementById(`note-${f}`).textContent = STAR_LABELS[scores[f]] || '';
+            });
+            updatePreview();
+            setTodayAsMinEvalDate();
+            openModal('evalModal');
+        } catch { toast('Error loading evaluation.', 'danger'); }
+    }
+
+    async function submitEval() {
+        if (FIELDS.some(f => !scores[f])) { toast('Please rate all 5 dimensions.', 'danger'); return; }
+        const id   = document.getElementById('evalId').value;
+        const data = {
+            supplierId:          parseInt(document.getElementById('evalSupplier').value),
+            deliveryScore:       scores.delivery,
+            qualityScore:        scores.quality,
+            pricingScore:        scores.pricing,
+            communicationScore:  scores.communication,
+            orderAccuracyScore:  scores.orderAccuracy,
+            evaluationPeriod:    document.getElementById('evalPeriod').value.trim(),
+            evaluatedBy:         document.getElementById('evalBy').value.trim(),
+            evaluationDate:      document.getElementById('evalDate').value,
+            linkedOrderNumber:   document.getElementById('evalPO').value.trim()          || null,
+            strengths:           document.getElementById('evalStrengths').value.trim()   || null,
+            improvements:        document.getElementById('evalImprovements').value.trim()|| null,
+            comments:            document.getElementById('evalComments').value.trim()    || null,
+            recommendContinue:   document.querySelector('input[name="recommend"]:checked').value === 'true'
+        };
+        if (!data.supplierId || !data.evaluationPeriod || !data.evaluatedBy) {
+            toast('Supplier, period, and evaluator are required.', 'danger'); return;
+        }
+        const url = id
+            ? `${API}/admin/suppliers/evaluations/api/update/${id}`
+            : `${API}/admin/suppliers/evaluations/api/add`;
+        const r = await fetch(url, { method: id ? 'PUT' : 'POST', headers: H(), body: JSON.stringify(data) });
+        if (r.ok) {
+            closeModal('evalModal');
+            toast(id ? 'Evaluation updated!' : 'Evaluation saved!', 'success');
+            await loadAll();
+        } else {
+            const d = await r.json().catch(() => ({}));
+            toast(d.error || 'Failed to save evaluation.', 'danger');
+        }
+    }
+
+    async function deleteEval(id) {
+        if (!confirm('Delete this evaluation?')) return;
+        const r = await fetch(`${API}/admin/suppliers/evaluations/api/delete/${id}`, { method: 'DELETE', headers: H() });
+        if (r.ok) { toast('Evaluation deleted.', 'warning'); await loadAll(); }
+        else toast('Failed to delete evaluation.', 'danger');
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  SPARE PART REQUESTS
+    // ═══════════════════════════════════════════════════════
+    async function updateReqStatus(id, status, adminNotes) {
+        const r = await fetch(`${API}/api/admin/spare-requests/${id}/status`, {
+            method: 'PUT',
+            headers: H(),
+            body: JSON.stringify({ status, adminNotes })
+        });
+        if (r.ok) { toast('Status updated!', 'success'); await loadRequests(); }
+        else toast('Failed to update status.', 'danger');
+    }
+
+    async function rejectRequest(id) {
+        const notes = prompt('Reason for rejection (optional):') || '';
+        if (!confirm('Reject this request?')) return;
+        await updateReqStatus(id, 'REJECTED', notes);
+    }
+
+    async function deleteRequest(id) {
+        if (!confirm('Delete this request?')) return;
+        const r = await fetch(`${API}/api/admin/spare-requests/${id}`, { method: 'DELETE', headers: H() });
+        if (r.ok) { toast('Request deleted.', 'warning'); await loadRequests(); }
+        else toast('Failed to delete request.', 'danger');
+    }
+
+    function openOrderFromRequest(reqId) {
+        const req = allRequests.find(r => r.id === reqId);
+        if (!req) return;
+        switchMainTab('suppliers');
+        switchSubTab('orders');
+        openOrderModal();
+        setTimeout(() => {
+            // FIX 2: Set value on the select — will match if material name exists in the list
+            document.getElementById('orderItem').value = req.sparePartName + (req.partNumber ? ` (${req.partNumber})` : '');
+            document.getElementById('orderQty').value  = req.requestedQuantity;
+            document.getElementById('orderNotes').value =
+                `Requested by: ${req.technicianName || req.requestedBy || ''}` +
+                (req.reason ? `\nReason: ${req.reason}` : '');
+            window._pendingRequestId = reqId;
+        }, 100);
+        toast('Pre-filled from request. Select a supplier and save to place the order.', 'warning');
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  SUPPLIER DETAIL SLIDE-OUT
+    // ═══════════════════════════════════════════════════════
+    async function openDetail(supplierId) {
+        selectedSupplierId = supplierId;
+        const panel = document.getElementById('detailPanel');
+        panel.classList.add('open');
+
+        const s = allSuppliers.find(s => s.id == supplierId);
+        document.getElementById('dpSupplierName').textContent = s?.name || '—';
+        document.getElementById('dpMeta').textContent = (s?.category || '').replace('_', ' ') || '—';
+
+        try {
+            const summary = await (await fetch(`${API}/admin/suppliers/evaluations/api/summary/${supplierId}`, { headers: H() })).json();
+            if (summary.supplierName) {
+                document.getElementById('dpScore').textContent = (summary.avgOverallScore ?? 0).toFixed(2);
+                const grade    = summary.latestGrade || '—';
+                const gradeKey = grade.replace('+', '_PLUS');
+                document.getElementById('dpGrade').innerHTML = `<span class="grade-badge grade-${gradeKey}">${grade}</span>`;
+                document.getElementById('dpTrend').textContent = summary.trend || '—';
+
+                const dims = [
+                    { label: 'Delivery (25%)',      val: summary.avgDeliveryScore      },
+                    { label: 'Quality (30%)',        val: summary.avgQualityScore       },
+                    { label: 'Pricing (15%)',        val: summary.avgPricingScore       },
+                    { label: 'Communication (15%)', val: summary.avgCommunicationScore },
+                    { label: 'Accuracy (15%)',       val: summary.avgOrderAccuracyScore }
+                ];
+                document.getElementById('dpDimBars').innerHTML = dims.map(d => {
+                    const v     = d.val ?? 0;
+                    const color = v >= 4 ? '#10b981' : v >= 3 ? '#3b82f6' : '#ef4444';
+                    return `<div class="score-bar-row">
+                    <span class="score-bar-label">${d.label}</span>
+                    <div class="score-bar-track">
+                        <div class="score-bar-fill" style="width:${(v / 5) * 100}%;background:${color}"></div>
+                    </div>
+                    <span class="score-bar-val">${v.toFixed(1)}</span>
+                </div>`;
+                }).join('');
+
+                const trendData = await (await fetch(`${API}/admin/suppliers/evaluations/api/trend/${supplierId}`, { headers: H() })).json();
+                renderTrendChart(trendData);
+
+                const recent = allEvals.filter(e => e.supplier?.id == supplierId).slice(0, 5);
+                document.getElementById('dpRecentList').innerHTML = recent.length
+                    ? recent.map(e => {
+                        const gk = (e.grade || '').replace('+', '_PLUS');
+                        return `<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center">
+                        <div>
+                            <span style="font-weight:600">${x(e.evaluationPeriod) || '—'}</span>
+                            <span style="font-size:11px;color:#64748b;margin-left:6px">${x(e.evaluationDate) || ''}</span>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:8px">
+                            <span style="font-family:'DM Mono',monospace;font-weight:700">${(e.overallScore ?? 0).toFixed(2)}</span>
+                            <span class="grade-badge grade-${gk}">${(e.grade || '').replace('_PLUS', '+')}</span>
+                        </div>
+                    </div>`;
+                    }).join('')
+                    : '<div style="color:#94a3b8;font-size:13px;padding:8px 0">No evaluations yet.</div>';
+            } else {
+                document.getElementById('dpScore').textContent = '—';
+                document.getElementById('dpGrade').innerHTML   = '';
+                document.getElementById('dpTrend').textContent = '—';
+                document.getElementById('dpDimBars').innerHTML = '';
+                document.getElementById('dpRecentList').innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:8px 0">No evaluations yet.</div>';
+            }
+        } catch {
+            document.getElementById('dpScore').textContent = 'Error';
+        }
+    }
+
+    function renderTrendChart(data) {
+        const ctx = document.getElementById('trendChart').getContext('2d');
+        if (trendChart) trendChart.destroy();
+        if (!data || !data.length) return;
+        trendChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.map(d => d.period || d.date),
+                datasets: [
+                    { label: 'Overall',  data: data.map(d => d.overall),  borderColor: '#3b82f6', tension: 0.3, fill: false },
+                    { label: 'Quality',  data: data.map(d => d.quality),  borderColor: '#10b981', tension: 0.3, fill: false, borderDash: [4, 3] },
+                    { label: 'Delivery', data: data.map(d => d.delivery), borderColor: '#f59e0b', tension: 0.3, fill: false, borderDash: [4, 3] }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { labels: { color: '#64748b', font: { size: 10 } } } },
+                scales: {
+                    y: { min: 0, max: 5, ticks: { color: '#64748b' }, grid: { color: '#e2e8f0' } },
+                    x: { ticks: { color: '#64748b' }, grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    function closeDetail() {
+        document.getElementById('detailPanel').classList.remove('open');
+    }
+
+    // Click outside detail panel to close
+    document.addEventListener('click', e => {
+        const panel = document.getElementById('detailPanel');
+        if (
+            panel.classList.contains('open') &&
+            !panel.contains(e.target) &&
+            !e.target.closest('.lb-card') &&
+            !e.target.closest('[onclick*="openDetail"]')
+        ) closeDetail();
+    });
+
+    // ═══════════════════════════════════════════════════════
+    //  UTILITIES
+    // ═══════════════════════════════════════════════════════
+    function populateSupplierDropdowns() {
+        const opts = allSuppliers.map(s => `<option value="${s.id}">${x(s.name)}</option>`).join('');
+        document.getElementById('filterOrderSupplier').innerHTML = '<option value="">All Suppliers</option>' + opts;
+        document.getElementById('orderSupplier').innerHTML       = '<option value="">Select supplier</option>' + opts;
+        document.getElementById('evalSupplier').innerHTML        = '<option value="">Select supplier</option>' + opts;
+    }
+
+    function openModal(id)  { document.getElementById(id).classList.add('open'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+    // Close modals on backdrop click
+    document.querySelectorAll('.overlay').forEach(el =>
+        el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); })
+    );
+
+    function x(s) {
+        if (s == null) return '';
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function renderEmpty(tbodyId, cols, msg) {
+        document.getElementById(tbodyId).innerHTML =
+            `<tr><td colspan="${cols}"><div class="empty-state"><i class="fas fa-folder-open"></i><p>${msg}</p></div></td></tr>`;
+    }
+
+    function getTodayMin() {
+        return new Date().toISOString().split('T')[0];   // YYYY-MM-DD format
+    }
+    function toast(msg, type = 'success') {
+        const el   = document.createElement('div');
+        el.className = `toast-item ${type}`;
+        const icons  = { success: '✅', danger: '❌', warning: '⚠️' };
+        el.innerHTML = `<span>${icons[type] || '•'}</span><span>${msg}</span>`;
+        document.getElementById('toastContainer').appendChild(el);
+        setTimeout(() => el.remove(), 3500);
+    }
+
+    function logout() { localStorage.clear(); location.href = '/'; }
+</script>
+</body>
+</html>

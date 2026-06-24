@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Manager - Energy Consumption</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <style>
+        :root {
+            --forest: #1a3a2a;
+            --pine: #1e5c2f;
+            --sage: #2d8a47;
+            --mint: #3daa5a;
+            --amber: #d97706;
+            --ink: #0f1a14;
+            --bone: #f7f9f8;
+        }
+        body { font-family: 'DM Sans', sans-serif; background: #f1f5f9; margin: 0; overflow: hidden; }
+        .sidebar { background: var(--forest); width: 260px; height: 100vh; flex-shrink: 0; display: flex; flex-direction: column; position: sticky; top: 0; }
+        .sidebar-logo { background: #fff; padding: 18px 22px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #0d2018; }
+        .sidebar-logo .brand-text { font-weight: 700; font-size: 17px; color: var(--pine); }
+        .sidebar-badge { font-size: 10px; font-weight: 700; background: #d1fae5; color: #065f46; padding: 2px 7px; border-radius: 99px; margin-left: auto; }
+        .sidebar-nav { flex: 1; overflow-y: auto; padding: 16px 12px; display: flex; flex-direction: column; gap: 2px; }
+        .nav-label { font-size: 10px; font-weight: 700; letter-spacing: 2px; color: #3d6b4e; text-transform: uppercase; padding: 10px 10px 4px; }
+        .nav-link { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; color: #9dbea8; font-size: 13.5px; font-weight: 500; text-decoration: none; transition: all .2s; border-left: 3px solid transparent; cursor: pointer; }
+        .nav-link:hover { background: rgba(255,255,255,.07); color: #fff; }
+        .nav-link.active { background: rgba(255,255,255,.12); color: #fff; border-left-color: var(--mint); }
+        .sidebar-footer { padding: 14px 12px; border-top: 1px solid #0d2018; }
+        .logout-btn { width: 100%; background: rgba(220,38,38,.15); color: #fca5a5; border: none; padding: 10px; border-radius: 9px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background .15s; }
+        .page-wrap { display: flex; height: 100vh; overflow: hidden; }
+        .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .scroll-area { flex: 1; overflow-y: auto; padding: 24px 28px; }
+        .topnav { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 0 28px; height: 56px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+        .banner { background: linear-gradient(135deg, var(--forest) 0%, var(--pine) 55%, var(--sage) 100%); border-radius: 16px; padding: 24px 28px; color: #fff; display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+        .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+        .kpi-card { background: #fff; border-radius: 14px; padding: 18px 20px; border-left: 4px solid transparent; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+        .status-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+        .status-card { background: #fff; border-radius: 12px; padding: 14px 16px; text-align: center; }
+        .charts-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+        .chart-card { background: #fff; border-radius: 14px; padding: 20px; }
+        .chart-card.wide { grid-column: span 2; }
+        .chart-wrap { position: relative; height: 220px; }
+        .panel { background: #fff; border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.06); overflow: hidden; margin-bottom: 20px; }
+        .panel-header { padding: 16px 20px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between; }
+        .page-tabs { display: flex; gap: 2px; border-bottom: 1px solid #f1f5f9; padding: 0 20px; }
+        .page-tab { padding: 14px 16px; font-size: 13px; font-weight: 500; color: #64748b; border: none; background: none; cursor: pointer; border-bottom: 2px solid transparent; }
+        .page-tab.active { color: var(--pine); border-bottom-color: var(--pine); font-weight: 600; }
+        .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .data-table th { padding: 11px 16px; text-align: left; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #94a3b8; background: #f8fafc; }
+        .data-table td { padding: 13px 16px; border-bottom: 1px solid #f1f5f9; }
+        .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+        .b-running { background: #dcfce7; color: #15803d; }
+        .b-idle { background: #fef3c7; color: #b45309; }
+        .b-stopped { background: #fee2e2; color: #b91c1c; }
+        .action-btn { width: 30px; height: 30px; border-radius: 8px; border: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all .15s; font-size: 12px; }
+        .action-btn.view { background: #eff6ff; color: #3b82f6; }
+        .action-btn.edit { background: #f0fdf4; color: #16a34a; }
+        .action-btn.del { background: #fef2f2; color: #dc2626; }
+        .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
+        .overlay.open { display: flex; }
+        .modal { background: #fff; border-radius: 18px; width: 500px; max-width: 90vw; padding: 24px; }
+        .empty-state { padding: 48px 20px; text-align: center; color: #94a3b8; }
+        .page-alert { display: none; padding: 11px 16px; border-radius: 10px; margin-bottom: 16px; }
+        .page-alert.show { display: block; }
+        .page-alert.success { background: #f0fdf4; color: #166534; }
+        .page-alert.error { background: #fef2f2; color: #991b1b; }
+        .btn { padding: 8px 16px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; }
+        .btn-gray { background: #f1f5f9; color: #475569; }
+        .btn-amber { background: var(--amber); color: #fff; }
+        .btn-red { background: #dc2626; color: #fff; }
+        .f-input { width: 100%; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px; }
+    </style>
+</head>
+<body>
+<div class="page-wrap">
+    <aside class="sidebar">
+        <div class="sidebar-logo"><i class="fas fa-print"></i><span class="brand-text">PrintProTrack</span><span class="sidebar-badge">MANAGER</span></div>
+        <nav class="sidebar-nav">
+            <div class="nav-label">Main</div>
+            <a href='/manager-dashboard' class="nav-link"><i class="fas fa-house"></i> Dashboard</a>
+            <a href='/manager-dashboard#profile' class="nav-link"><i class="fas fa-circle-user"></i> My Profile</a>
+            <div class="nav-label">Operations</div>
+            <a href='/manager-maintenance' class="nav-link"><i class="fas fa-screwdriver-wrench"></i> Machine Maintenance</a>
+            <a href='/manager-energy' class="nav-link active"><i class="fas fa-bolt"></i> Energy Monitoring</a>
+            <a href='/manager-spareparts' class="nav-link"><i class="fas fa-cogs"></i> Spare Parts</a>
+            <a href='/manager-suppliers' class="nav-link"><i class="fas fa-truck"></i> Suppliers</a>
+            <a href='/manager-materials' class="nav-link"><i class="fas fa-scroll"></i> Material Management</a>
+        </nav>
+        <div class="sidebar-footer"><button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Sign Out</button></div>
+    </aside>
+    <div class="main">
+        <nav class="topnav"><div><i class="fas fa-bolt"></i> Energy Dashboard</div><div><span>Welcome, <strong id="topbarName">Manager</strong></span><button onclick="logout()" style="margin-left:15px;">Logout</button></div></nav>
+        <div class="scroll-area">
+            <div id="pageAlert" class="page-alert"></div>
+            <div class="banner"><div><h1>Real‑Time Energy Monitoring</h1><p>View, edit, or delete energy readings.</p></div></div>
+            <div class="kpi-grid"><div class="kpi-card"><div>Total Energy</div><div id="kpiEnergy">—</div></div><div class="kpi-card"><div>Energy Cost</div><div id="kpiCost">—</div></div><div class="kpi-card"><div>Total Runtime</div><div id="kpiRuntime">—</div></div><div class="kpi-card"><div>Avg PF</div><div id="kpiPF">—</div></div></div>
+            <div class="status-grid"><div class="status-card">Machines <span id="kpiMachines">—</span></div><div class="status-card">Running <span id="kpiRunning">—</span></div><div class="status-card">Idle <span id="kpiIdle">—</span></div><div class="status-card">Stopped <span id="kpiStopped">—</span></div></div>
+            <div class="charts-row"><div class="chart-card wide"><canvas id="trendChart"></canvas></div><div class="chart-card"><canvas id="statusChart"></canvas></div></div>
+            <div class="panel"><div class="panel-header"><div>Energy Readings</div><div><span id="readingCount">0 records</span></div></div>
+                <div class="page-tabs"><button class="page-tab active" onclick="switchTab('readings')">Readings Table</button><button class="page-tab" onclick="switchTab('report')">Analytics Report</button></div>
+                <div id="tabReadings"><div style="padding:12px"><input id="searchInput" placeholder="Search machine..." class="f-input" style="width:250px"></div><div id="tableWrap"><table class="data-table"><thead><tr><th>#</th><th>Machine</th><th>Energy (kWh)</th><th>Power (kW)</th><th>Status</th><th>Runtime</th><th>Cost</th><th>Timestamp</th><th>Actions</th></tr></thead><tbody id="tableBody"></tbody></table></div><div id="tableEmpty" class="empty-state" style="display:none">No readings found.</div></div>
+                <div id="tabReport" style="display:none;padding:24px">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+                        <div>
+                            <div style="font-size:16px;font-weight:700">Analytics Summary Report</div>
+                            <div style="font-size:12px;color:#94a3b8;margin-top:2px">Comprehensive energy analysis for selected period</div>
+                        </div>
+                        <button onclick="printReport()" class="btn btn-gray" style="padding:8px 16px; border-radius:8px; border:none; cursor:pointer;"><i class="fas fa-print"></i> Print / Export</button>
+                    </div>
+                    <div id="reportContent"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="actionModal" class="overlay">
+    <div class="modal w-full max-w-md">
+        <div class="modal-head" style="padding: 22px 26px 18px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between;">
+            <h3 class="font-bold text-lg" id="actionModalTitle" style="margin:0;">Action</h3>
+            <button class="modal-close" onclick="closeActionModal()" style="background: #f1f5f9; border: none; width: 30px; height: 30px; border-radius: 8px; cursor: pointer; color: #64748b;"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body" style="padding: 22px 26px;">
+            <div id="actionModalBody" class="mb-4 text-sm text-gray-600"></div>
+            <div id="actionModalInputs"></div>
+        </div>
+        <div class="modal-foot bg-gray-50 flex justify-end gap-2" style="padding: 16px 26px 22px; display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #f1f5f9;">
+            <button class="btn btn-ghost" onclick="closeActionModal()" style="background: #f1f5f9; color: #475569;">Cancel</button>
+            <button id="actionModalConfirmBtn" class="btn btn-amber">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<div id="viewModal" class="overlay">
+    <div class="modal w-full max-w-lg">
+        <div class="modal-head" style="padding: 22px 26px 18px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between;">
+            <h3 class="font-bold text-lg" id="viewModalTitle" style="margin:0;">Details</h3>
+            <button class="modal-close" onclick="document.getElementById('viewModal').classList.remove('open')" style="background: #f1f5f9; border: none; width: 30px; height: 30px; border-radius: 8px; cursor: pointer; color: #64748b;"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body text-sm text-gray-700 bg-gray-50 rounded-lg p-6 m-4 overflow-auto max-h-96" id="viewModalContent" style="padding: 22px 26px;">
+        </div>
+    </div>
+</div>
+
+<script>
+    const ENERGY_API = 'http://localhost:8080/api/energy';
+    const token = localStorage.getItem('token');
+    if (!token) location.href = '/login';
+    function H() { return { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }; }
+
+    let currentPeriod = 'TODAY';
+    let currentAnalytics = null;
+    let trendChart, statusChart;
+    async function loadAnalytics() {
+        try {
+            const r = await fetch(`${ENERGY_API}/analytics?period=${currentPeriod}`, { headers: H() });
+            if (!r.ok) throw new Error();
+            const d = await r.json();
+            currentAnalytics = d;
+            document.getElementById('kpiEnergy').innerText = d.totalEnergyKwh != null ? d.totalEnergyKwh.toFixed(2)+' kWh' : '0';
+            document.getElementById('kpiCost').innerText = d.totalCost != null ? '$'+d.totalCost.toFixed(2) : '$0';
+            document.getElementById('kpiRuntime').innerText = d.totalRuntimeMinutes != null ? (d.totalRuntimeMinutes/60).toFixed(1)+' h' : '0';
+            document.getElementById('kpiPF').innerText = d.avgPowerFactor != null ? d.avgPowerFactor.toFixed(4) : '—';
+            document.getElementById('kpiMachines').innerText = d.totalMachines||0;
+            document.getElementById('kpiRunning').innerText = d.runningMachines||0;
+            document.getElementById('kpiIdle').innerText = d.idleMachines||0;
+            document.getElementById('kpiStopped').innerText = d.stoppedMachines||0;
+            if (d.trendData && d.trendData.length) {
+                if (trendChart) trendChart.destroy();
+                trendChart = new Chart(document.getElementById('trendChart'), { type:'line', data:{ labels:d.trendData.map(t=>t.label), datasets:[{ label:'kWh', data:d.trendData.map(t=>t.kwh), borderColor:'#d97706' }] } });
+            }
+            if (d.statusDistribution) {
+                if (statusChart) statusChart.destroy();
+                statusChart = new Chart(document.getElementById('statusChart'), { type:'doughnut', data:{ labels:d.statusDistribution.map(s=>s.status), datasets:[{ data:d.statusDistribution.map(s=>s.count), backgroundColor:['#22c55e','#f59e0b','#ef4444'] }] } });
+            }
+        } catch(e) { console.warn(e); }
+    }
+
+    async function loadReadings() {
+        try {
+            const r = await fetch(`${ENERGY_API}/readings`, { headers: H() });
+            const data = await r.json();
+            document.getElementById('readingCount').innerText = `${data.length} records`;
+            if (!data.length) { document.getElementById('tableEmpty').style.display='block'; document.getElementById('tableWrap').style.display='none'; return; }
+            document.getElementById('tableEmpty').style.display='none'; document.getElementById('tableWrap').style.display='block';
+            document.getElementById('tableBody').innerHTML = data.map((r,i)=>`<tr><td>${i+1}</td><td>${escapeHtml(r.machineName)}</td><td>${r.energyKwh.toFixed(2)}</td><td>${r.powerKw||'—'}</td><td><span class="badge b-${(r.machineStatus||'').toLowerCase()}">${r.machineStatus||'—'}</span></td><td>${r.runtimeMinutes||'—'}</td><td>${r.totalCost?'$'+r.totalCost.toFixed(2):'—'}</td><td>${new Date(r.readingTimestamp).toLocaleString()}</td><td><button class="action-btn view" onclick="viewReading(${r.id})"><i class="fas fa-eye"></i></button><button class="action-btn edit" onclick="editReading(${r.id})"><i class="fas fa-pen"></i></button><button class="action-btn del" onclick="deleteReading(${r.id})"><i class="fas fa-trash"></i></button></td></tr>`).join('');
+        } catch(e) { document.getElementById('tableEmpty').style.display='block'; }
+    }
+
+    let actionCallback = null;
+    function openActionModal(title, bodyText, inputsHtml, confirmText, confirmClass, callback) {
+        document.getElementById('actionModalTitle').innerText = title;
+        document.getElementById('actionModalBody').innerHTML = bodyText;
+        document.getElementById('actionModalInputs').innerHTML = inputsHtml || '';
+        const btn = document.getElementById('actionModalConfirmBtn');
+        btn.innerText = confirmText;
+        btn.className = `btn ${confirmClass}`;
+        actionCallback = callback;
+        document.getElementById('actionModal').classList.add('open');
+    }
+
+    function closeActionModal() {
+        document.getElementById('actionModal').classList.remove('open');
+        actionCallback = null;
+    }
+
+    document.getElementById('actionModalConfirmBtn').addEventListener('click', () => {
+        if (actionCallback) actionCallback();
+    });
+
+    function viewItemDetails(title, data) {
+        document.getElementById('viewModalTitle').innerText = title;
+        let html = '<div style="display:grid; grid-template-columns: 1fr 2fr; gap: 12px; align-items: center;">';
+        for (const [key, value] of Object.entries(data)) {
+            if (value === null || value === '' || typeof value === 'object') continue;
+            const formattedKey = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+            html += `<div style="font-weight:700; color:#64748b; text-transform:uppercase; font-size:11px">${formattedKey}</div>`;
+            html += `<div style="font-size:13.5px; font-weight:500; color:#0f1a14">${escapeHtml(String(value))}</div>`;
+        }
+        html += '</div>';
+        document.getElementById('viewModalContent').innerHTML = html;
+        document.getElementById('viewModal').classList.add('open');
+    }
+
+    function alert2(msg,type){ const el=document.getElementById('pageAlert'); el.innerHTML=msg; el.className=`page-alert show ${type}`; setTimeout(()=>el.className='page-alert',4000); }
+
+    async function viewReading(id) {
+        try {
+            const r=await (await fetch(`${ENERGY_API}/readings/${id}`,{headers:H()})).json();
+            viewItemDetails('Reading Details', r);
+        } catch(e) { alert2('Failed to load reading details', 'error'); }
+    }
+
+    async function editReading(id) {
+        try {
+            const r=await (await fetch(`${ENERGY_API}/readings/${id}`,{headers:H()})).json();
+            const inputs = `
+                <label style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; display: block; margin-bottom: 5px;">Energy (kWh)</label>
+                <input type="number" step="0.01" id="editEnergyKwh" class="f-input mb-3" value="${r.energyKwh || 0}">
+                <label style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; display: block; margin-bottom: 5px; margin-top: 10px;">Power (kW)</label>
+                <input type="number" step="0.01" id="editPowerKw" class="f-input mb-3" value="${r.powerKw || 0}">
+            `;
+            openActionModal('Edit Reading', 'Update energy parameters below:', inputs, 'Save Changes', 'btn-amber', async () => {
+                const newKwh = document.getElementById('editEnergyKwh').value;
+                const newKw = document.getElementById('editPowerKw').value;
+                r.energyKwh = parseFloat(newKwh);
+                r.powerKw = parseFloat(newKw);
+                closeActionModal();
+                try {
+                    await fetch(`${ENERGY_API}/readings/${id}`,{method:'PUT',headers:H(),body:JSON.stringify(r)});
+                    alert2('Reading updated successfully', 'success');
+                    loadReadings(); loadAnalytics();
+                } catch(e) { alert2('Failed to update reading', 'error'); }
+            });
+        } catch(e) { alert2('Failed to load reading details', 'error'); }
+    }
+
+    async function deleteReading(id) {
+        openActionModal('Delete Reading', 'Are you sure you want to delete this energy reading? This action cannot be undone.', '', 'Yes, Delete', 'btn-red', async () => {
+            closeActionModal();
+            try {
+                await fetch(`${ENERGY_API}/readings/${id}`,{method:'DELETE',headers:H()});
+                alert2('Reading deleted successfully', 'success');
+                loadReadings(); loadAnalytics();
+            } catch(e) { alert2('Failed to delete reading', 'error'); }
+        });
+    }
+
+    function switchTab(tab) {
+        document.getElementById('tabReadings').style.display = tab==='readings'?'block':'none';
+        document.getElementById('tabReport').style.display = tab==='report'?'block':'none';
+
+        const tabs = document.querySelectorAll('.page-tab');
+        if(tabs.length >= 2) {
+            tabs[0].classList.toggle('active', tab === 'readings');
+            tabs[1].classList.toggle('active', tab === 'report');
+        }
+
+        if (tab === 'report' && currentAnalytics) {
+            renderReport(currentAnalytics);
+        }
+    }
+
+    function renderReport(d) {
+        const period = {TODAY:'Today',WEEK:'Last 7 Days',MONTH:'Last 30 Days'}[d.period]||d.period||'Current';
+        document.getElementById('reportContent').innerHTML = `
+<div id="printableReport" style="border:1px solid #e2e8f0;border-radius:14px;overflow:hidden">
+    <div style="background:linear-gradient(135deg,var(--forest),var(--pine));padding:20px 24px;color:#fff;display:flex;align-items:center;justify-content:space-between">
+        <div>
+            <div style="font-size:18px;font-weight:700">PrintProTrack Energy Report</div>
+            <div style="font-size:12px;color:rgba(255,255,255,.75);margin-top:3px">Period: ${period} · Generated: ${new Date().toLocaleString()}</div>
+        </div>
+        <i class="fas fa-bolt" style="font-size:40px;color:rgba(255,255,255,.25)"></i>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid #f1f5f9">
+        ${rKpi('Total Energy',fmt2(d.totalEnergyKwh)+' kWh','fa-bolt','#f59e0b')}
+        ${rKpi('Total Cost','$'+fmt2(d.totalCost),'fa-dollar-sign','#ef4444')}
+        ${rKpi('Runtime',(d.totalRuntimeMinutes/60).toFixed(1)+' hrs','fa-clock','#3b82f6')}
+        ${rKpi('Avg PF',d.avgPowerFactor>0?fmt4(d.avgPowerFactor):'—','fa-wave-square','#8b5cf6')}
+    </div>
+    ${d.machineBreakdown&&d.machineBreakdown.length?`
+    <div style="padding:20px">
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;margin-bottom:14px">Per-Machine Analysis</div>
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead><tr style="background:#f8fafc">
+                <th style="text-align:left;padding:10px;font-size:10px;font-weight:700;text-transform:uppercase;color:#94a3b8">Machine</th>
+                <th style="text-align:right;padding:10px;font-size:10px;font-weight:700;text-transform:uppercase;color:#94a3b8">kWh</th>
+                <th style="text-align:right;padding:10px;font-size:10px;font-weight:700;text-transform:uppercase;color:#94a3b8">Runtime</th>
+                <th style="text-align:right;padding:10px;font-size:10px;font-weight:700;text-transform:uppercase;color:#94a3b8">Cost</th>
+                <th style="text-align:right;padding:10px;font-size:10px;font-weight:700;text-transform:uppercase;color:#94a3b8">%</th>
+            </tr></thead>
+            <tbody>${d.machineBreakdown.map(m=>{
+            const pct = d.totalEnergyKwh>0?((m.kwh/d.totalEnergyKwh)*100).toFixed(1):'0.0';
+            return `<tr style="border-top:1px solid #f1f5f9">
+                    <td style="padding:10px;font-weight:600">${escapeHtml(m.machine)}</td>
+                    <td style="padding:10px;text-align:right;color:#92400e;font-weight:600">${fmt2(m.kwh)}</td>
+                    <td style="padding:10px;text-align:right;color:#64748b">${m.runtime?Math.round(m.runtime/60*10)/10+' h':'—'}</td>
+                    <td style="padding:10px;text-align:right;color:#dc2626;font-weight:600">$${fmt2(m.cost)}</td>
+                    <td style="padding:10px;text-align:right;color:#64748b">${pct}%</td>
+                </tr>`;
+        }).join('')}</tbody>
+        </table>
+    </div>` : '<div class="empty-state" style="padding:30px; text-align:center; color:#94a3b8;"><p>No machine data to report.</p></div>'}
+</div>`;
+    }
+
+    function rKpi(label, val, icon, color) {
+        return `<div style="padding:18px;text-align:center;border-right:1px solid #f1f5f9">
+    <i class="fas ${icon}" style="color:${color};font-size:18px;margin-bottom:6px;display:block"></i>
+    <div style="font-size:22px;font-weight:700">${val}</div>
+    <div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.8px;margin-top:3px;font-weight:700">${label}</div>
+</div>`;
+    }
+
+    function printReport() {
+        const el = document.getElementById('printableReport');
+        if (!el) return;
+        const w = window.open('','_blank');
+        w.document.write(`<!DOCTYPE html><html><head><title>Energy Report — PrintProTrack</title>
+<script src="https://cdn.tailwindcss.com"><\/script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" /></head><body style="padding:24px;font-family:sans-serif">${el.outerHTML}<script>window.print();<\/script></body></html>`);
+        w.document.close();
+    }
+
+    function fmt2(n) { return n!=null?Number(n).toFixed(2):'—'; }
+    function fmt4(n) { return n!=null?Number(n).toFixed(4):'—'; }
+    function escapeHtml(s){ return s?String(s).replace(/[&<>]/g,function(m){if(m==='&')return'&amp;';if(m==='<')return'&lt;';if(m==='>')return'&gt;';return m;}):''; }
+    function logout(){ localStorage.clear(); location.href='/'; }
+    loadAnalytics(); loadReadings();
+</script>
+</body>
+</html>
